@@ -1,0 +1,99 @@
+/* =========================================================================
+   Base : reset, fond animé, coquille de l'application (repris du Studio)
+   ========================================================================= */
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--fs-md);
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+h1, h2, h3, h4 { margin: 0; line-height: 1.2; font-weight: 600; letter-spacing: -0.01em; }
+h1 { font-family: var(--font-display); font-weight: 500; letter-spacing: -0.02em; }
+p { margin: 0 0 var(--sp-3); }
+code, kbd { font-family: var(--font-mono); font-size: 0.86em; }
+kbd {
+  padding: 1px 6px; border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: var(--glass-bg-soft);
+  color: var(--text-3); font-size: 11px;
+}
+::selection { background: rgba(var(--accent-rgb), .35); }
+:focus-visible { outline: 2px solid rgba(var(--accent-rgb), .9); outline-offset: 2px; border-radius: 6px; }
+
+* { scrollbar-width: thin; scrollbar-color: var(--line-strong) transparent; }
+*::-webkit-scrollbar { width: 10px; height: 10px; }
+*::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
+
+/* ---------- Fond animé ---------- */
+#bg3d { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; display: block; }
+.bg-fallback {
+  position: fixed; inset: 0; z-index: -1;
+  background:
+    radial-gradient(60vw 60vw at 15% 10%, rgba(var(--accent-rgb), .35), transparent 60%),
+    radial-gradient(50vw 50vw at 90% 80%, rgba(90, 120, 255, .22), transparent 60%),
+    radial-gradient(40vw 40vw at 60% 30%, rgba(40, 200, 170, .14), transparent 60%),
+    var(--bg);
+}
+.no-webgl #bg3d { display: none; }
+.no-webgl .bg-fallback { z-index: 0; }
+
+/* ---------- Coquille ---------- */
+.app {
+  position: relative; z-index: 1;
+  display: flex; flex-direction: column;
+  height: 100vh; gap: var(--sp-3); padding: var(--sp-3);
+}
+
+.topbar {
+  display: flex; align-items: center; gap: var(--sp-4);
+  padding: var(--sp-2) var(--sp-3);
+  border-radius: var(--r-lg);
+  min-height: 56px;
+}
+.brand { display: flex; align-items: center; gap: var(--sp-3); flex: none; }
+.brand-mark {
+  width: 36px; height: 36px; border-radius: 11px; flex: none;
+  display: grid; place-items: center;
+  font-weight: 700; font-size: 14px; color: #fff; letter-spacing: .02em;
+  background: linear-gradient(160deg, rgba(var(--accent-rgb), 1), rgba(var(--accent-rgb), .55));
+  box-shadow: 0 8px 24px -8px rgba(var(--accent-rgb), .8), inset 0 1px 0 rgba(255,255,255,.35);
+  transition: background var(--t-med) var(--ease);
+}
+.brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.brand-text strong { font-family: var(--font-display); font-size: 17px; font-weight: 600; }
+.brand-text small { color: var(--text-3); font-size: var(--fs-xs); }
+.topbar-actions { margin-left: auto; display: flex; gap: var(--sp-1); }
+
+.workspace {
+  flex: 1; min-height: 0;
+  display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: var(--sp-3);
+}
+.workspace > * { animation: viewIn var(--t-med) var(--ease) backwards; }
+@keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+@media (max-width: 1080px) {
+  body { overflow: auto; }
+  .app { height: auto; min-height: 100vh; }
+  .workspace { grid-template-columns: 1fr; }
+  .grid-card { height: 72vh; }
+  .side { max-height: none; }
+}
+@media (max-width: 640px) {
+  .app { padding: var(--sp-2); }
+  .topbar { flex-wrap: wrap; gap: var(--sp-2); }
+  .brand-text { display: none; }
+  .puzzle-tabs { order: 3; width: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
+}

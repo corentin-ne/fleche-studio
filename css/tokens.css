@@ -1,0 +1,110 @@
+/* =========================================================================
+   Design tokens — Studio Habitats
+   Thème « liquid glass » : surfaces translucides, flou d'arrière-plan,
+   reflets spéculaires. L'accent suit le fascicule actif (--accent).
+   ========================================================================= */
+
+:root {
+  /* Typographie */
+  --font-sans: "Inter", "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --font-display: "Fraunces", "Iowan Old Style", Georgia, serif;
+  --font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+
+  --fs-xs: 0.75rem;
+  --fs-sm: 0.8125rem;
+  --fs-md: 0.9375rem;
+  --fs-lg: 1.125rem;
+  --fs-xl: 1.5rem;
+  --fs-2xl: 2.125rem;
+  --fs-3xl: 2.875rem;
+
+  /* Espacements */
+  --sp-1: 4px;  --sp-2: 8px;  --sp-3: 12px; --sp-4: 16px;
+  --sp-5: 20px; --sp-6: 24px; --sp-8: 32px; --sp-10: 40px;
+
+  /* Rayons */
+  --r-sm: 10px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 28px;
+  --r-pill: 999px;
+
+  /* Mouvement */
+  --ease: cubic-bezier(.2, .8, .2, 1);
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);
+  --t-fast: 140ms;
+  --t-med: 260ms;
+
+  /* Accent (redéfini dynamiquement par fascicule) */
+  --accent: #c00000;
+  --accent-rgb: 192, 0, 0;
+
+  /* Couleurs fonctionnelles de la charte (Tableau 1) */
+  --ch-red: rgb(192, 0, 0);
+  --ch-green: rgb(168, 208, 141);
+  --ch-green-light: rgb(226, 239, 217);
+  --ch-orange: rgb(244, 176, 131);
+  --ch-blue: rgb(156, 194, 229);
+  --ch-rose: rgb(255, 117, 117);
+  --ch-red-etat: rgb(192, 0, 0);       /* état « perte du caractère communautaire » */
+
+  /* Statuts */
+  --ok: #3ccf8e;
+  --warn: #f5b544;
+  --err: #ff5d6c;
+  --info: #5aa9ff;
+
+  --sidebar-w: 220px;
+  --rail-w: 60px;
+}
+
+/* ---------- Thème sombre (par défaut) ---------- */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #07090d;
+  --bg-2: #0d1118;
+  --text: #eef1f6;
+  --text-2: #a9b1c0;
+  --text-3: #6f7889;
+  --line: rgba(255, 255, 255, 0.09);
+  --line-strong: rgba(255, 255, 255, 0.16);
+
+  --glass-bg: rgba(22, 27, 38, 0.52);
+  --glass-bg-strong: rgba(26, 31, 44, 0.74);
+  --glass-bg-soft: rgba(255, 255, 255, 0.045);
+  --glass-hover: rgba(255, 255, 255, 0.07);
+  --glass-border: rgba(255, 255, 255, 0.12);
+  --glass-highlight: rgba(255, 255, 255, 0.22);
+  --glass-shadow: 0 1px 0 rgba(255,255,255,.06) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.7), 0 2px 8px rgba(0,0,0,.25);
+  --field-bg: rgba(0, 0, 0, 0.28);
+  --scrim: rgba(3, 5, 9, 0.6);
+}
+
+/* ---------- Thème clair ---------- */
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #eef1f6;
+  --bg-2: #e3e8f0;
+  --text: #121722;
+  --text-2: #4a5466;
+  --text-3: #808a9c;
+  --line: rgba(16, 24, 40, 0.09);
+  --line-strong: rgba(16, 24, 40, 0.16);
+
+  --glass-bg: rgba(255, 255, 255, 0.56);
+  --glass-bg-strong: rgba(255, 255, 255, 0.82);
+  --glass-bg-soft: rgba(255, 255, 255, 0.4);
+  --glass-hover: rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(255, 255, 255, 0.75);
+  --glass-highlight: rgba(255, 255, 255, 0.95);
+  --glass-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 20px 50px -24px rgba(30, 40, 70, 0.35), 0 2px 6px rgba(30,40,70,.08);
+  --field-bg: rgba(255, 255, 255, 0.7);
+  --scrim: rgba(220, 226, 236, 0.55);
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+  }
+}

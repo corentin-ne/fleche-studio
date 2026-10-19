@@ -1,0 +1,69 @@
+/* =========================================================================
+   Liquid glass — surfaces translucides à reflets
+   .glass        : panneau principal (flou fort + bord lumineux)
+   .glass-soft   : surface secondaire imbriquée
+   ========================================================================= */
+
+.glass {
+  position: relative;
+  background: var(--glass-bg);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  backdrop-filter: blur(28px) saturate(170%);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  isolation: isolate;
+}
+
+/* Reflet spéculaire : un dégradé lumineux sur le bord supérieur */
+.glass::before {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(160deg, var(--glass-highlight), transparent 38%, transparent 70%, rgba(var(--accent-rgb), .28));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask-composite: exclude;
+  pointer-events: none;
+  z-index: -1;
+}
+
+/* Lueur interne douce, comme une lentille */
+.glass::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(120% 60% at 0% 0%, rgba(255,255,255,.07), transparent 55%);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.glass-soft {
+  background: var(--glass-bg-soft);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.glass-strong {
+  background: var(--glass-bg-strong);
+}
+
+/* Effet « lentille » au survol pour les cartes interactives */
+.glass.interactive {
+  transition: transform var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease), background var(--t-med) var(--ease);
+  cursor: pointer;
+}
+.glass.interactive:hover {
+  transform: translateY(-2px);
+  background: var(--glass-bg-strong);
+  box-shadow: var(--glass-shadow), 0 24px 60px -28px rgba(var(--accent-rgb), .55);
+}
+.glass.interactive[data-glow]::after {
+  background: radial-gradient(240px circle at var(--mx, 50%) var(--my, 50%), rgba(255,255,255,.10), transparent 60%);
+  opacity: 0; transition: opacity var(--t-med) var(--ease);
+}
+.glass.interactive[data-glow]:hover::after { opacity: 1; }
+
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass { background: var(--glass-bg-strong); }
+}

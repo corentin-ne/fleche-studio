@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="fr" data-theme="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mots fléchés Maker</title>
+  <meta name="theme-color" content="#07090d">
+  <meta name="description" content="Créateur de grilles de mots fléchés pleines (format magazine) avec vos mots perso, export PNG / SVG pour Canva.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%23e8212b'/%3E%3Cpath d='M18 18h12v12H18zM34 34h12v12H34z' fill='white'/%3E%3Cpath d='M34 22h10l-4-4m4 4-4 4' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/glass.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/app.css">
+  <link rel="stylesheet" href="css/print.css">
+</head>
+<body>
+  <canvas id="bg3d" aria-hidden="true"></canvas>
+  <div class="bg-fallback" aria-hidden="true"></div>
+
+  <div class="app">
+    <header class="topbar glass">
+      <div class="brand">
+        <span class="brand-mark" aria-hidden="true">MF</span>
+        <span class="brand-text"><strong>Mots fléchés</strong><small>Maker</small></span>
+      </div>
+      <nav class="puzzle-tabs" id="puzzle-tabs" aria-label="Grilles"></nav>
+      <div class="topbar-actions">
+        <button class="btn btn-ghost btn-icon" id="btn-import" title="Importer un fichier JSON" aria-label="Importer"><span data-icon="upload"></span></button>
+        <button class="btn btn-ghost btn-icon" id="btn-export-json" title="Sauvegarder toutes les grilles (JSON)" aria-label="Sauvegarder en JSON"><span data-icon="download"></span></button>
+        <button class="btn btn-ghost btn-icon" id="btn-theme" title="Thème clair / sombre" aria-label="Changer de thème"><span data-icon="contrast"></span></button>
+        <input type="file" id="file-import" accept=".json,application/json" hidden>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="grid-card glass" aria-label="Grille">
+        <div class="grid-head">
+          <div class="grid-title">
+            <div class="eyebrow">Mes 25 ans en fléchés</div>
+            <h1 id="grid-name">—</h1>
+            <div class="grid-stats" id="grid-stats"></div>
+          </div>
+          <div class="grid-tools">
+            <div class="segmented page-switch" id="page-switch" aria-label="Grilles" hidden></div>
+            <div class="segmented" id="mode-switch" role="tablist" aria-label="Affichage">
+              <button data-mode="solution"><span data-icon="eye"></span>Solution</button>
+              <button data-mode="blank"><span data-icon="eyeOff"></span>Vierge</button>
+              <button data-mode="play"><span data-icon="play"></span>Jouer</button>
+            </div>
+            <div class="zoom">
+              <button class="btn btn-sm btn-ghost" id="btn-fit" title="Ajuster la grille à l'écran"><span data-icon="grid"></span>Ajuster</button>
+              <input type="range" id="zoom" min="16" max="120" step="2" aria-label="Zoom" title="Zoom (Ctrl + molette)">
+            </div>
+            <button class="btn" id="btn-shuffle" title="Calculer une nouvelle grille"><span data-icon="shuffle"></span>Mélanger</button>
+            <button class="btn btn-primary" id="btn-export"><span data-icon="image"></span>Exporter</button>
+          </div>
+        </div>
+        <div class="gen-bar" id="gen-bar" hidden>
+          <div class="progress"><i id="gen-progress" style="width:0%"></i></div>
+          <span id="gen-label">Construction de la grille : placement de vos mots, puis remplissage…</span>
+        </div>
+        <div class="stale-bar" id="stale-bar" hidden>
+          <span data-icon="info"></span>
+          <span>La liste de mots a changé depuis le dernier calcul.</span>
+          <span class="spacer"></span>
+          <button class="btn btn-sm btn-primary" data-regen><span data-icon="refresh"></span>Recalculer la grille</button>
+        </div>
+        <div class="play-bar" id="play-bar" hidden>
+          <span class="muted small">Clique une case et tape. Re-clique pour changer de sens, flèches pour se déplacer.</span>
+          <span class="spacer"></span>
+          <button class="btn btn-sm" id="btn-check"><span data-icon="check"></span>Vérifier</button>
+          <button class="btn btn-sm btn-ghost" id="btn-clear-play"><span data-icon="refresh"></span>Effacer</button>
+        </div>
+        <div class="grid-scroll" id="grid-scroll"></div>
+      </section>
+
+      <aside class="side glass" aria-label="Édition">
+        <div class="tabs" id="side-tabs" role="tablist">
+          <button data-tab="words"><span data-icon="list"></span>Mots <span class="badge" id="count-words">0</span></button>
+          <button data-tab="diag"><span data-icon="edit"></span>Définitions <span class="badge" id="count-diag">0</span></button>
+          <button data-tab="settings"><span data-icon="sliders"></span>Réglages</button>
+        </div>
+        <div class="side-body" id="side-body"></div>
+      </aside>
+    </main>
+  </div>
+
+  <div id="print-area" aria-hidden="true"></div>
+  <div id="modal-root"></div>
+  <div class="toasts" id="toasts" aria-live="polite"></div>
+
+  <!-- Bibliothèque externe facultative : sans elle, fond dégradé statique -->
+  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+
+  <!-- Noyau & données -->
+  <script src="js/core/utils.js"></script>
+  <script src="js/data/seed.js"></script>
+  <script src="js/core/store.js"></script>
+  <script src="js/core/zip.js"></script>
+
+  <!-- Dictionnaire : mots courants avec leur définition -->
+  <script src="js/data/clues-fr.js"></script>
+
+  <!-- Moteur -->
+  <script src="js/engine/builder.js"></script>
+  <script src="js/engine/grid-model.js"></script>
+  <script src="js/engine/diagnostics.js"></script>
+  <script src="js/engine/renderers.js"></script>
+
+  <!-- Interface -->
+  <script src="js/ui/components.js"></script>
+  <script src="js/ui/background3d.js"></script>
+  <script src="js/ui/grid-view.js"></script>
+  <script src="js/ui/exporter.js"></script>
+  <script src="js/ui/panels.js"></script>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

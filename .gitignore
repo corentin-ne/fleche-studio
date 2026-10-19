@@ -1,0 +1,12 @@
+# OS / éditeurs
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Réglages locaux de Claude Code
+.claude/settings.local.json
+
+# Exports générés
+*.zip
