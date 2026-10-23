@@ -145,6 +145,17 @@
     setPuzzle(patch) { mutatePuzzle(p => Object.assign(p, patch), 'puzzle'); },
     setOption(k, v) { actions.setOptions({ [k]: v }); },
     setOptions(patch) { mutatePuzzle(p => Object.assign(p.options, patch), 'puzzle'); },
+    /** Format / orientation : une taille fixe est convertie pour garder le même aspect sur la nouvelle feuille. */
+    setPaper(patch) {
+      mutatePuzzle(p => {
+        const next = { ...p.options, ...patch };
+        if (p.options.size === 'fixed') {
+          const { cols, rows } = MF.paper.convert(p.options.cols, p.options.rows, p.options, next);
+          Object.assign(next, { cols: Math.min(50, Math.max(7, cols)), rows: Math.min(50, Math.max(7, rows)) });
+        }
+        Object.assign(p.options, next);
+      }, 'puzzle');
+    },
     setPhotoMarks(on) { store.update(s => { s.ui.photoMarks = on; }, 'ui'); },
     duplicatePuzzle() {
       const src = active();
@@ -171,6 +182,7 @@
       name: pages.length > 1 ? `${pz.name} grille ${i + 1}` : pz.name,
       accent: pz.accent,
       style: { clueFill: pz.options.clueFill },
+      paper: MF.paper.of(pz.options),
       model: MF.gridModel.from(pg, pz),
     }));
   }

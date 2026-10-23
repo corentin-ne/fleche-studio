@@ -33,6 +33,8 @@ MF.icons = (() => {
     more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
     archive: '<rect x="2" y="3" width="20" height="5" rx="1"/><path d="M4 8v11a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8M10 12h4"/>',
     star: '<path d="m12 3 2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9Z"/>',
+    'page-portrait': '<rect x="6" y="3" width="12" height="18" rx="1.5"/>',
+    'page-landscape': '<rect x="3" y="6" width="18" height="12" rx="1.5"/>',
   };
   const svg = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[name] || ''}</svg>`;
   /** Remplace les <span data-icon="nom"> par l'icône correspondante. */

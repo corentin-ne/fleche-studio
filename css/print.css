@@ -1,4 +1,5 @@
-/* Impression : seule la grille (préparée dans #print-area par l'exporteur) est imprimée. */
+/* Impression : seule la grille (préparée dans #print-area par l'exporteur) est imprimée.
+   Le format de la feuille (@page, hauteur max) est injecté par l'exporteur selon la grille (MF.paper.printCss). */
 @media print {
   @page { size: A4 portrait; margin: 12mm; }
   body { overflow: visible; background: #fff; }

@@ -5,7 +5,7 @@ window.MF = window.MF || {};
 
 MF.store = (() => {
   const KEY = 'mots-fleches-maker:v1';
-  const DEFAULT_OPTIONS = { size: 'auto', pages: 1, fillers: true, cols: 15, rows: 21, effort: 'normal', clueFill: 'tint', photoBand: 6 };
+  const DEFAULT_OPTIONS = { size: 'auto', pages: 1, fillers: true, cols: 15, rows: 21, effort: 'normal', clueFill: 'tint', photoBand: 6, paper: 'A4', orientation: 'portrait' };
   const listeners = new Set();
   let state = null;
 

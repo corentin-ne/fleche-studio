@@ -324,15 +324,15 @@ MF.builder = (() => {
     return { engine: 'builder', frame: board.frame, rows, words, photos, unplaced: all.filter(it => !placed.has(it.id)).map(it => it.id), ...extra };
   }
 
-  /** Cadre au format A4 portrait (≈ 0,72) de h lignes, dont `top` lignes de bande photo en haut. */
-  const a4Frame = (h, top = 0) => ({ w: Math.max(7, Math.round(h * 0.72)), h, top });
+  /** Cadre aux proportions de la feuille (portrait ou paysage) de h lignes, dont `top` lignes de bande photo en haut. */
+  const sheetFrame = (opts, h, top = 0) => ({ w: MF.paper.colsFor(h, opts), h, top });
 
   /** Hauteur de la bande photo, bornée pour laisser au moins 7 lignes de grille. */
   const bandRows = (opts, h) => Math.max(0, Math.min(+opts.photoBand || 0, h - 7));
 
   /**
    * Recherche asynchrone.
-   *  - Taille « auto » (par défaut) : la grille s'agrandit (format A4) jusqu'à ce que TOUS
+   *  - Taille « auto » (par défaut) : la grille s'agrandit (aux proportions de la feuille) jusqu'à ce que TOUS
    *    les mots perso y entrent, puis on peaufine à cette taille.
    *  - Taille fixe : on place le maximum de mots perso dans le cadre demandé.
    * Ensuite, comblement des meilleures dispositions ; on garde celle qui laisse le moins de cases photo.
@@ -378,14 +378,19 @@ MF.builder = (() => {
       const h = opts.rows || 21;
       top = await search({ w: opts.cols || 15, h, top: bandRows(opts, h) }, budget * 0.7, false);
     } else {
-      // Plus petit cadre A4 dont la partie sous la bande photo contient tous les mots
-      // (le plus long doit au moins tenir en hauteur, la surface utile doit suffire)
+      // Plus petit cadre (aux proportions de la feuille) dont la partie sous la bande photo contient
+      // tous les mots : le plus long doit tenir dans un sens, la surface utile doit suffire.
+      // En A3, on part d'une taille minimale pour profiter de toute la feuille.
       const band = +opts.photoBand || 0;
       const longest = Math.max(...all.map(it => it.norm.length), 5);
       const letters = all.reduce((s, it) => s + it.norm.length, 0);
-      let h = longest + 1 + band;
-      while (a4Frame(h).w * (h - band) < letters * 2.2) h++;
-      const frameAt = hh => a4Frame(hh, bandRows(opts, hh));
+      const frameAt = hh => sheetFrame(opts, hh, bandRows(opts, hh));
+      const roomy = hh => {
+        const f = frameAt(hh), useful = hh - f.top;
+        return Math.max(f.w, useful) > longest && f.w * useful >= letters * 2.2;
+      };
+      let h = Math.max(band + 7, MF.paper.minRows(opts));
+      while (!roomy(h)) h++;
       for (; h <= 70; h++) {
         top = await search(frameAt(h), Math.max(500, budget / 8), true);
         if (!top) return null;
@@ -416,7 +421,11 @@ MF.builder = (() => {
     return best;
   }
 
-  const optionsKey = (o = {}) => `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}`;
+  const optionsKey = (o = {}) => {
+    const paper = MF.paper.label(o);
+    // A4 portrait (format historique) n'apparaît pas : les grilles déjà calculées restent à jour
+    return `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}${paper === 'A4 portrait' ? '' : `|${paper}`}`;
+  };
 
   /** Empreinte des données qui influencent la grille. */
   function layoutHash(puzzle) {

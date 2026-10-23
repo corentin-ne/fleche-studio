@@ -34,6 +34,10 @@ MF.exporter = (() => {
 
   function print(page, { letters }) {
     const area = document.getElementById('print-area');
+    // Format de la feuille (A4 / A3, portrait / paysage) : @page ne peut pas être modifié autrement
+    let sheet = document.getElementById('print-page');
+    if (!sheet) { sheet = document.createElement('style'); sheet.id = 'print-page'; document.head.appendChild(sheet); }
+    sheet.textContent = MF.paper.printCss(page.paper);
     area.innerHTML = `<h1>${esc(page.name)}</h1>${MF.renderers.svg(page.model, page.accent, { letters, style: page.style, forExport: true })}`;
     window.print();
   }
@@ -90,7 +94,7 @@ MF.exporter = (() => {
             <p><strong>Pour Canva :</strong> importe le PNG HD (ou le SVG) puis place-le sous les photos.
             ${page.model.band ? `La bande du haut (${page.model.band} lignes) et les cases photo` : 'Le cadre et les cases photo'} sont pleins dans la couleur de la grille : ta pote peut poser les images dessus sans masquer de case à remplir.</p>
           </div>
-          <div class="muted small">${page.model.cols} × ${page.model.rows} cases${page.model.band ? ` · dont ${page.model.band} lignes de bande photo` : ''}</div>
+          <div class="muted small">${MF.paper.label(page.paper)} · ${page.model.cols} × ${page.model.rows} cases${page.model.band ? ` · dont ${page.model.band} lignes de bande photo` : ''}</div>
         </div>
       </div>`;
 
@@ -98,8 +102,8 @@ MF.exporter = (() => {
     const scope = () => scopes.find(s => s.id === scopeId);
     const refresh = root => {
       root.querySelector('#exp-preview').innerHTML = MF.renderers.svg(page.model, page.accent, { letters, style: page.style, forExport: true });
-      // Une case = 100 px en « Standard » : ~300 dpi pour une grille d'environ 20 cases de large en A4
-      root.querySelector('#exp-px').textContent = `${Math.round(w * scale)} × ${Math.round(h * scale)} px · ~${300 * scale} dpi en A4`;
+      const pw = Math.round(w * scale), ph = Math.round(h * scale);
+      root.querySelector('#exp-px').textContent = `${pw} × ${ph} px · ~${MF.paper.dpi(pw, ph, page.paper)} dpi en ${MF.paper.label(page.paper)}`;
       const hint = root.querySelector('#exp-bundle-hint');
       if (hint) {
         const n = scope().pages.length;

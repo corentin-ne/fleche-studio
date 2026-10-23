@@ -165,6 +165,11 @@
 .size-presets { display: flex; flex-wrap: wrap; gap: 6px; }
 .size-presets button { height: 30px; padding: 0 10px; border-radius: 8px; border: 1px solid var(--line-strong); background: var(--glass-bg-soft); color: var(--text-2); font: 500 var(--fs-xs) var(--font-sans); cursor: pointer; }
 .size-presets button.active { color: var(--text); border-color: rgba(var(--accent-rgb), .8); background: rgba(var(--accent-rgb), .16); }
+.paper-row { flex-wrap: wrap; gap: var(--sp-2); }
+.paper-row .segmented button { display: inline-flex; align-items: center; gap: 6px; }
+.paper-row .segmented .ic { width: 14px; height: 14px; }
+#set-one-a3 { align-self: flex-start; margin-top: 4px; }
+#set-one-a3:disabled { opacity: 1; cursor: default; }
 .grid-scroll > .empty { margin: auto; }
 .spinner { display: block; width: 26px; height: 26px; margin: 0 auto var(--sp-3); border-radius: 50%; border: 3px solid var(--line-strong); border-top-color: var(--accent); animation: spin .8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

@@ -217,7 +217,7 @@ MF.panels = (() => {
 
       ${outWords.length ? `
       <div class="section-title">${ic('grid')}Mots perso hors de cette grille <span class="badge">${outWords.length}</span></div>
-      <p class="muted small">Une seule grille A4 ne peut pas tous les contenir. Mets une ${ic('star', 'ic-inline')} aux plus importants (onglet Mots) puis recalcule, ou prends une grille plus grande dans Réglages.</p>
+      <p class="muted small">Cette grille ${esc(MF.paper.label(puzzle.options))} ne peut pas tous les contenir. Mets une ${ic('star', 'ic-inline')} aux plus importants (onglet Mots) puis recalcule, ou prends une grille plus grande dans Réglages.</p>
       <div class="chips">${outWords.map(w => `<span class="chip mono" title="${esc(w.clue)}">${esc(normalize(w.text))}</span>`).join(' ')}</div>` : ''}
 
       ${issues.length ? `<div class="section-title">${ic('alert')}À vérifier</div><div class="checks">${issues.map(it => `
@@ -246,13 +246,13 @@ MF.panels = (() => {
   }
 
   /* =================== Réglages =================== */
-  // Formats proches de l'A4 portrait, comme en magazine
-  const SIZE_PRESETS = [[13, 17, 'A4 compact'], [15, 21, 'A4 standard'], [17, 24, 'A4 grand'], [15, 15, 'Carré']];
   const PRESETS = ['#e8212b', '#3db54a', '#f0457f', '#7b3fe4', '#ffb000', '#ff6a1a', '#1f8fff', '#16a394'];
 
   function settings(root, { puzzle, state, actions }) {
     const o = puzzle.options;
-    const seg = (name, items, value) => `<div class="segmented" data-opt="${name}">${items.map(([v, l]) => `<button type="button" data-v="${v}" class="${String(value) === String(v) ? 'active' : ''}">${l}</button>`).join('')}</div>`;
+    const paper = MF.paper.of(o);
+    const oneA3 = paper.format === 'A3' && +o.pages !== 2 && o.size !== 'fixed';
+    const seg =(name, items, value) => `<div class="segmented" data-opt="${name}">${items.map(([v, l]) => `<button type="button" data-v="${v}" class="${String(value) === String(v) ? 'active' : ''}">${l}</button>`).join('')}</div>`;
     root.innerHTML = `
       <div class="stack settings">
         <label class="field"><span>Nom de la grille</span><input class="input" id="set-name" value="${esc(puzzle.name)}"></label>
@@ -262,6 +262,15 @@ MF.panels = (() => {
             ${PRESETS.map(c => `<button type="button" class="swatch-btn ${c === puzzle.accent ? 'active' : ''}" data-color="${c}" style="--c:${c}" aria-label="${c}"></button>`).join('')}
             <label class="swatch-btn custom" title="Couleur personnalisée" style="--c:${puzzle.accent}"><input type="color" id="set-color" value="${puzzle.accent}"></label>
           </div>
+        </div>
+
+        <div class="field"><span>Feuille</span>
+          <div class="row paper-row">
+            <div class="segmented" data-paper="paper">${[['A4', 'A4'], ['A3', 'A3']].map(([v, l]) => `<button type="button" data-v="${v}" class="${paper.format === v ? 'active' : ''}">${l}</button>`).join('')}</div>
+            <div class="segmented" data-paper="orientation">${[['portrait', 'Portrait'], ['landscape', 'Paysage']].map(([v, l]) => `<button type="button" data-v="${v}" class="${paper.orientation === v ? 'active' : ''}">${ic(v === 'portrait' ? 'page-portrait' : 'page-landscape')}${l}</button>`).join('')}</div>
+          </div>
+          <span class="field-hint">Proportions de la grille, tailles proposées, export et impression suivent la feuille choisie.</span>
+          <button type="button" class="btn btn-sm ${oneA3 ? 'btn-primary' : ''}" id="set-one-a3" ${oneA3 ? 'disabled' : ''}>${ic('grid')}${oneA3 ? 'Grande grille A3 : tout sur une feuille ✓' : 'Tout sur une seule grande feuille A3'}</button>
         </div>
 
         <div class="field"><span>Nombre de grilles</span>${seg('pages', [[1, '1 grille'], [2, '2 grilles (moitié-moitié)']], o.pages || 1)}
@@ -276,20 +285,20 @@ MF.panels = (() => {
           <div class="segmented" id="set-photo-marks">${[[false, 'Masqués'], [true, 'Affichés']].map(([v, l]) => `<button type="button" data-v="${v}" class="${!!state.ui.photoMarks === v ? 'active' : ''}">${l}</button>`).join('')}</div>
           <span class="field-hint">Icône image dans les cases vides, à l'écran seulement (jamais à l'export).</span></div>
 
-        <div class="field"><span>Bande photo en haut</span>${seg('photoBand', [[0, 'Aucune'], [4, '4 lignes'], [5, '5 lignes'], [6, '6 lignes'], [8, '8 lignes']], +o.photoBand || 0)}
+        <div class="field"><span>Bande photo en haut</span>${seg('photoBand', [[0, 'Aucune'], [4, '4'], [5, '5'], [6, '6'], [8, '8'], [10, '10'], [12, '12 lignes']], +o.photoBand || 0)}
           <span class="field-hint">Lignes du haut laissées pleines dans la couleur, sur toute la largeur : la place pour poser les photos dans Canva.</span></div>
 
         <div class="field"><span>Taille de la grille</span>${seg('size', [['auto', 'Auto : tous les mots'], ['fixed', 'Fixe']], o.size || 'auto')}
           <span class="field-hint">${o.size === 'fixed'
             ? 'Le maximum de mots perso dans la taille choisie ; les autres sont listés dans Définitions.'
-            : 'La grille (format A4) s’agrandit jusqu’à contenir tous vos mots perso.'}</span></div>
+            : `La grille (${MF.paper.label(o)}) s’agrandit jusqu’à contenir tous vos mots perso${paper.format === 'A3' ? ', en occupant au moins une bonne partie de la feuille' : ''}.`}</span></div>
 
         ${o.size === 'fixed' ? `<div class="field"><span>Dimensions <span class="field-hint">colonnes × lignes</span></span>
-          <div class="size-presets">${SIZE_PRESETS.map(([cols, rows, label]) => `<button type="button" data-size="${cols}x${rows}" class="${o.cols === cols && o.rows === rows ? 'active' : ''}">${label} · ${cols}×${rows}</button>`).join('')}</div>
+          <div class="size-presets">${MF.paper.presets(o).map(({ cols, rows, label }) => `<button type="button" data-size="${cols}x${rows}" class="${o.cols === cols && o.rows === rows ? 'active' : ''}">${paper.format} ${label.toLowerCase()} · ${cols}×${rows}</button>`).join('')}</div>
           <div class="row">
-            <label class="field mini"><span class="field-hint">Colonnes</span><input class="input" type="number" min="7" max="30" id="set-cols" value="${o.cols}"></label>
+            <label class="field mini"><span class="field-hint">Colonnes</span><input class="input" type="number" min="7" max="50" id="set-cols" value="${o.cols}"></label>
             <span class="muted">×</span>
-            <label class="field mini"><span class="field-hint">Lignes</span><input class="input" type="number" min="7" max="40" id="set-rows" value="${o.rows}"></label>
+            <label class="field mini"><span class="field-hint">Lignes</span><input class="input" type="number" min="7" max="50" id="set-rows" value="${o.rows}"></label>
           </div>
           <span class="field-hint">Plus grande = plus de mots perso, mais des cases plus petites à l'impression.</span>
         </div>` : ''}
@@ -314,8 +323,16 @@ MF.panels = (() => {
       actions.setOption(group.dataset.opt, v === 'true' ? true : v === 'false' ? false : /^\d+$/.test(v) ? +v : v);
     }));
     const num = (id, k, max) => root.querySelector(id)?.addEventListener('change', e => actions.setOption(k, Math.min(max, Math.max(7, parseInt(e.target.value, 10) || 7))));
-    num('#set-cols', 'cols', 30);
-    num('#set-rows', 'rows', 40);
+    num('#set-cols', 'cols', 50);
+    num('#set-rows', 'rows', 50);
+    root.querySelectorAll('[data-paper]').forEach(group => group.addEventListener('click', e => {
+      const b = e.target.closest('button'); if (b) actions.setPaper({ [group.dataset.paper]: b.dataset.v });
+    }));
+    // Une seule grande grille A3 avec tous les mots, en gardant la place photo en haut
+    root.querySelector('#set-one-a3').onclick = () => {
+      actions.setPaper({ paper: 'A3' });
+      actions.setOptions({ pages: 1, size: 'auto', photoBand: +o.photoBand || 8 });
+    };
     root.querySelectorAll('[data-size]').forEach(b => (b.onclick = () => {
       const [cols, rows] = b.dataset.size.split('x').map(Number);
       actions.setOptions({ cols, rows });
