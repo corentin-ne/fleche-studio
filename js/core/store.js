@@ -32,7 +32,26 @@ MF.store = (() => {
 
   function defaults() {
     const puzzles = MF.seed.puzzles().map(makePuzzle);
-    return { v: 1, activeId: puzzles[0].id, theme: 'dark', ui: { cell: 64, fit: true, mode: 'solution', tab: 'words', photoMarks: false }, puzzles };
+    return { v: 1, seedRev: MF.seed.REVISION, activeId: puzzles[0].id, theme: 'dark', ui: { cell: 64, fit: true, mode: 'solution', tab: 'words', photoMarks: false }, puzzles };
+  }
+
+  /**
+   * Met à jour les grilles sauvegardées avec les révisions de données plus récentes :
+   * corrections des mots non retouchés, puis ajout des nouveaux mots (sans doublon, sans toucher au reste).
+   */
+  function applySeedUpdates(s, fromRev) {
+    const { normalize } = MF.util;
+    for (const add of MF.seed.additionsSince(fromRev)) {
+      const pz = s.puzzles.find(p => normalize(p.name) === normalize(add.name));
+      if (!pz) continue;
+      for (const { from, to } of add.edits) {
+        const w = pz.words.find(x => Object.entries(from).every(([k, v]) => x[k].trim() === v));
+        if (w) Object.assign(w, to);
+      }
+      const existing = new Set(pz.words.map(w => normalize(w.text)));
+      pz.words.push(...add.words.filter(w => !existing.has(normalize(w.text))).map(w => ({ ...w, priority: false })));
+    }
+    s.seedRev = MF.seed.REVISION;
   }
 
   function load() {
@@ -44,6 +63,8 @@ MF.store = (() => {
           const base = defaults();
           state = { ...base, ...s, ui: { ...base.ui, ...(s.ui || {}) }, puzzles: s.puzzles.map(makePuzzle) };
           if (!state.puzzles.some(p => p.id === state.activeId)) state.activeId = state.puzzles[0].id;
+          const rev = s.seedRev || 1;
+          if (rev < MF.seed.REVISION) { applySeedUpdates(state, rev); save(); }
           return state;
         }
       }
