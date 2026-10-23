@@ -15,7 +15,9 @@ MF.gridModel = (() => {
   const MAX_FS = 17, MIN_FS = 6.5;
 
   // Ordre dans une case à 2 définitions : celle qui vise la droite en haut, celle qui vise le bas en dessous.
-  const TARGETS_RIGHT = { right: 1, rightDown: 1 };
+  // Si les deux visent la même case de droite, la flèche coudée (↴, dessinée dans le coin haut de la case)
+  // va avec la définition du haut et la flèche droite (→, en bas) avec celle du bas.
+  const CLUE_ORDER = { rightDown: 0, right: 1, downRight: 2, down: 3 };
 
   let ctx = null;
   function measure(text, size) {
@@ -106,7 +108,7 @@ MF.gridModel = (() => {
 
     for (const [hk, list] of byHolder) {
       const [r, c] = hk.split(',').map(Number);
-      const clues = list.sort((a, b) => (TARGETS_RIGHT[b.arrow] || 0) - (TARGETS_RIGHT[a.arrow] || 0));
+      const clues = list.sort((a, b) => CLUE_ORDER[a.arrow] - CLUE_ORDER[b.arrow]);
       const boxH = (U - LINE) / clues.length - PAD * 2;
       cells[r][c] = {
         type: 'clue',
