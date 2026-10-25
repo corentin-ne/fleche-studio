@@ -17,7 +17,34 @@ MF.gridModel = (() => {
   // Ordre dans une case à 2 définitions : celle qui vise la droite en haut, celle qui vise le bas en dessous.
   // Si les deux visent la même case de droite, la flèche coudée (↴, dessinée dans le coin haut de la case)
   // va avec la définition du haut et la flèche droite (→, en bas) avec celle du bas.
+  // Si les deux visent la case du dessous, seule la moitié du bas toucherait cette case : on coupe alors
+  // la case verticalement (coudée ↳ à gauche, flèche ↓ à droite), transposée exacte du cas précédent.
   const CLUE_ORDER = { rightDown: 0, right: 1, downRight: 2, down: 3 };
+  const BELOW = new Set(['down', 'downRight']);
+
+  // Position des flèches le long du bord d'entrée de la case lettre (fraction de case)
+  const AT = { corner: 0.13, first: 0.27, center: 0.5, second: 0.73, shifted: 0.34 };
+
+  /** Sens de coupe d'une case à définitions : 'h' (haut/bas), 'v' (gauche/droite) ou null (une seule). */
+  function splitOf(clues) {
+    if (clues.length < 2) return null;
+    return clues.every(cl => BELOW.has(cl.arrow)) ? 'v' : 'h';
+  }
+
+  /** Zone intérieure (unités case, origine = coin de la case) de la i-ème définition. */
+  function clueBox(split, i) {
+    const inner = U - LINE, o = LINE / 2;
+    if (split === 'h') return { x: o, y: o + i * inner / 2, w: inner, h: inner / 2 };
+    if (split === 'v') return { x: o + i * inner / 2, y: o, w: inner / 2, h: inner };
+    return { x: o, y: o, w: inner, h: inner };
+  }
+
+  /** Position de la flèche d'une définition sur le bord de sa case lettre. */
+  function arrowAt(arrow, split, idx) {
+    if (arrow === 'right') return split === 'h' ? (idx === 0 ? AT.first : AT.second) : AT.center;
+    if (arrow === 'down') return split === 'v' ? AT.second : AT.center;
+    return AT.corner; // flèches coudées : dans le coin
+  }
 
   let ctx = null;
   function measure(text, size) {
@@ -109,10 +136,14 @@ MF.gridModel = (() => {
     for (const [hk, list] of byHolder) {
       const [r, c] = hk.split(',').map(Number);
       const clues = list.sort((a, b) => CLUE_ORDER[a.arrow] - CLUE_ORDER[b.arrow]);
-      const boxH = (U - LINE) / clues.length - PAD * 2;
+      const split = splitOf(clues);
       cells[r][c] = {
         type: 'clue',
-        clues: clues.map(cl => ({ ...cl, missing: !cl.text.trim(), fit: fitText(cl.text, U - LINE - PAD * 2, boxH) })),
+        split,
+        clues: clues.map((cl, i) => {
+          const box = clueBox(split, i);
+          return { ...cl, box, missing: !cl.text.trim(), fit: fitText(cl.text, box.w - PAD * 2, box.h - PAD * 2) };
+        }),
       };
     }
 
@@ -124,25 +155,38 @@ MF.gridModel = (() => {
         cell.clues.forEach((cl, idx) => {
           const target = cells[cl.tr]?.[cl.tc];
           if (!target || target.type !== 'letter') return;
-          const y = cl.arrow === 'right' && cell.clues.length === 2 ? (idx === 0 ? 0.27 : 0.73) : 0.5;
-          target.arrows.push({ arrow: cl.arrow, y });
+          target.arrows.push({ arrow: cl.arrow, at: arrowAt(cl.arrow, cell.split, idx) });
         });
+      }
+    }
+
+    // Deux flèches coudées dans le même coin (↳ venant du dessus, ↴ venant de la gauche) se croiseraient :
+    // on les écarte du coin, chacune le long de son propre bord.
+    for (const row of cells) {
+      for (const cell of row) {
+        if (cell.type !== 'letter') continue;
+        const bent = cell.arrows.filter(a => a.arrow === 'downRight' || a.arrow === 'rightDown');
+        if (bent.length === 2) bent.forEach(a => { a.at = AT.shifted; });
       }
     }
     return { cols, rows, band: layout.frame?.top || 0, cells };
   }
 
-  /** Géométrie des flèches (unités case, origine = coin haut-gauche de la case lettre). */
-  function arrowShape(arrow, y = 0.5) {
-    const Y = y * U;
+  /**
+   * Géométrie des flèches (unités case, origine = coin haut-gauche de la case lettre).
+   * at = position le long du bord d'entrée : hauteur sur le bord gauche (right, rightDown),
+   * abscisse sur le bord du haut (down, downRight).
+   */
+  function arrowShape(arrow, at = AT.center) {
+    const P = at * U;
     switch (arrow) {
-      case 'right': return { poly: [[0, Y - 8], [10, Y], [0, Y + 8]] };
-      case 'down': return { poly: [[42, 0], [50, 10], [58, 0]] };
-      case 'downRight': return { line: [[13, 0], [13, 14], [24, 14]], poly: [[22, 8], [31, 14], [22, 20]] };
-      case 'rightDown': return { line: [[0, 13], [14, 13], [14, 24]], poly: [[8, 22], [14, 31], [20, 22]] };
+      case 'right': return { poly: [[0, P - 8], [10, P], [0, P + 8]] };
+      case 'down': return { poly: [[P - 8, 0], [P, 10], [P + 8, 0]] };
+      case 'downRight': return { line: [[P, 0], [P, 14], [P + 11, 14]], poly: [[P + 9, 8], [P + 18, 14], [P + 9, 20]] };
+      case 'rightDown': return { line: [[0, P], [14, P], [14, P + 11]], poly: [[8, P + 9], [14, P + 18], [20, P + 9]] };
       default: return {};
     }
   }
 
-  return { from, clueText, slotKey, fitText, arrowShape, U, LINE, FRAME, PAD, FONT, CLUE_WEIGHT, LINE_H };
+  return { from, clueText, slotKey, fitText, arrowShape, BELOW, U, LINE, FRAME, PAD, FONT, CLUE_WEIGHT, LINE_H };
 })();

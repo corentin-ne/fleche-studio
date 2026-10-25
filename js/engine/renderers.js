@@ -35,16 +35,23 @@ MF.renderers = (() => {
 
   /** Position verticale (ligne de base) de chaque ligne d'une définition. */
   function clueLines(cell, x, y) {
-    const n = cell.clues.length;
-    const slotH = (U - LINE) / n;
     const out = [];
-    cell.clues.forEach((cl, i) => {
-      const { size: fs, lines } = cl.fit;
+    for (const { fit, box } of cell.clues) {
+      const { size: fs, lines } = fit;
       const blockH = lines.length * fs * LINE_H;
-      const top = y + LINE / 2 + i * slotH + (slotH - blockH) / 2;
-      lines.forEach((text, k) => out.push({ text, fs, x: x + U / 2, y: top + k * fs * LINE_H + (fs * LINE_H - fs) / 2 + fs * 0.8 }));
-    });
+      const top = y + box.y + (box.h - blockH) / 2;
+      lines.forEach((text, k) => out.push({ text, fs, x: x + box.x + box.w / 2, y: top + k * fs * LINE_H + (fs * LINE_H - fs) / 2 + fs * 0.8 }));
+    }
     return out;
+  }
+
+  /** Trait séparant les deux définitions d'une case coupée (horizontal ou vertical). */
+  function divider(cell, x, y) {
+    if (!cell.split) return null;
+    const a = LINE / 2, b = U - LINE / 2, m = U / 2;
+    return cell.split === 'v'
+      ? { x1: x + m, y1: y + a, x2: x + m, y2: y + b }
+      : { x1: x + a, y1: y + m, x2: x + b, y2: y + m };
   }
 
   /** Repère « zone photo » couvrant toute la bande du haut. */
@@ -88,28 +95,31 @@ MF.renderers = (() => {
       parts.push(`<rect${attrs} x="${x + LINE / 2}" y="${y + LINE / 2}" width="${U - LINE}" height="${U - LINE}" fill="${fill}"/>`);
 
       if (cell.type === 'clue') {
-        if (cell.clues.length === 2) {
-          const my = y + U / 2;
-          parts.push(`<line x1="${x + LINE / 2}" y1="${my}" x2="${x + U - LINE / 2}" y2="${my}" stroke="${p.line}" stroke-width="${LINE * 0.7}"/>`);
-        }
+        const d = divider(cell, x, y);
+        if (d) parts.push(`<line x1="${d.x1}" y1="${d.y1}" x2="${d.x2}" y2="${d.y2}" stroke="${p.line}" stroke-width="${LINE * 0.7}"/>`);
         for (const l of clueLines(cell, x, y)) {
           parts.push(`<text x="${l.x.toFixed(1)}" y="${l.y.toFixed(1)}" ${font} font-size="${l.fs}" font-weight="${CLUE_WEIGHT}" fill="${p.ink}" text-anchor="middle">${xml(l.text)}</text>`);
         }
         // Définition manquante : repère à l'écran seulement (l'export laisse la case vierge)
         if (!opts.forExport) {
-          const slotH = (U - LINE) / cell.clues.length;
-          cell.clues.forEach((cl, i) => {
-            if (!cl.missing) return;
-            const cy = y + LINE / 2 + i * slotH + slotH / 2;
-            parts.push(`<g class="missing" data-key="${cl.wid}"><rect x="${x + 8}" y="${cy - 13}" width="${U - 16}" height="26" rx="13" fill="#fff" stroke="${p.arrow}" stroke-width="2" stroke-dasharray="5 4"/><text x="${x + U / 2}" y="${cy + 5}" ${font} font-size="13" font-weight="700" fill="${p.arrow}" text-anchor="middle">à définir</text></g>`);
-          });
+          for (const cl of cell.clues) {
+            if (!cl.missing) continue;
+            const { box } = cl;
+            const narrow = box.w < U / 2;
+            const cx = x + box.x + box.w / 2, cy = y + box.y + box.h / 2;
+            const bw = box.w - 10, bh = narrow ? 44 : 26;
+            const label = narrow
+              ? `<text x="${cx}" y="${cy - 3}" ${font} font-size="11" font-weight="700" fill="${p.arrow}" text-anchor="middle">à</text><text x="${cx}" y="${cy + 11}" ${font} font-size="11" font-weight="700" fill="${p.arrow}" text-anchor="middle">définir</text>`
+              : `<text x="${cx}" y="${cy + 5}" ${font} font-size="13" font-weight="700" fill="${p.arrow}" text-anchor="middle">à définir</text>`;
+            parts.push(`<g class="missing" data-key="${cl.wid}"><rect x="${cx - bw / 2}" y="${cy - bh / 2}" width="${bw}" height="${bh}" rx="13" fill="#fff" stroke="${p.arrow}" stroke-width="2" stroke-dasharray="5 4"/>${label}</g>`);
+          }
         }
       } else {
         if (opts.letters) {
           parts.push(`<text${opts.forExport ? '' : ' class="sol"'} x="${x + U / 2}" y="${y + U * 0.69}" ${font} font-size="${U * 0.56}" font-weight="700" fill="${p.ink}" text-anchor="middle">${cell.ch}</text>`);
         }
         for (const a of cell.arrows) {
-          const g = M.arrowShape(a.arrow, a.y);
+          const g = M.arrowShape(a.arrow, a.at);
           if (g.line) parts.push(`<polyline points="${pts(g.line, x, y)}" fill="none" stroke="${p.arrow}" stroke-width="3.2" stroke-linejoin="round"/>`);
           if (g.poly) parts.push(`<polygon points="${pts(g.poly, x, y)}" fill="${p.arrow}"/>`);
         }
@@ -142,9 +152,10 @@ MF.renderers = (() => {
       g.fillRect(x + LINE / 2, y + LINE / 2, U - LINE, U - LINE);
 
       if (cell.type === 'clue') {
-        if (cell.clues.length === 2) {
+        const d = divider(cell, x, y);
+        if (d) {
           g.strokeStyle = p.line; g.lineWidth = LINE * 0.7;
-          g.beginPath(); g.moveTo(x + LINE / 2, y + U / 2); g.lineTo(x + U - LINE / 2, y + U / 2); g.stroke();
+          g.beginPath(); g.moveTo(d.x1, d.y1); g.lineTo(d.x2, d.y2); g.stroke();
         }
         g.fillStyle = p.ink;
         for (const l of clueLines(cell, x, y)) {
@@ -158,7 +169,7 @@ MF.renderers = (() => {
           g.fillText(cell.ch, x + U / 2, y + U * 0.69);
         }
         for (const a of cell.arrows) {
-          const shape = M.arrowShape(a.arrow, a.y);
+          const shape = M.arrowShape(a.arrow, a.at);
           g.fillStyle = p.arrow; g.strokeStyle = p.arrow; g.lineWidth = 3.2; g.lineJoin = 'round';
           if (shape.line) {
             g.beginPath();

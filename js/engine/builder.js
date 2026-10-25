@@ -12,7 +12,7 @@
      - toute suite de lettres est un mot défini (pas de lettres collées en parallèle) ;
      - le mot est encadré : pas de lettre juste avant ni juste après.
 
-   Cases internes : lettre { t:'L', ch, H?:id, V?:id }, définition { t:'C', clues:[...] },
+   Cases internes : lettre { t:'L', ch, H?:id, V?:id }, définition { t:'C', clues:[...], arrows:[...] },
    arrêt { t:'S' } (avant/après un mot : jamais de lettre, peut devenir définition).
    ========================================================================= */
 window.MF = window.MF || {};
@@ -26,6 +26,7 @@ MF.builder = (() => {
     V: [{ dr: -1, dc: 0, arrow: 'down' }, { dr: 0, dc: -1, arrow: 'rightDown' }],
   };
   const EFFORT_MS = { fast: 2500, normal: 6000, deep: 14000 };
+  const aimsBelow = arrow => MF.gridModel.BELOW.has(arrow); // grid-model est chargé après ce fichier
 
   class Board {
     constructor(frame) {
@@ -75,7 +76,12 @@ MF.builder = (() => {
       let share = false;
       if (cell) {
         if (cell.t === 'L') return;
-        if (cell.t === 'C') { if (cell.clues.length >= 2) return; share = true; }
+        if (cell.t === 'C') {
+          if (cell.clues.length >= 2) return;
+          // Deux définitions visant toutes deux la case du dessous : flèches impossibles à attribuer
+          if (aimsBelow(s.arrow) && aimsBelow(cell.arrows[0])) return;
+          share = true;
+        }
       }
       const pref = (share ? 2 : 0) + (idx === 0 ? 1 : 0);
       if (!slot || pref > slot.pref) slot = { sr, sc, arrow: s.arrow, share, pref };
@@ -102,8 +108,9 @@ MF.builder = (() => {
       if (!board.get(sr, sc)) board.set(sr, sc, { t: 'S' });
     }
     let clue = board.get(p.sr, p.sc);
-    if (!clue || clue.t === 'S') { clue = { t: 'C', clues: [] }; board.set(p.sr, p.sc, clue); }
+    if (!clue || clue.t === 'S') { clue = { t: 'C', clues: [], arrows: [] }; board.set(p.sr, p.sc, clue); }
     clue.clues.push(p.key);
+    clue.arrows.push(p.arrow);
     board.placements.push(p);
   }
 
