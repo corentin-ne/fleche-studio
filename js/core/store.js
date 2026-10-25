@@ -61,6 +61,7 @@ MF.store = (() => {
   }
 
   function writeNow() {
+    if (!state) return; // jamais chargé (ex. page de tests) : on ne touche pas aux données
     try {
       localStorage.setItem(KEY, JSON.stringify(state));
     } catch (e) {
@@ -164,8 +165,18 @@ MF.store = (() => {
     return ids;
   }
 
+  /** Relit les données enregistrées (ex. modifiées dans un autre onglet). */
+  function reload() {
+    save.cancel();
+    load();
+    past = []; future = [];
+    notify('reset');
+  }
+  /** Les données ont-elles été modifiées par un autre onglet ? */
+  const isOwnKey = key => key === KEY;
+
   /** Taille approximative des données texte enregistrées (octets). */
   const bytes = () => { try { return (localStorage.getItem(KEY) || '').length * 2; } catch { return 0; } };
 
-  return { load, get, active, puzzle, update, subscribe, undo, redo, canUndo, canRedo, makePuzzle, legacy, forgetLegacy, wipe, usedAssets, bytes, flush: writeNow };
+  return { load, reload, isOwnKey, get, active, puzzle, update, subscribe, undo, redo, canUndo, canRedo, makePuzzle, legacy, forgetLegacy, wipe, usedAssets, bytes, flush: writeNow };
 })();

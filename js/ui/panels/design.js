@@ -113,8 +113,6 @@ MF.panels.design = (() => {
     bind(root, puzzle, actions, view);
   }
 
-  const parse = v => (v === 'true' ? true : v === 'false' ? false : /^-?\d+(\.\d+)?$/.test(v) ? +v : v);
-
   function bind(root, puzzle, actions, view) {
     const set = (path, value, live) => actions.setDesignPath(path, value, { live });
     root.querySelector('#design-tabs').addEventListener('click', e => {
@@ -147,28 +145,12 @@ MF.panels.design = (() => {
           if (!far(b.c1, b.c2)) patch.c2 = MF.util.mix(b.c1, MF.util.luminance(b.c1) > 0.5 ? a : MF.util.tint(a, 0.3), 0.55);
           if (!far(b.c1, b.c3)) patch.c3 = MF.util.mix(b.c1, MF.util.luminance(b.c1) > 0.5 ? '#ffb000' : '#ffffff', 0.45);
           actions.setDesign({ background: patch });
-        } else if (seg) set(seg.dataset.seg, parse(t.dataset.v));
+        } else if (seg) set(seg.dataset.seg, MF.util.parseValue(t.dataset.v));
       }
     });
-    root.querySelectorAll('.subtab-body [data-slider]').forEach(inp => {
-      if (inp.closest('#layout-box')) return;
-      const out = inp.closest('.slider-field').querySelector('output');
-      inp.addEventListener('input', () => { out.textContent = `${+(+inp.value).toFixed(2)}${out.dataset.unit}`; set(inp.dataset.slider, +inp.value, true); });
-      inp.addEventListener('change', () => set(inp.dataset.slider, +inp.value, false));
-    });
-    root.querySelectorAll('[data-color-key] input[type=color]').forEach(inp => {
-      const key = inp.closest('[data-color-key]').dataset.colorKey;
-      inp.addEventListener('input', () => { inp.parentElement.style.setProperty('--c', inp.value); set(key, inp.value, true); });
-      inp.addEventListener('change', () => set(key, inp.value, false));
-    });
+    ui.bindFields(root, set, { skip: '#layout-box' });
     root.querySelector('[data-accent-input]')?.addEventListener('input', MF.util.debounce(e => actions.setDesign({ accent: e.target.value }, { live: true }), 60));
     root.querySelector('[data-accent-input]')?.addEventListener('change', e => actions.setDesign({ accent: e.target.value }));
-    root.querySelectorAll('[data-select]').forEach(sel => sel.addEventListener('change', () => set(sel.dataset.select, sel.value)));
-    root.querySelectorAll('[data-toggle]').forEach(cb => cb.addEventListener('change', () => set(cb.dataset.toggle, cb.checked)));
-    root.querySelectorAll('[data-text]').forEach(inp => {
-      inp.addEventListener('input', MF.util.debounce(() => set(inp.dataset.text, inp.value, true), 250));
-      inp.addEventListener('change', () => set(inp.dataset.text, inp.value, false));
-    });
     root.querySelector('#bg-file').addEventListener('change', e => {
       const f = e.target.files[0];
       e.target.value = '';

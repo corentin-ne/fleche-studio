@@ -198,6 +198,9 @@ MF.util = (() => {
   const nextFrame = () => new Promise(r => setTimeout(r, 0));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+  /** Valeur d'un attribut data-v : booléen, nombre ou texte. */
+  const parseValue = v => (v === 'true' ? true : v === 'false' ? false : /^-?\d+(\.\d+)?$/.test(v) ? +v : v);
+
   const deepClone = o => (typeof structuredClone === 'function' ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 
   return {
@@ -205,6 +208,6 @@ MF.util = (() => {
     HEX, hexToRgb, rgbToHex, mix, tint, shade, luminance, onColor,
     html, $, $$, debounce, throttleFrame, plural,
     download, downloadBlob, readFile, blobToDataUrl, dataUrlToBlob, bytesToB64url, b64urlToBytes,
-    fetchJson, nextFrame, sleep, deepClone,
+    fetchJson, nextFrame, sleep, deepClone, parseValue,
   };
 })();

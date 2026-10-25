@@ -35,7 +35,7 @@ MF.layoutControls = (() => {
       ${fmt.group === 'print' ? `<div class="field"><span>Orientation</span>${MF.ui.segmented('orientation', [['portrait', 'Portrait', 'page-portrait'], ['landscape', 'Paysage', 'page-landscape']], p.orientation, 'data-orient')}</div>` : ''}
       ${fixed ? `<div class="place-row">
           <div class="field"><span>Position</span><div class="anchor-grid">${MF.design.ANCHORS.map(a => `<button type="button" class="${p.anchor === a ? 'active' : ''}" data-anchor="${a}" aria-label="Position ${a}"><i></i></button>`).join('')}</div></div>
-          <div class="grow stack">${MF.ui.slider('scale', 'Taille de la grille', Math.round(p.scale * 100), 30, 100, 1, '%')}${MF.ui.slider('padding', 'Marge', p.padding, 0, 400, 5)}</div>
+          <div class="grow stack">${MF.ui.slider('scale', 'Taille de la grille', p.scale, 30, 100, 1, '%', { div: 100 })}${MF.ui.slider('padding', 'Marge', p.padding, 0, 400, 5)}</div>
         </div>` : MF.ui.slider('padding', 'Marge autour de la grille', p.padding, 0, 400, 5)}`;
   }
 
@@ -53,12 +53,7 @@ MF.layoutControls = (() => {
       else if (b.closest('[data-orient]')) patch = { orientation: b.dataset.v };
       if (patch) { onPatch(patch, false); refresh(); }
     });
-    root.querySelectorAll('[data-slider]').forEach(inp => {
-      const out = inp.closest('.slider-field').querySelector('output');
-      const val = () => (inp.dataset.slider === 'scale' ? +inp.value / 100 : +inp.value);
-      inp.addEventListener('input', () => { out.textContent = `${inp.value}${out.dataset.unit}`; onPatch({ [inp.dataset.slider]: val() }, true); });
-      inp.addEventListener('change', () => onPatch({ [inp.dataset.slider]: val() }, false));
-    });
+    MF.ui.bindFields(root, (key, value, live) => onPatch({ [key]: value }, live));
     root.querySelectorAll('[data-custom]').forEach(inp => inp.addEventListener('change', () => onPatch({ [inp.dataset.custom]: Math.max(1, parseInt(inp.value, 10) || 1) }, false)));
   }
 

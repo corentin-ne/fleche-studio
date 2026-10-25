@@ -49,7 +49,7 @@
     if (!pz) return;
     if (!prepared(pz).length) { MF.ui.toast('Ajoute au moins un mot (2 lettres minimum).', 'warn'); renderGrid(); return; }
     jobs.get(pzId)?.cancel();
-    const job = { cancelled: false, cancel() { this.cancelled = true; } };
+    const job = { cancelled: false, run: null, cancel() { this.cancelled = true; this.run?.cancel(); } };
     jobs.set(pzId, job);
     setBusy(true, 0);
     renderGrid();
@@ -60,17 +60,26 @@
     const groups = MF.builder.split(pz.words, nPages).filter(g => g.length);
     const pages = [];
     const exclude = new Set();
+    let error = null;
+    // Calcul en arrière-plan (Web Worker) : l'interface reste utilisable pendant la recherche
     for (const [i, group] of groups.entries()) {
-      const opts = { seed: MF.util.randomSeed(), signal: job, exclude, banned: pz.banned, onProgress: p => { if (store.get().activeId === pzId) setBusy(true, (i + p) / groups.length); } };
-      const result = engine === 'meles' ? await MF.wordsearch.generate(group, pz.options, opts) : await MF.builder.generate(group, pz.options, opts);
-      if (job.cancelled) return;
-      if (!result) break;
-      result.words.forEach(w => exclude.add(w.word));
-      pages.push(result);
+      job.run = MF.generator.run(
+        { engine, words: group, options: pz.options, seed: MF.util.randomSeed(), exclude: [...exclude], banned: pz.banned },
+        p => { if (!job.cancelled && store.get().activeId === pzId) setBusy(true, (i + p) / groups.length); },
+      );
+      const out = await job.run.promise;
+      if (job.cancelled || out.cancelled) return;
+      if (out.error || !out.result) { error = out.error; break; }
+      out.result.words.forEach(w => exclude.add(w.word));
+      pages.push(out.result);
     }
     jobs.delete(pzId);
     setBusy(false);
-    if (!pages.length || pages.length !== groups.length) { MF.ui.toast('Aucune grille trouvée : essaie une grille plus grande ou une autre forme.', 'err', 5000); renderAll(); return; }
+    if (!pages.length || pages.length !== groups.length) {
+      MF.ui.toast(error ? `Le calcul a échoué : ${error}` : 'Aucune grille trouvée : essaie une grille plus grande ou une autre forme.', 'err', 5000);
+      renderAll();
+      return;
+    }
 
     view.page = 0;
     store.update(s => {
@@ -86,7 +95,18 @@
   function setBusy(on, p = 0) {
     $('#gen-bar').hidden = !on;
     $('#gen-progress').style.width = `${Math.round(p * 100)}%`;
-    $('#btn-shuffle').disabled = on;
+  }
+
+  /** Arrête le calcul en cours de la grille affichée. */
+  function cancelGeneration() {
+    const pz = store.active();
+    const job = pz && jobs.get(pz.id);
+    if (!job) return;
+    job.cancel();
+    jobs.delete(pz.id);
+    setBusy(false);
+    renderAll();
+    MF.ui.toast('Calcul arrêté.', 'info');
   }
 
   /** Recalcul automatique (changement de forme, de taille, de jeu…), groupé. */
@@ -203,6 +223,9 @@
       onAction: (act, id) => actions.stickerAction(act, id),
     });
   }
+
+  /** Rendu groupé à l'image suivante : un curseur qu'on fait glisser ne redessine qu'une fois par image. */
+  const scheduleGrid = MF.util.throttleFrame(() => renderGrid());
 
   function editMissing(key) {
     const pz = store.active();
@@ -376,6 +399,7 @@
       if (key !== lastBox && store.get().ui.fit && store.active()) { lastBox = key; renderGrid(); }
     }, 120)).observe($('#grid-scroll'));
     $('#btn-shuffle').onclick = () => store.active() && regenerate(store.active().id);
+    $('#btn-cancel-gen').onclick = cancelGeneration;
     document.addEventListener('click', e => { if (e.target.closest('[data-regen]')) regenerate(store.active().id); });
     $('#btn-export').onclick = openExport;
     $('#btn-check').onclick = () => {
@@ -468,7 +492,7 @@
       // Réglage en cours (curseur, couleur) : le panneau reste tel quel, seule l'affiche est redessinée
       view.sideLocked = false;
       applyAccent(store.active());
-      renderGrid();
+      scheduleGrid();
       return;
     }
     renderAll();
@@ -493,7 +517,26 @@
     store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.mode = 'play'; }, 'puzzles');
   }
 
+  /** Filet de sécurité : une erreur inattendue ne bloque jamais l'appli et reste discrète. */
+  function guard() {
+    let last = 0;
+    const report = err => {
+      console.error(err);
+      if (Date.now() - last < 5000) return;
+      last = Date.now();
+      MF.ui.toast('Petit souci technique : ton travail est sauvegardé. Si quelque chose semble bloqué, recharge la page.', 'err', 6000);
+    };
+    addEventListener('error', e => report(e.error || e.message));
+    addEventListener('unhandledrejection', e => report(e.reason));
+    // Même appli ouverte dans un autre onglet : on propose de reprendre ses changements
+    addEventListener('storage', e => {
+      if (!store.isOwnKey(e.key)) return;
+      MF.ui.toast('Tes grilles ont été modifiées dans un autre onglet.', 'info', 10000, { label: 'Mettre à jour', run: () => store.reload() });
+    });
+  }
+
   async function boot() {
+    guard();
     store.load();
     MF.icons.hydrate();
     applyTheme();
@@ -508,6 +551,10 @@
     // Toutes les polices en arrière-plan : aperçus des thèmes et mesures de texte exacts
     setTimeout(() => Promise.all(Object.values(MF.design.FONTS).flatMap(f => f.weights.map(w => document.fonts.load(`${w} 20px ${f.css}`).catch(() => null))))
       .then(() => { MF.text.invalidate(); MF.previews.clear(); derivedCache.key = null; if (store.active()) renderAll(); }), 600);
+    // Hors ligne et installable : le service worker garde une copie de l'application
+    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+      navigator.serviceWorker.register('sw.js').catch(() => { /* navigation privée, etc. : l'appli marche quand même */ });
+    }
     // Ménage : images qui ne servent plus à aucune grille
     setTimeout(() => MF.assets.collect(store.usedAssets()).catch(() => {}), 4000);
   }

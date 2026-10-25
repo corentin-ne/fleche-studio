@@ -86,8 +86,6 @@ MF.panels.settings = (() => {
       <div class="${persisted ? 'ok-text' : 'muted'}">${persisted ? '✓ Stockage protégé : le navigateur ne l\'effacera pas pour faire de la place.' : 'Conseil : « Protéger le stockage » évite que le navigateur efface tes grilles s\'il manque de place.'}</div></div>`;
   }
 
-  const parse = v => (v === 'true' ? true : v === 'false' ? false : /^-?\d+(\.\d+)?$/.test(v) ? +v : v);
-
   function bind(root, puzzle, actions, view) {
     const on = (sel, ev, fn) => root.querySelector(sel)?.addEventListener(ev, fn);
     on('#set-name', 'change', e => actions.setPuzzle({ name: e.target.value.trim() || puzzle.name }));
@@ -110,7 +108,7 @@ MF.panels.settings = (() => {
         });
       } else {
         const opt = t.closest('[data-opt]');
-        if (opt) actions.setOption(opt.dataset.opt, parse(t.dataset.v));
+        if (opt) actions.setOption(opt.dataset.opt, MF.util.parseValue(t.dataset.v));
         const pap = t.closest('[data-paper]');
         if (pap) actions.setPaper({ [pap.dataset.paper]: t.dataset.v });
       }

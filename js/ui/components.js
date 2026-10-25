@@ -237,18 +237,46 @@ MF.ui = (() => {
     </div>`;
   }
 
-  /** Curseur avec valeur affichée. */
-  function slider(key, label, value, min, max, step = 1, unit = '') {
-    return `<label class="slider-field"><span>${esc(label)}<output data-unit="${esc(unit)}">${esc(+(+value).toFixed(2))}${esc(unit)}</output></span>
-      <input type="range" data-slider="${esc(key)}" min="${min}" max="${max}" step="${step}" value="${esc(value)}"></label>`;
+  /**
+   * Curseur avec valeur affichée.
+   * @param div  la valeur enregistrée = valeur du curseur / div (ex. 100 pour un pourcentage)
+   */
+  function slider(key, label, value, min, max, step = 1, unit = '', { div = 1 } = {}) {
+    const shown = +(+value * div).toFixed(2);
+    return `<label class="slider-field"><span>${esc(label)}<output data-unit="${esc(unit)}">${esc(shown)}${esc(unit)}</output></span>
+      <input type="range" data-slider="${esc(key)}"${div !== 1 ? ` data-div="${div}"` : ''} min="${min}" max="${max}" step="${step}" value="${esc(shown)}"></label>`;
+  }
+
+  /**
+   * Branche d'un coup tous les champs d'un bloc : curseurs, couleurs, listes, cases à cocher, textes.
+   * `set(key, value, live)` est appelé en continu (live = true) puis à la fin du geste (live = false).
+   * @param skip sélecteur des zones gérées ailleurs
+   */
+  function bindFields(root, set, { skip = null } = {}) {
+    const mine = el => !skip || !el.closest(skip);
+    root.querySelectorAll('[data-slider]').forEach(inp => {
+      if (!mine(inp)) return;
+      const out = inp.closest('.slider-field')?.querySelector('output');
+      const val = () => +inp.value / (+inp.dataset.div || 1);
+      inp.addEventListener('input', () => { if (out) out.textContent = `${+(+inp.value).toFixed(2)}${out.dataset.unit}`; set(inp.dataset.slider, val(), true); });
+      inp.addEventListener('change', () => set(inp.dataset.slider, val(), false));
+    });
+    root.querySelectorAll('[data-color-key] input[type=color]').forEach(inp => {
+      if (!mine(inp)) return;
+      const key = inp.closest('[data-color-key]').dataset.colorKey;
+      inp.addEventListener('input', () => { inp.parentElement.style.setProperty('--c', inp.value); set(key, inp.value, true); });
+      inp.addEventListener('change', () => set(key, inp.value, false));
+    });
+    root.querySelectorAll('[data-select]').forEach(sel => mine(sel) && sel.addEventListener('change', () => set(sel.dataset.select, sel.value, false)));
+    root.querySelectorAll('[data-toggle]').forEach(cb => mine(cb) && cb.addEventListener('change', () => set(cb.dataset.toggle, cb.checked, false)));
+    root.querySelectorAll('[data-text]').forEach(inp => {
+      if (!mine(inp)) return;
+      inp.addEventListener('input', MF.util.debounce(() => set(inp.dataset.text, inp.value, true), 250));
+      inp.addEventListener('change', () => set(inp.dataset.text, inp.value, false));
+    });
   }
 
   /** Contrôle segmenté. */
   const segmented = (key, items, value, attr = 'data-seg') => `<div class="segmented" ${attr}="${esc(key)}">${items.map(([v, l, icon]) => `<button type="button" data-v="${esc(v)}" class="${String(value) === String(v) ? 'active' : ''}">${icon ? ic(icon) : ''}${esc(l)}</button>`).join('')}</div>`;
-
-  /** Section repliable (état mémorisé par l'appelant). */
-  const section = (id, title, icon, content, open = true) => `<details class="section" data-section="${esc(id)}" ${open ? 'open' : ''}>
-      <summary>${ic(icon)}<span>${esc(title)}</span>${ic('chevronDown', 'chev')}</summary><div class="section-body">${content}</div></details>`;
-
-  return { toast, modal, confirm, prompt, autocomplete, colorField, slider, segmented, section };
+  return { toast, modal, confirm, prompt, autocomplete, colorField, slider, bindFields, segmented };
 })();

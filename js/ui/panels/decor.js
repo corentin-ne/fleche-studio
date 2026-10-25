@@ -38,22 +38,22 @@ MF.panels.decor = (() => {
 
   function propsHtml(s, d) {
     const common = `
-      ${ui.slider('w', 'Taille', Math.round(s.w * 100), 1, 150, 1, '%')}
+      ${ui.slider('w', 'Taille', s.w, 1, 150, 1, '%', { div: 100 })}
       ${ui.slider('rot', 'Rotation', Math.round(s.rot), -180, 180, 1, '°')}
       ${ui.slider('opacity', 'Opacité', s.opacity, 0.05, 1, 0.05)}
       <div class="field"><span>Plan</span>${ui.segmented('layer', [['above', 'Devant la grille'], ['below', 'Derrière la grille']], s.layer)}</div>
       <div class="row">
-        <label class="check"><input type="checkbox" data-prop="flip" ${s.flip ? 'checked' : ''}> Miroir</label>
-        <label class="check"><input type="checkbox" data-prop="shadow" ${s.shadow ? 'checked' : ''}> Ombre</label>
-        <label class="check"><input type="checkbox" data-prop="locked" ${s.locked ? 'checked' : ''}> Verrouillé</label>
+        <label class="check"><input type="checkbox" data-toggle="flip" ${s.flip ? 'checked' : ''}> Miroir</label>
+        <label class="check"><input type="checkbox" data-toggle="shadow" ${s.shadow ? 'checked' : ''}> Ombre</label>
+        <label class="check"><input type="checkbox" data-toggle="locked" ${s.locked ? 'checked' : ''}> Verrouillé</label>
       </div>`;
     let specific = '';
     if (s.kind === 'shape') specific = `<div class="color-row">${ui.colorField('color', 'Couleur', s.color)}${MF.stickers.SHAPES[s.shape].paths.some(p => p.fill === 'second' || p.stroke === 'second') ? ui.colorField('color2', 'Couleur 2', s.color2) : ''}</div>`;
     if (s.kind === 'image') specific = `<div class="field"><span>Forme</span>${ui.segmented('mask', [['none', 'Aucune'], ['rounded', 'Arrondie'], ['circle', 'Ronde'], ['heart', 'Cœur'], ['star', 'Étoile']], s.mask)}</div>
       ${ui.slider('border', 'Bordure', s.border, 0, 40, 1)}<div class="color-row">${ui.colorField('borderColor', 'Couleur de bordure', s.borderColor)}</div>
       ${s.layer === 'below' && d.voids !== 'transparent' ? `<p class="field-hint">${ic('info', 'ic-inline')} Derrière la grille, la photo n'apparaît que dans les zones transparentes : choisis « Cases vides : Transparentes » dans Design.</p>` : ''}`;
-    if (s.kind === 'text') specific = `<textarea class="textarea" data-prop-text rows="2" maxlength="${MF.schema.LIMITS.text}">${esc(s.text)}</textarea>
-      <div class="row"><select class="select select-sm grow" data-prop-font>${fontOptions(s.font)}</select></div>
+    if (s.kind === 'text') specific = `<textarea class="textarea" data-text="text" rows="2" maxlength="${MF.schema.LIMITS.text}">${esc(s.text)}</textarea>
+      <div class="row"><select class="select select-sm grow" data-select="font">${fontOptions(s.font)}</select></div>
       <div class="field"><span>Alignement</span>${ui.segmented('align', [['left', 'Gauche'], ['center', 'Centre'], ['right', 'Droite']], s.align)}</div>
       <div class="color-row">${ui.colorField('color', 'Texte', s.color)}${ui.colorField('bg', 'Fond', s.bg === 'none' ? '#ffffff' : s.bg)}</div>
       ${s.bg !== 'none' ? '<button type="button" class="btn btn-sm btn-ghost" data-nobg>Sans fond</button>' : ''}`;
@@ -101,8 +101,6 @@ MF.panels.decor = (() => {
     });
   }
 
-  const parse = v => (v === 'true' ? true : v === 'false' ? false : /^-?\d+(\.\d+)?$/.test(v) ? +v : v);
-
   function bind(root, puzzle, actions, view, sel) {
     root.querySelector('#decor-tabs').addEventListener('click', e => { const b = e.target.closest('button'); if (b) actions.setUi({ decor: b.dataset.v }); });
     const photoFile = root.querySelector('#photo-file');
@@ -134,25 +132,14 @@ MF.panels.decor = (() => {
       else if (t.hasAttribute('data-clear-stickers')) actions.clearStickers();
       else if (t.dataset.act && sel) actions.stickerAction(t.dataset.act, sel.id);
       else if (t.hasAttribute('data-nobg') && sel) actions.updateSticker(sel.id, { bg: 'none' });
-      else if (sel) { const seg = t.closest('[data-seg]'); if (seg) actions.updateSticker(sel.id, { [seg.dataset.seg]: parse(t.dataset.v) }); }
+      else if (sel) { const seg = t.closest('[data-seg]'); if (seg) actions.updateSticker(sel.id, { [seg.dataset.seg]: MF.util.parseValue(t.dataset.v) }); }
     });
     if (!sel) return;
-    root.querySelectorAll('.props [data-slider]').forEach(inp => {
-      const out = inp.closest('.slider-field').querySelector('output');
-      const val = () => (inp.dataset.slider === 'w' ? +inp.value / 100 : +inp.value);
-      inp.addEventListener('input', () => { out.textContent = `${+(+inp.value).toFixed(2)}${out.dataset.unit}`; actions.updateSticker(sel.id, { [inp.dataset.slider]: val() }, { live: true }); });
-      inp.addEventListener('change', () => actions.updateSticker(sel.id, { [inp.dataset.slider]: val() }));
+    // Réglages de l'élément sélectionné : un texte vide n'est jamais enregistré
+    ui.bindFields(root.querySelector('.props'), (key, value, live) => {
+      if (key === 'text' && !String(value).trim()) return;
+      actions.updateSticker(sel.id, { [key]: value }, { live });
     });
-    root.querySelectorAll('.props [data-color-key] input[type=color]').forEach(inp => {
-      const key = inp.closest('[data-color-key]').dataset.colorKey;
-      inp.addEventListener('input', () => { inp.parentElement.style.setProperty('--c', inp.value); actions.updateSticker(sel.id, { [key]: inp.value }, { live: true }); });
-      inp.addEventListener('change', () => actions.updateSticker(sel.id, { [key]: inp.value }));
-    });
-    root.querySelectorAll('.props [data-prop]').forEach(cb => cb.addEventListener('change', () => actions.updateSticker(sel.id, { [cb.dataset.prop]: cb.checked })));
-    const ta = root.querySelector('[data-prop-text]');
-    ta?.addEventListener('input', MF.util.debounce(() => { if (ta.value.trim()) actions.updateSticker(sel.id, { text: ta.value }, { live: true }); }, 200));
-    ta?.addEventListener('change', () => { if (ta.value.trim()) actions.updateSticker(sel.id, { text: ta.value }); });
-    root.querySelector('[data-prop-font]')?.addEventListener('change', e => actions.updateSticker(sel.id, { font: e.target.value }));
   }
 
   return render;

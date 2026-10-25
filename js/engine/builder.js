@@ -60,6 +60,8 @@ MF.builder = (() => {
     let cross = 0;
     for (let i = 0; i < L; i++) {
       const rr = r + i * dr, cc = c + i * dc;
+      // Formes concaves (cœur, étoile…) : chaque lettre doit être dans la forme, pas seulement les extrémités
+      if (!board.inside(rr, cc)) return null;
       const cell = board.get(rr, cc);
       if (cell) {
         if (cell.t !== 'L' || cell.ch !== w[i] || cell[dir] !== undefined) return null;
@@ -443,7 +445,7 @@ MF.builder = (() => {
   const optionsKey = (o = {}) => {
     const paper = MF.paper.label(o);
     // A4 portrait (format historique) n'apparaît pas : les grilles déjà calculées restent à jour
-    return `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}|${paper}|${o.shape || 'rect'}|${o.density || 'normal'}`;
+    return `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}|${paper}|${o.shape || 'rect'}|${o.density || 'normal'}${o.shape && o.shape !== 'rect' ? '|s2' : ''}`;
   };
 
   /** Empreinte des données qui influencent la grille. */
