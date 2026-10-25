@@ -184,3 +184,18 @@
 .ok-text { color: var(--ok); }
 .link-btn { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; cursor: pointer; filter: brightness(1.3); }
 .link-btn:hover { text-decoration: underline; }
+
+/* ---------- Logo (dessiné à la couleur d'accent, voir MF.brand) ---------- */
+.brand-mark {
+  width: 32px; height: 32px; padding: 0; border-radius: 0; background: none; box-shadow: none;
+  filter: drop-shadow(0 4px 10px rgba(var(--accent-rgb), .45));
+  transition: transform var(--t-med) var(--ease-spring);
+}
+.brand-mark svg, .hero-logo svg { display: block; width: 100%; height: 100%; }
+.brand:hover .brand-mark { transform: rotate(-8deg) scale(1.08); }
+.hero-logo {
+  display: block; width: 104px; height: 104px; filter: drop-shadow(0 18px 34px rgba(var(--accent-rgb), .45));
+  animation: logoIn .7s var(--ease-spring) backwards, logoFloat 5s 1s ease-in-out infinite alternate;
+}
+@keyframes logoIn { from { opacity: 0; transform: scale(.4) rotate(-20deg); } }
+@keyframes logoFloat { to { transform: translateY(-6px) rotate(3deg); } }

@@ -10,7 +10,7 @@ MF.welcome = (() => {
   function render(root, { legacy = 0, onNew, onOpen, onLegacy, onQuick }) {
     root.innerHTML = `<div class="welcome">
       <div class="welcome-hero">
-        <div class="hero-mark" aria-hidden="true">${heroGrid()}</div>
+        <span class="hero-logo">${MF.brand.svg()}</span>
         <h1>Crée ta grille de mots, en quelques clics.</h1>
         <p class="lead">Mots fléchés, mots croisés, mots mêlés ou mots codés : avec tes mots, tes définitions, ton style. Prête à imprimer ou à partager.</p>
         <div class="row hero-actions">
@@ -32,12 +32,6 @@ MF.welcome = (() => {
     root.querySelector('[data-w="open"]').onclick = onOpen;
     root.querySelector('[data-w="legacy"]')?.addEventListener('click', onLegacy);
     root.querySelectorAll('[data-quick]').forEach(b => (b.onclick = () => onQuick(b.dataset.quick)));
-  }
-
-  /** Petite grille décorative animée. */
-  function heroGrid() {
-    const word = 'FLECHES';
-    return `<div class="hero-grid">${[...word].map((ch, i) => `<span style="--i:${i}">${ch}</span>`).join('')}</div>`;
   }
 
   /** Assistant : renvoie { name, game, shape, theme, start } ou null. */

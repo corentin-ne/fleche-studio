@@ -81,9 +81,9 @@ kbd {
 .workspace > * { animation: viewIn var(--t-med) var(--ease) backwards; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-.no-puzzle .workspace, .no-puzzle .only-puzzle { display: none; }
+.show-home .workspace, .no-puzzle .only-puzzle { display: none; }
 .welcome-wrap { display: none; }
-.no-puzzle .welcome-wrap { display: block; flex: 1; min-height: 0; overflow: auto; }
+.show-home .welcome-wrap { display: block; flex: 1; min-height: 0; overflow: auto; }
 
 @media (max-width: 1180px) {
   .workspace { grid-template-columns: minmax(0, 1fr) 330px; }

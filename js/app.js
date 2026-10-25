@@ -129,6 +129,8 @@
     root.setProperty('--accent', accent);
     root.setProperty('--accent-rgb', `${r}, ${g}, ${b}`);
     root.setProperty('--on-accent', MF.util.onColor(accent));
+    // Le logo (barre du haut, icône d'onglet) prend la couleur de la grille active
+    MF.brand.apply(accent);
   }
 
   function renderTabs() {
@@ -270,7 +272,9 @@
 
   function renderAll() {
     const pz = store.active();
+    const home = !pz || view.home;
     document.body.classList.toggle('no-puzzle', !pz);
+    document.body.classList.toggle('show-home', home);
     applyAccent(pz);
     renderTabs();
     renderToolbar();
@@ -278,8 +282,32 @@
       MF.welcome.render($('#welcome'), { legacy: store.legacy().length, onNew: () => actions.newPuzzle(), onOpen: () => $('#file-open').click(), onLegacy: actions.recoverLegacy, onQuick: actions.quickStart });
       return;
     }
+    if (home) { renderDashboard(); return; }
     renderGrid();
     renderSide();
+  }
+
+  /** Tableau de bord « Mes grilles » (clic sur le logo). */
+  function renderDashboard() {
+    const s = store.get();
+    MF.dashboard.render($('#welcome'), {
+      puzzles: s.puzzles, activeId: s.activeId, view, accent: store.active()?.design.accent,
+      onOpen: id => actions.switchPuzzle(id),
+      onNew: () => actions.newPuzzle(),
+      onQuick: actions.quickStart,
+      onDuplicate: id => actions.duplicatePuzzle(id),
+      onDelete: id => actions.deletePuzzle(id),
+      onImport: () => $('#file-open').click(),
+      onBackup: () => actions.backup(),
+    });
+  }
+
+  function showHome(on = true) {
+    if (!store.active()) return;
+    view.home = on;
+    view.selected = null;
+    renderAll();
+    if (on) $('#welcome').scrollTop = 0;
   }
 
   /* ---------------- Jeu ---------------- */
@@ -368,6 +396,8 @@
   const actions = MF.createActions(app);
 
   function bind() {
+    // Logo + nom : tableau de bord « Mes grilles » (re-clic : retour à la grille)
+    $('#btn-home').onclick = () => showHome(!view.home);
     $('#puzzle-tabs').addEventListener('click', e => {
       const b = e.target.closest('.ptab');
       if (!b) return;
@@ -456,6 +486,8 @@
       if (typing || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.modal-scrim')) return;
       const pz = store.active();
       if (!pz) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } return; }
+      if (e.key === 'h') { showHome(!view.home); return; }
+      if (view.home) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } if (e.key === 'Escape') showHome(false); return; }
       if (view.selected && store.get().ui.mode !== 'play') {
         const step = e.shiftKey ? 0.02 : 0.004;
         const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };

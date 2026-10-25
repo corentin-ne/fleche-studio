@@ -407,3 +407,54 @@
 .toggles { display: flex; flex-wrap: wrap; gap: 6px 16px; }
 .name-row { display: flex; align-items: center; gap: 6px; }
 .name-row .input { flex: 1; }
+
+/* ---------- Bouton logo (tableau de bord) ---------- */
+button.brand { border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; padding: 3px 8px 3px 3px; border-radius: 12px; transition: background var(--t-fast); }
+button.brand:hover { background: var(--glass-hover); }
+.show-home button.brand { background: rgba(var(--accent-rgb), .14); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .4); }
+
+/* ---------- Tableau de bord « Mes grilles » ---------- */
+.dash { max-width: 1320px; margin: 0 auto; padding: 22px 16px 32px; display: flex; flex-direction: column; gap: 18px; }
+.dash-head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 20px; justify-content: space-between; }
+.dash-title { display: flex; align-items: center; gap: 14px; }
+.dash-title h1 { font-size: 28px; }
+.dash-title p { margin: 2px 0 0; }
+.dash-logo { width: 52px; height: 52px; filter: drop-shadow(0 10px 22px rgba(var(--accent-rgb), .4)); }
+.dash-logo svg { width: 100%; height: 100%; display: block; }
+.dash-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.dash-actions .input-search { width: 220px; }
+.dash-quick { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-chip {
+  display: inline-flex; align-items: center; gap: 10px; padding: 8px 14px 8px 10px; border-radius: var(--r-md);
+  border: 1px solid var(--line); background: var(--glass-bg-soft); color: var(--text); cursor: pointer; text-align: left;
+  font: 500 var(--fs-sm) var(--font-sans); transition: border-color var(--t-fast), transform var(--t-fast) var(--ease);
+}
+.quick-chip:hover { border-color: rgba(var(--accent-rgb), .6); transform: translateY(-1px); }
+.quick-chip .ic { width: 22px; height: 22px; color: var(--accent); }
+.quick-chip span { display: flex; flex-direction: column; line-height: 1.15; }
+.quick-chip small { color: var(--text-3); font-size: 11px; }
+.dash-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 14px; }
+.dash-card {
+  position: relative; display: flex; flex-direction: column; overflow: hidden; cursor: pointer; text-align: left; min-width: 0;
+  border-radius: var(--r-lg); border: 1px solid var(--line); background: var(--glass-bg); color: var(--text);
+  box-shadow: var(--glass-shadow); backdrop-filter: blur(20px);
+  transition: transform var(--t-med) var(--ease), box-shadow var(--t-med), border-color var(--t-fast);
+}
+.dash-card:hover, .dash-card:focus-visible { transform: translateY(-3px); border-color: color-mix(in srgb, var(--c, var(--accent)) 55%, transparent); box-shadow: var(--glass-shadow), 0 22px 44px -24px var(--c, var(--accent)); }
+.dash-card.is-active { border-color: color-mix(in srgb, var(--c) 70%, transparent); }
+.dash-thumb { min-width: 0; overflow: hidden; aspect-ratio: 4 / 3.2; display: grid; place-items: center; padding: 12px; background: repeating-conic-gradient(var(--glass-bg-soft) 0 25%, transparent 0 50%) 0 0 / 16px 16px; border-bottom: 1px solid var(--line); }
+.dash-thumb svg { width: 100%; height: 100%; display: block; filter: drop-shadow(0 6px 14px rgba(0,0,0,.25)); }
+.dash-empty { display: flex; flex-direction: column; align-items: center; gap: 6px; color: var(--text-3); font-size: var(--fs-xs); }
+.dash-info { padding: 10px 12px 12px; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.dash-name { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dash-name b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-name .dot { width: 10px; height: 10px; flex: none; border-radius: 3px; background: var(--c); }
+.dash-meta { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-3); }
+.dash-meta .ic { color: var(--c); }
+.dash-tools { position: absolute; top: 8px; right: 8px; display: flex; gap: 2px; padding: 2px; border-radius: 10px; background: var(--glass-bg-strong); opacity: 0; transition: opacity var(--t-fast); }
+.dash-card:hover .dash-tools, .dash-card:focus-within .dash-tools { opacity: 1; }
+@media (hover: none) { .dash-tools { opacity: 1; } }
+.dash-new { align-items: center; justify-content: center; gap: 8px; min-height: 240px; border-style: dashed; border-width: 2px; background: var(--glass-bg-soft); box-shadow: none; }
+.dash-new .ic-lg { width: 34px; height: 34px; color: var(--accent); }
+.dash-foot { display: flex; align-items: center; gap: 6px; justify-content: center; }
+@media (max-width: 640px) { .dash-actions .input-search { width: 100%; } .dash-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; } }

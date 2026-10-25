@@ -256,7 +256,7 @@ MF.createActions = app => {
       if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
       else if (res.start.startsWith('pack:')) words = (MF.packs[res.start.slice(5)]?.words || []).map(([text, clue]) => ({ text, clue }));
       pz.words = words.map(S.word).filter(Boolean);
-      view.page = 0; view.selected = null; view.filter = '';
+      view.page = 0; view.selected = null; view.filter = ''; view.home = false;
       store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; }, 'puzzles');
       if (!words.length) requestAnimationFrame(() => document.querySelector('#add-form [name=text]')?.focus());
     },
@@ -264,22 +264,24 @@ MF.createActions = app => {
       return actions.newPuzzle({ game, start: 'random', theme: game === 'meles' ? 'candy' : game === 'codes' ? 'minimal' : game === 'croises' ? 'print' : 'violet' });
     },
     switchPuzzle(id) {
+      if (view.home) { view.home = false; if (id === store.get().activeId) { app.renderAll(); return; } }
       if (id === store.get().activeId) return;
       view.filter = ''; view.draft = {}; view.page = 0; view.selected = null;
       store.update(s => { s.activeId = id; }, 'active');
     },
-    duplicatePuzzle() {
-      const src = active();
+    duplicatePuzzle(id) {
+      const src = id ? store.puzzle(id) : active();
       const copy = store.makePuzzle({ ...MF.util.deepClone(src), id: null, name: `${src.name} (copie)` });
-      store.update(s => { s.puzzles.push(copy); s.activeId = copy.id; }, 'puzzles');
+      store.update(s => { s.puzzles.push(copy); if (!id) s.activeId = copy.id; }, 'puzzles');
       MF.ui.toast('Grille dupliquée.', 'ok');
     },
-    async deletePuzzle() {
-      const pz = active();
+    async deletePuzzle(id) {
+      const pz = id ? store.puzzle(id) : active();
+      if (!pz) return;
       const ok = await MF.ui.confirm('Supprimer la grille ?', `« ${pz.name} » et ses ${pz.words.length} mots seront supprimés. (Ctrl+Z pour annuler)`, 'Supprimer');
       if (!ok) return;
       view.selected = null;
-      store.update(s => { s.puzzles = s.puzzles.filter(p => p.id !== pz.id); s.activeId = s.puzzles[0]?.id || null; }, 'puzzles');
+      store.update(s => { s.puzzles = s.puzzles.filter(p => p.id !== pz.id); if (s.activeId === pz.id) s.activeId = s.puzzles[0]?.id || null; }, 'puzzles');
     },
 
     /** Sauvegarde complète (JSON), images comprises si demandé. */
