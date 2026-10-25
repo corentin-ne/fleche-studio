@@ -38,16 +38,38 @@ MF.design = (() => {
   const ARROWS = { solid: 'Triangles', chevron: 'Chevrons', bold: 'Grosses flèches', dot: 'Pastilles' };
   const VOIDS = { frame: 'Couleur du cadre', transparent: 'Transparentes (voir le fond)', light: 'Couleur claire', hatch: 'Hachurées' };
 
-  /** Formats d'affiche (rapport largeur / hauteur en portrait). */
+  /**
+   * Formats d'affiche, par famille.
+   *  - print : feuilles (mm, en portrait ; l'orientation peut basculer) ;
+   *  - social / screen : formats en pixels, orientation fixe ;
+   *  - fit : l'affiche épouse la grille ; custom : rapport libre.
+   */
+  const FORMAT_GROUPS = { auto: 'Automatique', print: 'Impression', social: 'Réseaux sociaux', screen: 'Écran', custom: 'Sur mesure' };
   const FORMATS = {
-    fit: { label: 'Ajusté à la grille' },
-    A4: { label: 'Feuille A4', ratio: 210 / 297 },
-    A3: { label: 'Feuille A3', ratio: 297 / 420 },
-    letter: { label: 'US Letter', ratio: 8.5 / 11 },
-    square: { label: 'Carré (Instagram)', ratio: 1 },
-    story: { label: 'Story 9:16', ratio: 9 / 16 },
-    wide: { label: 'Écran 16:9', ratio: 16 / 9, fixed: true },
+    fit: { label: 'Ajusté', hint: 'Épouse la grille', group: 'auto' },
+    A5: { label: 'A5', hint: '148 × 210 mm', group: 'print', mm: [148, 210] },
+    A4: { label: 'A4', hint: '210 × 297 mm', group: 'print', mm: [210, 297] },
+    A3: { label: 'A3', hint: '297 × 420 mm', group: 'print', mm: [297, 420] },
+    letter: { label: 'US Letter', hint: '8,5 × 11 in', group: 'print', mm: [216, 279] },
+    square: { label: 'Carré', hint: '1080 × 1080', group: 'social', px: [1080, 1080] },
+    post: { label: 'Post 4:5', hint: '1080 × 1350', group: 'social', px: [1080, 1350] },
+    story: { label: 'Story 9:16', hint: '1080 × 1920', group: 'social', px: [1080, 1920] },
+    pin: { label: 'Épingle 2:3', hint: '1000 × 1500', group: 'social', px: [1000, 1500] },
+    wide: { label: 'Écran 16:9', hint: '1920 × 1080', group: 'screen', px: [1920, 1080] },
+    slide: { label: 'Diapo 4:3', hint: '1600 × 1200', group: 'screen', px: [1600, 1200] },
+    custom: { label: 'Personnalisé', hint: 'Largeur × hauteur', group: 'custom' },
   };
+  for (const f of Object.values(FORMATS)) {
+    const [w, h] = f.mm || f.px || [];
+    if (w) f.ratio = w / h;
+  }
+  /** Rapport largeur / hauteur effectif d'un format (null = ajusté à la grille). */
+  function formatRatio(p) {
+    const f = FORMATS[p.format] || FORMATS.fit;
+    if (p.format === 'custom') return Math.max(0.1, Math.min(10, p.customW / p.customH));
+    if (!f.ratio) return null;
+    return f.group === 'print' && p.orientation === 'landscape' ? 1 / f.ratio : f.ratio;
+  }
   const ANCHORS = ['nw', 'n', 'ne', 'w', 'c', 'e', 'sw', 's', 'se'];
 
   const DEFAULT = {
@@ -60,7 +82,7 @@ MF.design = (() => {
     cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false },
     font: { clue: 'inter', letter: 'inter', clueWeight: 600, clueSize: 17, upper: false },
     arrows: { style: 'solid', size: 1 },
-    poster: { format: 'fit', orientation: 'portrait', padding: 70, anchor: 'c', scale: 1, radius: 0 },
+    poster: { format: 'fit', orientation: 'portrait', padding: 70, anchor: 'c', scale: 1, radius: 0, customW: 1200, customH: 1600 },
     title: { show: false, text: '', subtitle: '', font: 'fraunces', color: 'auto', size: 110, align: 'center' },
     lists: { font: 'inter', size: 30, color: 'auto' },
   };
@@ -85,21 +107,38 @@ MF.design = (() => {
     return b.c1;
   }
 
-  /** Couleurs effectives : chaque « auto » est déduit de la couleur principale. */
+  /** Rapport de contraste WCAG entre deux couleurs (1 … 21). */
+  const contrast = (x, y) => { const [l1, l2] = [luminance(x), luminance(y)].sort((p, q) => q - p); return (l1 + 0.05) / (l2 + 0.05); };
+  /**
+   * Couleur lisible sur un fond : si le contraste est insuffisant, on l'assombrit
+   * (fond clair) ou l'éclaircit (fond sombre) jusqu'à atteindre le minimum.
+   */
+  function readable(color, bg, min = 4.5) {
+    if (contrast(color, bg) >= min) return color;
+    const dark = luminance(bg) > 0.4;
+    for (let t = 0.15; t <= 1; t += 0.15) {
+      const c = dark ? mix(color, '#000000', t) : mix(color, '#ffffff', t);
+      if (contrast(c, bg) >= min) return c;
+    }
+    return dark ? '#1d1b22' : '#ffffff';
+  }
+
+  /** Couleurs effectives : chaque « auto » est déduit de la couleur principale, avec un contraste garanti. */
   function resolve(d) {
     const c = d.colors, a = d.accent;
     const pick = (k, auto) => (c[k] && c[k] !== 'auto' ? c[k] : auto);
     const frame = pick('frame', a);
     const letter = pick('letter', '#ffffff');
-    const ink = pick('ink', onColor(letter, '#231f20', '#f7f7fb'));
+    const ink = readable(pick('ink', onColor(letter, '#231f20', '#f7f7fb')), letter, 7);
     const clue = pick('clue', luminance(letter) > 0.5 ? tint(a, 0.86) : mix(letter, a, 0.25));
     const tone = backgroundTone(d);
     return {
       accent: a, frame, letter, ink, clue,
       line: pick('line', frame),
-      arrow: pick('arrow', a),
-      clueInk: pick('clueInk', onColor(clue, '#231f20', '#f7f7fb')),
-      solution: pick('solution', ink),
+      // Flèches et textes : toujours lisibles sur leur case, même avec des couleurs choisies à la main
+      arrow: readable(pick('arrow', a), letter, 3),
+      clueInk: readable(pick('clueInk', onColor(clue, '#231f20', '#f7f7fb')), clue, 7),
+      solution: readable(pick('solution', ink), letter, 4.5),
       void: pick('void', tint(a, 0.55)),
       title: d.title.color !== 'auto' ? d.title.color : onColor(tone, luminance(a) < 0.5 && luminance(tone) > 0.6 ? a : '#1d1b22', '#ffffff'),
       list: d.lists.color !== 'auto' ? d.lists.color : onColor(tone, '#231f20', '#f7f7fb'),
@@ -130,5 +169,5 @@ MF.design = (() => {
     return [...ids].map(font);
   }
 
-  return { FONTS, font, weightFor, CELL_STYLES, ARROWS, VOIDS, FORMATS, ANCHORS, DEFAULT, merge, resolve, metrics, fontsOf, backgroundTone };
+  return { FONTS, font, weightFor, CELL_STYLES, ARROWS, VOIDS, FORMATS, FORMAT_GROUPS, formatRatio, ANCHORS, DEFAULT, merge, resolve, readable, contrast, metrics, fontsOf, backgroundTone };
 })();

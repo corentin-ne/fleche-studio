@@ -7,22 +7,22 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://fr.wiktionary.org https://fr.wikipedia.org; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; worker-src 'none'; media-src 'none'">
   <meta name="referrer" content="no-referrer">
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <title>Mots fléchés Maker</title>
+  <title>Flèche Studio</title>
   <meta name="theme-color" content="#07090d">
-  <meta name="description" content="Créateur de grilles de mots fléchés, croisés, mêlés et codés : vos mots, vos définitions, votre style. Export PNG, SVG, PDF. Tout reste dans votre navigateur.">
+  <meta name="description" content="Flèche Studio : créateur de grilles de mots fléchés, croisés, mêlés et codés : vos mots, vos définitions, votre style. Export PNG, SVG, PDF. Tout reste dans votre navigateur.">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%237b3fe4'/%3E%3Cpath d='M18 18h12v12H18zM34 34h12v12H34z' fill='white'/%3E%3Cpath d='M34 22h10l-4-4m4 4-4 4' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Baloo+2:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Caveat:wght@600;700&family=Patrick+Hand&family=Permanent+Marker&display=swap" rel="stylesheet">
 
   <!-- ?v=… : à changer à chaque mise à jour, sinon le navigateur peut garder d'anciens fichiers en cache -->
-  <link rel="stylesheet" href="css/tokens.css?v=3.0.0">
-  <link rel="stylesheet" href="css/base.css?v=3.0.0">
-  <link rel="stylesheet" href="css/glass.css?v=3.0.0">
-  <link rel="stylesheet" href="css/components.css?v=3.0.0">
-  <link rel="stylesheet" href="css/app.css?v=3.0.0">
-  <link rel="stylesheet" href="css/panels.css?v=3.0.0">
-  <link rel="stylesheet" href="css/print.css?v=3.0.0">
+  <link rel="stylesheet" href="css/tokens.css?v=3.1.0">
+  <link rel="stylesheet" href="css/base.css?v=3.1.0">
+  <link rel="stylesheet" href="css/glass.css?v=3.1.0">
+  <link rel="stylesheet" href="css/components.css?v=3.1.0">
+  <link rel="stylesheet" href="css/app.css?v=3.1.0">
+  <link rel="stylesheet" href="css/panels.css?v=3.1.0">
+  <link rel="stylesheet" href="css/print.css?v=3.1.0">
 </head>
 <body>
   <div class="bg-ambient" aria-hidden="true"></div>
@@ -30,8 +30,8 @@
   <div class="app">
     <header class="topbar glass">
       <div class="brand">
-        <span class="brand-mark" aria-hidden="true">MF</span>
-        <span class="brand-text"><strong>Mots fléchés</strong><small>Maker</small></span>
+        <span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 5h6v6H5zM13 13h6v6h-6z" fill="currentColor"/><path d="M13 7.5h5.5m0 0-2.2-2.2m2.2 2.2-2.2 2.2" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <span class="brand-text"><strong>Flèche</strong><small>Studio</small></span>
       </div>
       <nav class="puzzle-tabs" id="puzzle-tabs" aria-label="Mes grilles"></nav>
       <div class="topbar-actions">
@@ -51,8 +51,8 @@
       <section class="grid-card glass" aria-label="Grille">
         <div class="grid-head">
           <div class="grid-title">
-            <div class="eyebrow" id="grid-game"></div>
             <h1 id="grid-name" title="Cliquer pour renommer">—</h1>
+            <span class="grid-game" id="grid-game"></span>
             <div class="grid-stats" id="grid-stats"></div>
           </div>
           <div class="grid-tools">
@@ -64,7 +64,7 @@
             </div>
             <div class="zoom">
               <button class="btn btn-sm btn-ghost" id="btn-fit" title="Ajuster à l'écran"><span data-icon="grid"></span></button>
-              <input type="range" id="zoom" min="10" max="140" step="2" aria-label="Zoom" title="Zoom (Ctrl + molette)">
+              <input type="range" id="zoom" min="10" max="160" step="2" aria-label="Zoom" title="Zoom (Ctrl + molette)">
             </div>
             <button class="btn" id="btn-shuffle" title="Calculer une autre grille (M)"><span data-icon="shuffle"></span><span class="lbl">Mélanger</span></button>
             <button class="btn btn-primary" id="btn-export" title="Exporter (E)"><span data-icon="download"></span>Exporter</button>
@@ -113,52 +113,54 @@
   <div class="toasts" id="toasts" aria-live="polite"></div>
 
   <!-- Noyau -->
-  <script src="js/core/utils.js?v=3.0.0"></script>
-  <script src="js/core/text.js?v=3.0.0"></script>
-  <script src="js/engine/design.js?v=3.0.0"></script>
-  <script src="js/engine/shapes.js?v=3.0.0"></script>
-  <script src="js/engine/backgrounds.js?v=3.0.0"></script>
-  <script src="js/engine/games.js?v=3.0.0"></script>
-  <script src="js/data/stickers.js?v=3.0.0"></script>
-  <script src="js/core/schema.js?v=3.0.0"></script>
-  <script src="js/core/assets.js?v=3.0.0"></script>
-  <script src="js/core/store.js?v=3.0.0"></script>
-  <script src="js/core/zip.js?v=3.0.0"></script>
-  <script src="js/core/share.js?v=3.0.0"></script>
+  <script src="js/core/utils.js?v=3.1.0"></script>
+  <script src="js/core/text.js?v=3.1.0"></script>
+  <script src="js/engine/design.js?v=3.1.0"></script>
+  <script src="js/engine/shapes.js?v=3.1.0"></script>
+  <script src="js/engine/backgrounds.js?v=3.1.0"></script>
+  <script src="js/engine/games.js?v=3.1.0"></script>
+  <script src="js/data/stickers.js?v=3.1.0"></script>
+  <script src="js/core/schema.js?v=3.1.0"></script>
+  <script src="js/core/assets.js?v=3.1.0"></script>
+  <script src="js/core/store.js?v=3.1.0"></script>
+  <script src="js/core/zip.js?v=3.1.0"></script>
+  <script src="js/core/share.js?v=3.1.0"></script>
 
   <!-- Données : dictionnaire, packs de mots, thèmes -->
-  <script src="js/data/clues-fr.js?v=3.0.0"></script>
-  <script src="js/data/packs.js?v=3.0.0"></script>
-  <script src="js/data/themes.js?v=3.0.0"></script>
+  <script src="js/data/clues-fr.js?v=3.1.0"></script>
+  <script src="js/data/packs.js?v=3.1.0"></script>
+  <script src="js/data/themes.js?v=3.1.0"></script>
 
   <!-- Services -->
-  <script src="js/services/dictionary.js?v=3.0.0"></script>
-  <script src="js/services/wiki.js?v=3.0.0"></script>
-  <script src="js/services/importer.js?v=3.0.0"></script>
+  <script src="js/services/dictionary.js?v=3.1.0"></script>
+  <script src="js/services/wiki.js?v=3.1.0"></script>
+  <script src="js/services/importer.js?v=3.1.0"></script>
 
   <!-- Moteur -->
-  <script src="js/engine/paper.js?v=3.0.0"></script>
-  <script src="js/engine/builder.js?v=3.0.0"></script>
-  <script src="js/engine/wordsearch.js?v=3.0.0"></script>
-  <script src="js/engine/grid-model.js?v=3.0.0"></script>
-  <script src="js/engine/diagnostics.js?v=3.0.0"></script>
-  <script src="js/engine/renderers.js?v=3.0.0"></script>
-  <script src="js/engine/scene.js?v=3.0.0"></script>
+  <script src="js/engine/paper.js?v=3.1.0"></script>
+  <script src="js/engine/builder.js?v=3.1.0"></script>
+  <script src="js/engine/wordsearch.js?v=3.1.0"></script>
+  <script src="js/engine/grid-model.js?v=3.1.0"></script>
+  <script src="js/engine/diagnostics.js?v=3.1.0"></script>
+  <script src="js/engine/renderers.js?v=3.1.0"></script>
+  <script src="js/engine/scene.js?v=3.1.0"></script>
 
   <!-- Interface -->
-  <script src="js/ui/components.js?v=3.0.0"></script>
-  <script src="js/ui/grid-view.js?v=3.0.0"></script>
-  <script src="js/ui/sticker-editor.js?v=3.0.0"></script>
-  <script src="js/ui/pickers.js?v=3.0.0"></script>
-  <script src="js/ui/panels/words.js?v=3.0.0"></script>
-  <script src="js/ui/panels/clues.js?v=3.0.0"></script>
-  <script src="js/ui/panels/design.js?v=3.0.0"></script>
-  <script src="js/ui/panels/decor.js?v=3.0.0"></script>
-  <script src="js/ui/panels/settings.js?v=3.0.0"></script>
-  <script src="js/ui/exporter.js?v=3.0.0"></script>
-  <script src="js/ui/welcome.js?v=3.0.0"></script>
+  <script src="js/ui/components.js?v=3.1.0"></script>
+  <script src="js/ui/grid-view.js?v=3.1.0"></script>
+  <script src="js/ui/sticker-editor.js?v=3.1.0"></script>
+  <script src="js/ui/previews.js?v=3.1.0"></script>
+  <script src="js/ui/layout-controls.js?v=3.1.0"></script>
+  <script src="js/ui/pickers.js?v=3.1.0"></script>
+  <script src="js/ui/panels/words.js?v=3.1.0"></script>
+  <script src="js/ui/panels/clues.js?v=3.1.0"></script>
+  <script src="js/ui/panels/design.js?v=3.1.0"></script>
+  <script src="js/ui/panels/decor.js?v=3.1.0"></script>
+  <script src="js/ui/panels/settings.js?v=3.1.0"></script>
+  <script src="js/ui/exporter.js?v=3.1.0"></script>
+  <script src="js/ui/welcome.js?v=3.1.0"></script>
 
-  <script src="js/app/actions.js?v=3.0.0"></script>
-  <script src="js/app.js?v=3.0.0"></script>
+  <script src="js/app/actions.js?v=3.1.0"></script>
+  <script src="js/app.js?v=3.1.0"></script>
 </body>
 </html>

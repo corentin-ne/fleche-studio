@@ -133,7 +133,7 @@
     if (fonts.length) {
       fonts.forEach(f => fontsReady.add(f.css));
       Promise.all(fonts.flatMap(f => f.weights.map(w => document.fonts.load(`${w} 20px ${f.css}`).catch(() => null))))
-        .then(() => { MF.text.invalidate(); derivedCache.key = null; renderGrid(); });
+        .then(() => { MF.text.invalidate(); MF.previews.clear(); derivedCache.key = null; renderGrid(); });
     }
   }
 
@@ -177,7 +177,7 @@
           : `<div class="empty start-hint">${ic('edit')}<h3>Commence par ajouter des mots</h3><p>Tape-les dans le panneau « Mots », ou pioche dans la bibliothèque et les thèmes. La grille se construit toute seule.</p></div>`;
       return;
     }
-    const fit = (W, H) => Math.max(10, Math.min(140, Math.floor(Math.min((box.clientWidth - 48) / (W / 100), (box.clientHeight - 48) / (H / 100)))));
+    const fit = (W, H) => Math.max(10, Math.min(160, Math.floor(Math.min((box.clientWidth - 28) / (W / 100), (box.clientHeight - 28) / (H / 100)))));
     const cell = s.ui.fit ? fit : s.ui.cell;
     // Petite animation d'apparition seulement pour une nouvelle grille (pas à chaque réglage)
     const animate = view.shownGrid !== entriesFor;
@@ -238,6 +238,8 @@
     const ctx = { puzzle: pz, derived: d, actions, state: s, view };
     const panel = { diag: MF.panels.clues, design: MF.panels.design, decor: MF.panels.decor, settings: MF.panels.settings }[s.ui.tab] || MF.panels.words;
     const sameTab = body.dataset.tab === s.ui.tab;
+    // Animation d'entrée seulement quand on change d'onglet (pas à chaque réglage)
+    body.classList.toggle('enter', !sameTab);
     panel(body, ctx);
     body.dataset.tab = s.ui.tab;
     if (sameTab) body.scrollTop = scroll;
@@ -250,7 +252,7 @@
     renderTabs();
     renderToolbar();
     if (!pz) {
-      MF.welcome.render($('#welcome'), { legacy: store.legacy().length, onNew: actions.newPuzzle, onOpen: () => $('#file-open').click(), onLegacy: actions.recoverLegacy, onQuick: actions.quickStart });
+      MF.welcome.render($('#welcome'), { legacy: store.legacy().length, onNew: () => actions.newPuzzle(), onOpen: () => $('#file-open').click(), onLegacy: actions.recoverLegacy, onQuick: actions.quickStart });
       return;
     }
     renderGrid();
@@ -367,7 +369,12 @@
     $('#mode-switch').addEventListener('click', e => { const b = e.target.closest('button[data-mode]'); if (b) setMode(b.dataset.mode); });
     $('#zoom').addEventListener('input', e => store.update(s => { s.ui.cell = +e.target.value; s.ui.fit = false; }, 'zoom'));
     $('#btn-fit').onclick = () => store.update(s => { s.ui.fit = !s.ui.fit; }, 'zoom');
-    addEventListener('resize', MF.util.debounce(() => { if (store.get().ui.fit && store.active()) renderGrid(); }, 150));
+    // La zone de la grille change de taille (fenêtre, bandeaux, polices chargées) : on réajuste
+    let lastBox = '';
+    new ResizeObserver(MF.util.debounce(() => {
+      const b = $('#grid-scroll'), key = `${b.clientWidth}x${b.clientHeight}`;
+      if (key !== lastBox && store.get().ui.fit && store.active()) { lastBox = key; renderGrid(); }
+    }, 120)).observe($('#grid-scroll'));
     $('#btn-shuffle').onclick = () => store.active() && regenerate(store.active().id);
     document.addEventListener('click', e => { if (e.target.closest('[data-regen]')) regenerate(store.active().id); });
     $('#btn-export').onclick = openExport;
@@ -498,6 +505,9 @@
     const pz = store.active();
     if (pz && !compatible(pz) && prepared(pz).length) regenerate(pz.id);
     if (location.hash.startsWith('#g=')) openShared();
+    // Toutes les polices en arrière-plan : aperçus des thèmes et mesures de texte exacts
+    setTimeout(() => Promise.all(Object.values(MF.design.FONTS).flatMap(f => f.weights.map(w => document.fonts.load(`${w} 20px ${f.css}`).catch(() => null))))
+      .then(() => { MF.text.invalidate(); MF.previews.clear(); derivedCache.key = null; if (store.active()) renderAll(); }), 600);
     // Ménage : images qui ne servent plus à aucune grille
     setTimeout(() => MF.assets.collect(store.usedAssets()).catch(() => {}), 4000);
   }

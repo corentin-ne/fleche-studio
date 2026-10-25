@@ -100,6 +100,8 @@ MF.schema = (() => {
         anchor: oneOf(po.anchor, MF.design.ANCHORS, D.poster.anchor),
         scale: num(po.scale, 0.3, 1, D.poster.scale),
         radius: num(po.radius, 0, 200, D.poster.radius),
+        customW: int(po.customW, 1, 20000, D.poster.customW),
+        customH: int(po.customH, 1, 20000, D.poster.customH),
       },
       title: {
         show: bool(ti.show, D.title.show),

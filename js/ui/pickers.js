@@ -67,7 +67,7 @@ MF.pickers = (() => {
         <div class="row">
           <div class="field"><span>Longueur</span>${MF.ui.segmented('len', LENS, 'all', 'data-lib')}</div>
           <label class="field lib-pattern"><span>Motif <span class="field-hint">? = lettre inconnue</span></span><input class="input mono" id="lib-pattern" placeholder="CH?V?L" maxlength="30"></label>
-          <button type="button" class="btn" id="lib-random">${ic('dice')}Au hasard</button>
+          <div class="field"><span>Au hasard</span><div class="row rnd-inline"><input class="input count-input" type="number" id="lib-n" min="1" max="200" value="15" aria-label="Nombre de mots"><button type="button" class="btn" id="lib-random">${ic('dice')}Tirer</button></div></div>
         </div>
         <div class="letters" id="lib-letters"><button type="button" data-l="" class="active">Toutes</button>${letters.map(l => `<button type="button" data-l="${l}">${l}</button>`).join('')}</div>
       </div>
@@ -116,10 +116,11 @@ MF.pickers = (() => {
         });
         root.querySelector('#lib-random').onclick = () => {
           const [min, max] = f.len === 'all' ? [3, 9] : f.len.split('-').map(Number);
-          D.random(12, { min, max, exclude: existing }).forEach(({ word, clue }) => selected.set(word, clue));
+          const n = MF.util.clamp(parseInt(root.querySelector('#lib-n').value, 10) || 15, 1, 200);
+          D.random(n, { min, max, exclude: new Set([...existing, ...selected.keys()]) }).forEach(({ word, clue }) => selected.set(word, clue));
           results = [...selected.keys(), ...results.filter(w => !selected.has(w))];
           draw();
-          MF.ui.toast('12 mots tirés au hasard et cochés.', 'ok', 2000);
+          MF.ui.toast(` au hasard et cochés.`, 'ok', 2000);
         };
         list.addEventListener('change', e => {
           const c = e.target.closest('input[data-w]'); if (!c) return;
@@ -130,6 +131,60 @@ MF.pickers = (() => {
         run();
       },
       actions: [{ label: 'Annuler', value: null }, { label: 'Ajouter', kind: 'primary', icon: 'plus', value: () => [...selected].map(([w, clue]) => ({ text: D.pretty(w), clue })) }],
+    });
+  }
+
+  /* ---------------- Mots au hasard : nombre et longueurs au choix ---------------- */
+  /** Tirage : n mots entre min et max lettres, éventuellement autour d'un sujet (cherché dans les définitions). */
+  function draw({ count, min, max, topic }, exclude) {
+    const pool = topic ? D.search({ q: topic, min, max }).filter(w => !exclude.has(w)) : null;
+    const list = pool ? MF.util.shuffle(pool).slice(0, count).map(w => ({ word: w, clue: MF.cluesFr[w] })) : D.random(count, { min, max, exclude });
+    return list.map(x => ({ text: D.pretty(x.word), clue: x.clue }));
+  }
+
+  function random(puzzle, defaults = {}) {
+    const existing = new Set(puzzle.words.map(w => normalize(w.text)));
+    const st = { count: 20, min: 3, max: 9, topic: '', ...defaults };
+    let items = [];
+    const lens = Array.from({ length: 14 }, (_, i) => i + 2);
+    return MF.ui.modal({
+      title: 'Mots au hasard', wide: true, icon: 'dice',
+      body: `
+        <div class="random-form">
+          <div class="field"><span>Combien de mots ?</span>
+            <div class="row"><input class="input count-input" type="number" id="rnd-count" min="1" max="200" value="${st.count}">
+            <div class="chips">${[10, 20, 30, 50, 80].map(n => `<button type="button" class="chip chip-btn" data-n="${n}">${n}</button>`).join('')}</div></div></div>
+          <div class="field"><span>Longueur</span><div class="row">
+            <select class="select select-sm" id="rnd-min" aria-label="Minimum">${lens.map(n => `<option ${n === st.min ? 'selected' : ''}>${n}</option>`).join('')}</select>
+            <span class="muted small">à</span>
+            <select class="select select-sm" id="rnd-max" aria-label="Maximum">${lens.map(n => `<option ${n === st.max ? 'selected' : ''}>${n}</option>`).join('')}</select>
+            <span class="muted small">lettres</span></div></div>
+          <label class="field"><span>Sujet <span class="field-hint">facultatif, cherché dans les définitions</span></span><input class="input" id="rnd-topic" maxlength="40" placeholder="ex : animal, cuisine, mer…" value="${esc(st.topic)}"></label>
+        </div>
+        ${listTools.replace('<span class="spacer"></span>', `<span class="spacer"></span><button type="button" class="btn btn-sm" id="rnd-again">${ic('shuffle')}Relancer</button>`)}
+        <div class="pick-list" id="rnd-list"></div>`,
+      onOpen: root => {
+        const list = root.querySelector('#rnd-list');
+        const read = () => {
+          st.count = MF.util.clamp(parseInt(root.querySelector('#rnd-count').value, 10) || 1, 1, 200);
+          st.min = +root.querySelector('#rnd-min').value;
+          st.max = Math.max(st.min, +root.querySelector('#rnd-max').value);
+          st.topic = root.querySelector('#rnd-topic').value.trim();
+        };
+        const roll = () => {
+          read();
+          items = draw(st, existing);
+          list.innerHTML = items.length ? checklist(items, existing) : '<p class="empty small">Aucun mot ne correspond : élargis la longueur ou change de sujet.</p>';
+          update();
+        };
+        const update = bindCount(root);
+        root.querySelectorAll('[data-n]').forEach(b => (b.onclick = () => { root.querySelector('#rnd-count').value = b.dataset.n; roll(); }));
+        ['#rnd-count', '#rnd-min', '#rnd-max'].forEach(s => root.querySelector(s).addEventListener('change', roll));
+        root.querySelector('#rnd-topic').addEventListener('input', MF.util.debounce(roll, 300));
+        root.querySelector('#rnd-again').onclick = roll;
+        roll();
+      },
+      actions: [{ label: 'Annuler', value: null }, { label: 'Ajouter', kind: 'primary', icon: 'plus', value: root => checked(root, items) }],
     });
   }
 
@@ -287,5 +342,5 @@ MF.pickers = (() => {
     return found;
   }
 
-  return { library, themes, paste, review, chooseDefinition, autoDefine };
+  return { library, themes, random, draw, paste, review, chooseDefinition, autoDefine };
 })();

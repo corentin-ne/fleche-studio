@@ -14,12 +14,14 @@ MF.panels.settings = (() => {
     const o = puzzle.options;
     const game = MF.games.get(puzzle.game);
     const paper = MF.paper.of(o);
-    const open = id => view.sections[id] ?? ['game', 'shape', 'size'].includes(id);
-    const S = (id, title, icon, html) => ui.section(id, title, icon, html, open(id));
+    const TABS = [['game', 'Jeu', 'grid'], ['shape', 'Forme', 'heart'], ['size', 'Taille', 'page-portrait'], ['data', 'Données', 'shield']];
+    const tab = TABS.some(([k]) => k === view.settingsTab) ? view.settingsTab : 'game';
+    const S = (id, title, icon, html) => (id === tab || (id === 'fill' && tab === 'size') ? `<div class="pgroup">${id === 'fill' ? `<div class="pgroup-title">${esc(title)}</div>` : ''}${html}</div>` : '');
     const builder = game.engine === 'builder';
 
     root.innerHTML = `<div class="settings-panel">
-      <label class="field"><span>Nom de la grille</span><input class="input" id="set-name" value="${esc(puzzle.name)}" maxlength="${MF.schema.LIMITS.name}"></label>
+      <nav class="subtabs" id="settings-tabs">${TABS.map(([k, l, i]) => `<button type="button" data-stab="${k}" class="${k === tab ? 'active' : ''}">${ic(i)}<span>${l}</span></button>`).join('')}</nav>
+      ${tab === 'game' ? `<label class="field"><span>Nom de la grille</span><input class="input" id="set-name" value="${esc(puzzle.name)}" maxlength="${MF.schema.LIMITS.name}"></label>` : ''}
 
       ${S('game', 'Type de jeu', 'grid', `<div class="game-grid">${Object.entries(MF.games.GAMES).map(([id, g]) => `
         <button type="button" class="game-card ${puzzle.game === id ? 'active' : ''}" data-game="${id}">${ic(g.icon)}<b>${esc(g.label)}</b><small>${esc(g.desc)}</small></button>`).join('')}</div>
@@ -32,7 +34,7 @@ MF.panels.settings = (() => {
       ${S('size', 'Taille & feuille', 'page-portrait', `
         <div class="field"><span>Feuille de référence</span>
           <div class="row paper-row">${ui.segmented('paper', [['A4', 'A4'], ['A3', 'A3']], paper.format, 'data-paper')}${ui.segmented('orientation', [['portrait', 'Portrait', 'page-portrait'], ['landscape', 'Paysage', 'page-landscape']], paper.orientation, 'data-paper')}</div>
-          <span class="field-hint">Donne les proportions de la grille. La mise en page finale se règle dans Design → Mise en page.</span></div>
+          <span class="field-hint">Donne les proportions de la grille. Format de page final : Design → Page.</span></div>
         <div class="field"><span>Taille</span>${ui.segmented('size', [['auto', 'Auto : tous mes mots'], ['fixed', 'Fixe']], o.size, 'data-opt')}</div>
         ${o.size === 'fixed' ? `<div class="size-presets">${MF.paper.presets(o).map(({ cols, rows, label }) => `<button type="button" data-size="${cols}x${rows}" class="${o.cols === cols && o.rows === rows ? 'active' : ''}">${label} · ${cols}×${rows}</button>`).join('')}</div>
           <div class="row">
@@ -61,11 +63,10 @@ MF.panels.settings = (() => {
         </div>
         <button type="button" class="btn btn-sm btn-ghost btn-danger" id="set-wipe">${ic('trash')}Effacer toutes mes données de ce navigateur</button>`)}
 
-      <hr class="divider">
-      <div class="row">
+      ${tab === 'game' ? `<div class="row danger-row">
         <button class="btn" id="set-dup">${ic('copy')}Dupliquer</button>
         <button class="btn btn-danger" id="set-del">${ic('trash')}Supprimer la grille</button>
-      </div>
+      </div>` : ''}
     </div>`;
 
     bind(root, puzzle, actions, view);
@@ -88,15 +89,26 @@ MF.panels.settings = (() => {
   const parse = v => (v === 'true' ? true : v === 'false' ? false : /^-?\d+(\.\d+)?$/.test(v) ? +v : v);
 
   function bind(root, puzzle, actions, view) {
-    root.querySelectorAll('details.section').forEach(det => det.addEventListener('toggle', () => { view.sections[det.dataset.section] = det.open; }));
-    root.querySelector('#set-name').addEventListener('change', e => actions.setPuzzle({ name: e.target.value.trim() || puzzle.name }));
+    const on = (sel, ev, fn) => root.querySelector(sel)?.addEventListener(ev, fn);
+    on('#set-name', 'change', e => actions.setPuzzle({ name: e.target.value.trim() || puzzle.name }));
     root.addEventListener('click', e => {
       const t = e.target.closest('button');
       if (!t) return;
-      if (t.dataset.game) actions.setGame(t.dataset.game);
+      if (t.dataset.stab) { view.settingsTab = t.dataset.stab; actions.refreshSide(); }
+      else if (t.dataset.game) actions.setGame(t.dataset.game);
       else if (t.dataset.shapeId) actions.setOption('shape', t.dataset.shapeId);
       else if (t.dataset.size) { const [cols, rows] = t.dataset.size.split('x').map(Number); actions.setOptions({ cols, rows }); }
-      else {
+      else if (t.id === 'set-backup') actions.backup();
+      else if (t.id === 'set-restore') actions.restore();
+      else if (t.id === 'set-wipe') actions.wipeAll();
+      else if (t.id === 'set-dup') actions.duplicatePuzzle();
+      else if (t.id === 'set-del') actions.deletePuzzle();
+      else if (t.id === 'set-persist') {
+        navigator.storage?.persist?.().catch(() => false).then(ok => {
+          MF.ui.toast(ok ? 'Stockage protégé ✓' : 'Le navigateur a refusé (il l\'accorde souvent après quelques visites, ou si le site est installé).', ok ? 'ok' : 'warn', 5000);
+          actions.refreshSide();
+        });
+      } else {
         const opt = t.closest('[data-opt]');
         if (opt) actions.setOption(opt.dataset.opt, parse(t.dataset.v));
         const pap = t.closest('[data-paper]');
@@ -108,20 +120,10 @@ MF.panels.settings = (() => {
       inp.addEventListener('input', () => { out.textContent = `${inp.value}${out.dataset.unit}`; });
       inp.addEventListener('change', () => actions.setOption(inp.dataset.slider.replace('opt.', ''), +inp.value));
     });
-    const num = (id, k) => root.querySelector(id)?.addEventListener('change', e => actions.setOption(k, Math.min(50, Math.max(5, parseInt(e.target.value, 10) || 5))));
+    const num = (id, k) => on(id, 'change', e => actions.setOption(k, Math.min(50, Math.max(5, parseInt(e.target.value, 10) || 5))));
     num('#set-cols', 'cols');
     num('#set-rows', 'rows');
-    root.querySelector('#set-marks').addEventListener('change', e => actions.setUi({ photoMarks: e.target.checked }));
-    root.querySelector('#set-backup').onclick = () => actions.backup();
-    root.querySelector('#set-restore').onclick = () => actions.restore();
-    root.querySelector('#set-persist').onclick = async () => {
-      const ok = await navigator.storage?.persist?.().catch(() => false);
-      MF.ui.toast(ok ? 'Stockage protégé ✓' : 'Le navigateur a refusé (il l\'accorde souvent après quelques visites, ou si le site est installé).', ok ? 'ok' : 'warn', 5000);
-      actions.refreshSide();
-    };
-    root.querySelector('#set-wipe').onclick = () => actions.wipeAll();
-    root.querySelector('#set-dup').onclick = () => actions.duplicatePuzzle();
-    root.querySelector('#set-del').onclick = () => actions.deletePuzzle();
+    on('#set-marks', 'change', e => actions.setUi({ photoMarks: e.target.checked }));
   }
 
   return render;

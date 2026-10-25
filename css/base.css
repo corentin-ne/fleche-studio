@@ -50,18 +50,18 @@ kbd {
 .app {
   position: relative; z-index: 1;
   display: flex; flex-direction: column;
-  height: 100vh; gap: var(--sp-3); padding: var(--sp-3);
+  height: 100vh; gap: 8px; padding: 8px;
 }
 
 .topbar {
   display: flex; align-items: center; gap: var(--sp-4);
-  padding: var(--sp-2) var(--sp-3);
-  border-radius: var(--r-lg);
-  min-height: 56px;
+  padding: 5px 8px;
+  border-radius: var(--r-md);
+  min-height: 46px;
 }
 .brand { display: flex; align-items: center; gap: var(--sp-3); flex: none; }
 .brand-mark {
-  width: 36px; height: 36px; border-radius: 11px; flex: none;
+  width: 30px; height: 30px; border-radius: 9px; flex: none;
   display: grid; place-items: center;
   font-weight: 700; font-size: 14px; color: #fff; letter-spacing: .02em;
   background: linear-gradient(160deg, rgba(var(--accent-rgb), 1), rgba(var(--accent-rgb), .55));
@@ -69,13 +69,14 @@ kbd {
   transition: background var(--t-med) var(--ease);
 }
 .brand-text { display: flex; flex-direction: column; line-height: 1.15; }
-.brand-text strong { font-family: var(--font-display); font-size: 17px; font-weight: 600; }
+.brand-text strong { font-family: var(--font-display); font-size: 15px; font-weight: 600; }
+.brand-mark svg { width: 18px; height: 18px; }
 .brand-text small { color: var(--text-3); font-size: var(--fs-xs); }
 .topbar-actions { margin-left: auto; display: flex; gap: var(--sp-1); }
 
 .workspace {
   flex: 1; min-height: 0;
-  display: grid; grid-template-columns: minmax(0, 1fr) 420px; gap: var(--sp-3);
+  display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 8px;
 }
 .workspace > * { animation: viewIn var(--t-med) var(--ease) backwards; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
@@ -85,7 +86,7 @@ kbd {
 .no-puzzle .welcome-wrap { display: block; flex: 1; min-height: 0; overflow: auto; }
 
 @media (max-width: 1180px) {
-  .workspace { grid-template-columns: minmax(0, 1fr) 380px; }
+  .workspace { grid-template-columns: minmax(0, 1fr) 330px; }
 }
 @media (max-width: 1000px) {
   body { overflow: auto; }

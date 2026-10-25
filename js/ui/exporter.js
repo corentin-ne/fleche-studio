@@ -1,7 +1,8 @@
 /* =========================================================================
-   Export : PNG haute définition, SVG vectoriel, impression / PDF, lot ZIP.
-   La fenêtre d'export permet aussi de choisir la mise en page finale
-   (format de la page, position et taille de la grille) avec aperçu direct.
+   Export : PNG, JPEG, WebP, SVG, impression / PDF, lot ZIP.
+   La fenêtre d'export règle la mise en page (format, position, taille) avec
+   aperçu direct, puis le fichier : type, résolution (dpi pour l'impression,
+   pixels pour l'écran), contenu, fond, décor, nom.
 
    Une « page » à exporter : { name, puzzle, model }.
    ========================================================================= */
@@ -10,8 +11,15 @@ window.MF = window.MF || {};
 MF.exporter = (() => {
   const { esc, plural } = MF.util;
   const ic = MF.icons.svg;
-  const slug = s => MF.util.normalize(s).toLowerCase() || 'grille';
-  const fileName = (page, letters, ext) => `${slug(page.name)}${letters ? '-solution' : ''}.${ext}`;
+  /** Nom de fichier lisible : « Test étoile » -> « test-etoile ». */
+  const slug = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || 'grille';
+
+  const TYPES = {
+    png: { label: 'PNG', mime: 'image/png', alpha: true, hint: 'Qualité parfaite, fond transparent possible' },
+    jpeg: { label: 'JPEG', mime: 'image/jpeg', alpha: false, hint: 'Fichier léger, idéal pour envoyer' },
+    webp: { label: 'WebP', mime: 'image/webp', alpha: true, hint: 'Léger et net, pour le web' },
+    svg: { label: 'SVG', mime: 'image/svg+xml', alpha: true, hint: 'Vectoriel : Canva, Illustrator, impression géante' },
+  };
 
   /** Copie du puzzle adaptée à l'export (fond transparent si demandé). */
   function exportPuzzle(pz, { transparent }) {
@@ -20,12 +28,11 @@ MF.exporter = (() => {
     copy.design.background.type = 'none';
     return copy;
   }
+  const sceneOf = (page, o, assetUrl) => MF.scene.compose(page.model, exportPuzzle(page.puzzle, o), {
+    letters: o.letters, forExport: true, assetUrl, stickers: o.decor !== false, title: o.title !== false,
+  });
 
-  function sceneOf(page, opts, assetUrl) {
-    return MF.scene.compose(page.model, exportPuzzle(page.puzzle, opts), { letters: opts.letters, forExport: true, assetUrl });
-  }
-
-  /** Images utilisées par une page, en data URL (pour un SVG autonome). */
+  /** Images utilisées par une page, en data URL (SVG autonome). */
   async function dataUrls(pz) {
     const ids = [pz.design.background.imageId, ...pz.stickers.map(s => s.imageId)].filter(Boolean);
     const map = new Map();
@@ -33,159 +40,204 @@ MF.exporter = (() => {
     return id => map.get(id) || null;
   }
 
-  async function pngBlob(page, opts) {
+  /** Fichier d'une page : { blob, ext }. */
+  async function render(page, o) {
+    if (o.type === 'svg') {
+      const url = await dataUrls(page.puzzle);
+      const text = '<?xml version="1.0" encoding="UTF-8"?>\n' + MF.renderers.svg(sceneOf(page, o, url), { forExport: true });
+      return { blob: new Blob([text], { type: 'image/svg+xml;charset=utf-8' }), ext: 'svg' };
+    }
     await document.fonts?.ready;
-    const cv = await MF.renderers.canvas(sceneOf(page, opts, MF.assets.url), { scale: opts.scale });
-    const blob = await new Promise(r => cv.toBlob(r, 'image/png'));
-    cv.width = cv.height = 0; // libère la mémoire tout de suite (lots en Ultra)
-    return blob;
-  }
-  async function svgMarkup(page, opts) {
-    const url = await dataUrls(page.puzzle);
-    return '<?xml version="1.0" encoding="UTF-8"?>\n' + MF.renderers.svg(sceneOf(page, opts, url), { forExport: true });
+    const t = TYPES[o.type] || TYPES.png;
+    const scene = sceneOf(page, o, MF.assets.url);
+    // JPEG n'a pas de transparence : fond blanc dessous
+    const cv = await MF.renderers.canvas(scene, { scale: o.width / scene.W, matte: t.alpha ? null : '#ffffff' });
+    const blob = await new Promise(r => cv.toBlob(r, t.mime, o.quality));
+    cv.width = cv.height = 0; // libère la mémoire tout de suite
+    // Navigateur sans encodeur WebP : il renvoie du PNG, on garde la bonne extension
+    const ext = blob?.type === 'image/png' ? 'png' : o.type === 'jpeg' ? 'jpg' : o.type;
+    return { blob, ext };
   }
 
-  async function png(page, opts) { MF.util.downloadBlob(fileName(page, opts.letters, 'png'), await pngBlob(page, opts)); }
-  async function svg(page, opts) { MF.util.download(fileName(page, opts.letters, 'svg'), await svgMarkup(page, opts), 'image/svg+xml'); }
+  const fileName = (base, letters, ext) => `${base}${letters ? '-solution' : ''}.${ext}`;
 
-  function print(page, opts) {
+  async function download(page, o) {
+    const variants = o.content === 'both' ? [false, true] : [o.content === 'solution'];
+    for (const letters of variants) {
+      const { blob, ext } = await render(page, { ...o, letters });
+      if (!blob) throw new Error('Format non pris en charge par ce navigateur');
+      MF.util.downloadBlob(fileName(o.name || slug(page.name), letters, ext), blob);
+      await MF.util.sleep(250);
+    }
+  }
+
+  function print(page, o) {
     const area = document.getElementById('print-area');
-    const scene = sceneOf(page, opts, MF.assets.url);
+    const variants = o.content === 'both' ? [false, true] : [o.content === 'solution'];
     const p = page.puzzle.design.poster;
-    const fmt = ['A4', 'A3', 'letter'].includes(p.format) ? p.format : MF.paper.of(page.puzzle.options).format;
-    const orient = ['A4', 'A3', 'letter'].includes(p.format) ? p.orientation : (scene.W > scene.H ? 'landscape' : 'portrait');
-    let sheet = document.getElementById('print-page');
-    if (!sheet) { sheet = document.createElement('style'); sheet.id = 'print-page'; document.head.appendChild(sheet); }
-    sheet.textContent = `@media print { @page { size: ${fmt === 'letter' ? 'letter' : fmt} ${orient}; margin: 8mm; } }`;
-    area.innerHTML = MF.renderers.svg(scene, { forExport: true });
+    const f = MF.design.FORMATS[p.format];
+    const sheet = f?.group === 'print' ? `${p.format === 'letter' ? 'letter' : p.format} ${p.orientation}` : 'A4 portrait';
+    let style = document.getElementById('print-page');
+    if (!style) { style = document.createElement('style'); style.id = 'print-page'; document.head.appendChild(style); }
+    style.textContent = `@media print { @page { size: ${sheet}; margin: 8mm; } }`;
+    area.innerHTML = variants.map(letters => `<div class="print-page">${MF.renderers.svg(sceneOf(page, { ...o, letters }, MF.assets.url), { forExport: true })}</div>`).join('');
     setTimeout(() => window.print(), 50);
   }
 
   /** Lot ZIP : chaque page en version vierge et avec solution. */
-  async function bundle(pages, { format, zipName, ...opts }) {
-    const exts = format === 'both' ? ['png', 'svg'] : [format];
-    const total = pages.length * 2 * exts.length;
+  async function bundle(pages, o) {
+    const types = o.zipBoth ? [o.type === 'svg' ? 'png' : o.type, 'svg'] : [o.type];
+    const total = pages.length * 2 * types.length;
     MF.ui.toast(`Préparation de ${plural(total, 'fichier')}…`, 'info', 2500);
     const files = [];
     for (const letters of [false, true]) {
-      const dir = letters ? 'Solutions' : 'Grilles';
       for (const page of pages) {
-        for (const ext of exts) {
-          const o = { ...opts, letters };
-          const data = ext === 'png' ? await pngBlob(page, o) : await svgMarkup(page, o);
-          files.push({ name: `${dir}/${fileName(page, letters, ext)}`, data });
+        for (const type of types) {
+          const { blob, ext } = await render(page, { ...o, type, letters });
+          files.push({ name: `${letters ? 'Solutions' : 'Grilles'}/${fileName(slug(page.name), letters, ext)}`, data: blob });
           await MF.util.nextFrame();
         }
       }
     }
-    MF.util.downloadBlob(zipName, await MF.zip.create(files));
-    MF.ui.toast(`ZIP prêt : ${plural(total, 'fichier')} (grilles + solutions).`, 'ok', 4500);
+    MF.util.downloadBlob(o.zipName, await MF.zip.create(files));
+    MF.ui.toast(`ZIP prêt : ${plural(total, 'fichier')}.`, 'ok', 4500);
+  }
+
+  /** Résolutions proposées selon le format : dpi pour l'impression, pixels sinon. */
+  function resolutions(design) {
+    const p = design.poster, f = MF.design.FORMATS[p.format] || MF.design.FORMATS.fit;
+    if (f.group === 'print') {
+      const mmW = p.orientation === 'landscape' ? f.mm[1] : f.mm[0];
+      return [[150, 'Brouillon'], [300, 'Impression'], [600, 'Haute qualité']].map(([dpi, label]) => ({ width: Math.round((mmW / 25.4) * dpi), label: `${dpi} dpi`, hint: label }));
+    }
+    if (f.px) return [[1, 'Natif'], [2, 'Retina'], [4, 'Très grand']].map(([k, label]) => ({ width: f.px[0] * k, label: `${f.px[0] * k} px`, hint: label }));
+    return [[1200, 'Web'], [2400, 'HD'], [4800, 'Impression']].map(([w, label]) => ({ width: w, label: `${w} px`, hint: label }));
   }
 
   /**
-   * Fenêtre d'export avec aperçu.
-   * @param getPage  () => page affichée (relue à chaque changement de mise en page)
-   * @param scopes   lots possibles : [{ id, label, pages, zipName }]
-   * @param setDesign (patch) => void : enregistre la mise en page choisie
+   * Fenêtre d'export.
+   * @param getPage   () => page affichée (relue à chaque changement de mise en page)
+   * @param scopes    lots possibles : [{ id, label, pages, zipName }]
+   * @param setDesign (patch, live) => void : enregistre la mise en page choisie
    */
   function open(getPage, scopes, setDesign) {
-    const st = { letters: false, scale: 2, format: 'png', transparent: false, scopeId: scopes[0]?.id };
-    const seg = (id, items, active) => MF.ui.segmented(id, items, active, 'data-exp');
-    const layoutHtml = d => {
-      const p = d.poster;
-      return `<div class="format-grid compact">${Object.entries(MF.design.FORMATS).map(([id, f]) => {
-        const r = f.ratio ? (f.fixed || p.orientation !== 'landscape' ? f.ratio : 1 / f.ratio) : 0.8;
-        return `<button type="button" class="format-btn ${p.format === id ? 'active' : ''}" data-format="${id}"><span class="fmt-shape" style="aspect-ratio:${r}">${id === 'fit' ? ic('grid', 'ic-sm') : ''}</span><span>${esc(f.label)}</span></button>`;
-      }).join('')}</div>
-      ${p.format !== 'fit' ? `<div class="row align-start">
-        <div class="field"><span>Position</span><div class="anchor-grid">${MF.design.ANCHORS.map(a => `<button type="button" class="${p.anchor === a ? 'active' : ''}" data-anchor="${a}" aria-label="Position ${a}"><i></i></button>`).join('')}</div></div>
-        <div class="grow stack">
-          ${MF.design.FORMATS[p.format].fixed ? '' : `<div class="field"><span>Orientation</span>${MF.ui.segmented('orientation', [['portrait', 'Portrait', 'page-portrait'], ['landscape', 'Paysage', 'page-landscape']], p.orientation, 'data-orient')}</div>`}
-          ${MF.ui.slider('scale', 'Taille de la grille', Math.round(p.scale * 100), 30, 100, 1, '%')}
-        </div></div>` : ''}
-      ${MF.ui.slider('padding', 'Marge autour', p.padding, 0, 400, 5)}`;
+    const first = getPage();
+    const st = {
+      content: 'blank', type: 'png', width: 2400, quality: 0.92, transparent: false, decor: true, title: true,
+      name: slug(first.name), scopeId: scopes[0]?.id, zipBoth: false,
     };
+    const scope = () => scopes.find(s => s.id === st.scopeId);
+    const seg = (id, items, active) => MF.ui.segmented(id, items, active, 'data-exp');
 
     const body = `
       <div class="export-grid">
-        <div class="export-preview" id="exp-preview"></div>
-        <div class="stack">
-          <div class="field"><span>Contenu</span>${seg('content', [['blank', 'Grille à remplir'], ['solution', 'Avec solution']], 'blank')}</div>
-          <div class="export-layout glass-soft"><div class="field-label">${ic('frame')}Mise en page : où placer la grille ?</div><div id="exp-layout"></div></div>
-          <div class="field"><span>Qualité PNG</span>${seg('scale', [['1', 'Standard'], ['2', 'HD'], ['3', 'Ultra']], '2')}<span class="field-hint" id="exp-px"></span></div>
-          <label class="check"><input type="checkbox" id="exp-transparent"> Fond transparent (PNG / SVG)</label>
-          ${scopes.length ? `<div class="export-bundle glass-soft">
-            <div class="field"><span>${ic('archive')}Tout d'un coup (ZIP : grilles + solutions)</span>
-              ${scopes.length > 1 ? seg('scope', scopes.map(s => [s.id, s.label]), scopes[0].id) : `<span class="field-hint">${esc(scopes[0].label)}</span>`}
-              ${seg('format', [['png', 'PNG'], ['svg', 'SVG'], ['both', 'PNG + SVG']], 'png')}
-              <span class="field-hint" id="exp-bundle-hint"></span></div></div>` : ''}
+        <div class="export-preview"><div id="exp-preview"></div><div class="exp-meta" id="exp-meta"></div></div>
+        <div class="export-side">
+          <div class="exp-tabs segmented" id="exp-tabs"><button type="button" data-t="page" class="active">${ic('frame')}Mise en page</button><button type="button" data-t="file">${ic('image')}Fichier</button><button type="button" data-t="batch">${ic('archive')}Lot</button></div>
+          <div class="exp-pane" data-pane="page"><div id="exp-layout"></div></div>
+          <div class="exp-pane" data-pane="file" hidden>
+            <div class="field"><span>Contenu</span>${seg('content', [['blank', 'À remplir'], ['solution', 'Solution'], ['both', 'Les deux']], st.content)}</div>
+            <div class="field"><span>Type de fichier</span>
+              <div class="type-grid">${Object.entries(TYPES).map(([k, t]) => `<button type="button" class="type-card ${k === st.type ? 'active' : ''}" data-type="${k}"><b>${t.label}</b><small>${esc(t.hint)}</small></button>`).join('')}</div></div>
+            <div class="field" id="exp-res-field"><span>Résolution</span><div class="res-grid" id="exp-res"></div>
+              <div class="row"><label class="field mini grow"><span class="field-hint">Largeur personnalisée (px)</span><input class="input" type="number" id="exp-width" min="200" max="12000" step="10"></label></div></div>
+            <div id="exp-quality-field" hidden>${MF.ui.slider('quality', 'Qualité / compression', 92, 50, 100, 1, '%')}</div>
+            <div class="toggles">
+              <label class="check" id="exp-transparent-wrap"><input type="checkbox" id="exp-transparent"> Fond transparent</label>
+              <label class="check"><input type="checkbox" id="exp-decor" checked> Décor (stickers, photos)</label>
+              <label class="check"><input type="checkbox" id="exp-title" checked> Titre</label>
+            </div>
+            <label class="field"><span>Nom du fichier</span><div class="name-row"><input class="input" id="exp-name" maxlength="80" value="${esc(st.name)}"><span class="muted small" id="exp-ext">.png</span></div></label>
+          </div>
+          <div class="exp-pane" data-pane="batch" hidden>
+            <p class="muted small">Un seul fichier ZIP avec chaque page en version <b>à remplir</b> et <b>solution</b>, dans le type et la résolution choisis (onglet Fichier).</p>
+            ${scopes.length > 1 ? `<div class="field"><span>Quelles grilles ?</span>${seg('scope', scopes.map(s => [s.id, s.label]), st.scopeId)}</div>` : `<p class="small"><b>${esc(scopes[0]?.label || '')}</b></p>`}
+            <label class="check"><input type="checkbox" id="exp-zipboth"> Ajouter aussi la version SVG</label>
+            <p class="field-hint" id="exp-bundle-hint"></p>
+            <button type="button" class="btn btn-primary" id="exp-zip">${ic('archive')}Télécharger le ZIP</button>
+          </div>
         </div>
       </div>`;
 
-    const scope = () => scopes.find(s => s.id === st.scopeId);
     const refresh = root => {
       const page = getPage();
       if (!page) return;
-      const scene = sceneOf(page, st, MF.assets.url);
+      const scene = sceneOf(page, { ...st, letters: st.content === 'solution' }, MF.assets.url);
       root.querySelector('#exp-preview').innerHTML = MF.renderers.svg(scene, { forExport: true });
-      const pw = Math.round(scene.W * st.scale), ph = Math.round(scene.H * st.scale);
-      root.querySelector('#exp-px').textContent = `${pw} × ${ph} px`;
+      const t = TYPES[st.type];
+      const h = Math.round((st.width * scene.H) / scene.W);
+      const f = MF.design.FORMATS[page.puzzle.design.poster.format];
+      root.querySelector('#exp-meta').textContent = st.type === 'svg' ? `${f.label} · vectoriel` : `${f.label} · ${st.width} × ${h} px`;
+      root.querySelector('#exp-ext').textContent = st.content === 'both' ? `.${st.type === 'jpeg' ? 'jpg' : st.type} (+ -solution)` : `${st.content === 'solution' ? '-solution' : ''}.${st.type === 'jpeg' ? 'jpg' : st.type}`;
+      root.querySelector('#exp-res-field').hidden = st.type === 'svg';
+      root.querySelector('#exp-quality-field').hidden = !['jpeg', 'webp'].includes(st.type);
+      root.querySelector('#exp-transparent-wrap').classList.toggle('is-disabled', !t.alpha);
+      const res = resolutions(page.puzzle.design);
+      root.querySelector('#exp-res').innerHTML = res.map(r => `<button type="button" class="res-card ${r.width === st.width ? 'active' : ''}" data-width="${r.width}"><b>${esc(r.label)}</b><small>${esc(r.hint)}</small></button>`).join('');
+      root.querySelector('#exp-width').value = st.width;
       const hint = root.querySelector('#exp-bundle-hint');
-      if (hint) {
-        const n = scope().pages.length, per = st.format === 'both' ? 2 : 1;
-        hint.textContent = `${plural(n, 'page')} × 2 (grille + solution)${per > 1 ? ' × 2 formats' : ''} = ${plural(n * 2 * per, 'fichier')}${scope().note ? `. ${scope().note}` : ''}`;
+      if (hint && scope()) {
+        const n = scope().pages.length, per = st.zipBoth ? 2 : 1;
+        hint.textContent = `${plural(n, 'page')} × 2 (à remplir + solution)${per > 1 ? ' × 2 formats' : ''} = ${plural(n * 2 * per, 'fichier')}`;
       }
     };
-    const refreshLayout = root => {
+    /** Changement de format : on cale la résolution sur la première proposition adaptée. */
+    const snapResolution = root => {
       const page = getPage();
-      root.querySelector('#exp-layout').innerHTML = layoutHtml(page.puzzle.design);
-      root.querySelectorAll('#exp-layout [data-slider]').forEach(inp => {
-        const out = inp.closest('.slider-field').querySelector('output');
-        const val = () => (inp.dataset.slider === 'scale' ? +inp.value / 100 : +inp.value);
-        inp.addEventListener('input', () => { out.textContent = `${inp.value}${out.dataset.unit}`; setDesign({ poster: { [inp.dataset.slider]: val() } }, true); refresh(root); });
-        inp.addEventListener('change', () => setDesign({ poster: { [inp.dataset.slider]: val() } }));
-      });
+      const scene = sceneOf(page, st, MF.assets.url);
+      const res = resolutions(page.puzzle.design);
+      if (!res.some(r => r.width === st.width)) st.width = res[1]?.width || res[0].width;
+      refresh(root);
+    };
+    const drawLayout = root => {
+      const box = root.querySelector('#exp-layout');
+      box.innerHTML = MF.layoutControls.html(getPage().puzzle.design);
+      MF.layoutControls.bind(box, (patch, live) => { setDesign({ poster: patch }, live); refresh(root); }, () => { drawLayout(root); snapResolution(root); });
     };
 
     return MF.ui.modal({
       title: 'Exporter', wide: true, icon: 'download', className: 'export-modal',
       body,
-      onOpen: root => {
+      onOpen: (root, close) => {
+        root.querySelector('#exp-tabs').addEventListener('click', e => {
+          const b = e.target.closest('[data-t]'); if (!b) return;
+          root.querySelectorAll('#exp-tabs button').forEach(x => x.classList.toggle('active', x === b));
+          root.querySelectorAll('.exp-pane').forEach(p => { p.hidden = p.dataset.pane !== b.dataset.t; });
+        });
         root.addEventListener('click', e => {
           const b = e.target.closest('button');
           if (!b) return;
           const group = b.closest('[data-exp]');
           if (group) {
             group.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
-            const k = group.dataset.exp, v = b.dataset.v;
-            if (k === 'content') st.letters = v === 'solution';
-            if (k === 'scale') st.scale = +v;
-            if (k === 'scope') st.scopeId = v;
-            if (k === 'format') st.format = v;
+            st[group.dataset.exp === 'scope' ? 'scopeId' : group.dataset.exp] = b.dataset.v;
             refresh(root);
-            return;
-          }
-          let patch = null;
-          if (b.dataset.format) patch = { format: b.dataset.format };
-          if (b.dataset.anchor) patch = { anchor: b.dataset.anchor };
-          if (b.closest('[data-orient]')) patch = { orientation: b.dataset.v };
-          if (patch) { setDesign({ poster: patch }); refreshLayout(root); refresh(root); }
+          } else if (b.dataset.type) {
+            st.type = b.dataset.type;
+            root.querySelectorAll('[data-type]').forEach(x => x.classList.toggle('active', x === b));
+            refresh(root);
+          } else if (b.dataset.width) { st.width = +b.dataset.width; refresh(root); }
         });
+        root.querySelector('#exp-width').addEventListener('change', e => { st.width = MF.util.clamp(parseInt(e.target.value, 10) || 2400, 200, 12000); refresh(root); });
+        root.querySelector('[data-slider="quality"]').addEventListener('input', e => { st.quality = +e.target.value / 100; e.target.closest('.slider-field').querySelector('output').textContent = `${e.target.value}%`; });
         root.querySelector('#exp-transparent').addEventListener('change', e => { st.transparent = e.target.checked; refresh(root); });
-        refreshLayout(root);
-        refresh(root);
+        root.querySelector('#exp-decor').addEventListener('change', e => { st.decor = e.target.checked; refresh(root); });
+        root.querySelector('#exp-title').addEventListener('change', e => { st.title = e.target.checked; refresh(root); });
+        root.querySelector('#exp-name').addEventListener('input', e => { st.name = MF.util.cleanText(e.target.value, 80).replace(/[\\/:*?"<>|]+/g, '-') || 'grille'; });
+        root.querySelector('#exp-zipboth').addEventListener('change', e => { st.zipBoth = e.target.checked; refresh(root); });
+        root.querySelector('#exp-zip')?.addEventListener('click', () => {
+          bundle(scope().pages, { ...st, zipName: scope().zipName }).catch(() => MF.ui.toast('Le ZIP n\'a pas pu être créé.', 'err'));
+          close('zip');
+        });
+        drawLayout(root);
+        snapResolution(root);
       },
       actions: [
         { label: 'Imprimer / PDF', icon: 'print', value: () => (print(getPage(), st), 'print') },
-        { label: 'SVG', icon: 'download', value: () => (svg(getPage(), st).catch(() => MF.ui.toast('Export SVG impossible.', 'err')), 'svg') },
-        { label: 'PNG', icon: 'image', kind: scopes.length ? '' : 'primary', value: () => (png(getPage(), st).catch(() => MF.ui.toast('Export PNG impossible.', 'err')), 'png') },
-        ...(scopes.length ? [{
-          label: 'Tout en ZIP', icon: 'archive', kind: 'primary',
-          value: () => (bundle(scope().pages, { ...st, zipName: scope().zipName }).catch(() => MF.ui.toast('Le ZIP n\'a pas pu être créé.', 'err')), 'zip'),
-        }] : []),
+        { label: 'Télécharger', icon: 'download', kind: 'primary', value: () => (download(getPage(), st).catch(e => MF.ui.toast(`Export impossible : ${e.message}`, 'err')), 'file') },
       ],
     });
   }
 
-  return { open, png, svg, print, bundle, slug };
+  return { open, download, print, bundle, slug };
 })();

@@ -326,19 +326,18 @@ MF.scene = (() => {
     const m = MF.design.metrics(d);
     const grid = gridBlock(model, puzzle, d, C, m, opts);
     const width = grid.w;
-    const title = titleBlock(d, C, width);
+    const title = opts.title === false ? null : titleBlock(d, C, width);
     const aside = asideBlock(model, puzzle, d, C, width);
     const contentW = width;
     const contentH = (title ? title.h + GAP : 0) + grid.h + (aside ? GAP + aside.h : 0);
 
     // Taille de l'affiche : ajustée au contenu, ou format fixe avec la grille placée selon l'ancrage
     const pad = d.poster.padding;
-    const fmt = MF.design.FORMATS[d.poster.format] || MF.design.FORMATS.fit;
+    const R = MF.design.formatRatio(d.poster);
     let W, H, cx, cy;
-    if (!fmt.ratio) {
+    if (!R) {
       W = contentW + pad * 2; H = contentH + pad * 2; cx = pad; cy = pad;
     } else {
-      const R = fmt.fixed || d.poster.orientation !== 'landscape' ? fmt.ratio : 1 / fmt.ratio;
       const s = d.poster.scale;
       const needW = contentW / s, needH = contentH / s;
       W = needW + pad * 2; H = W / R;

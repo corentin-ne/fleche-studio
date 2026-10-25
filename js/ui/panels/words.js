@@ -50,11 +50,12 @@ MF.panels.words = (() => {
         </div>
       </form>
 
-      <div class="import-grid">
-        <button type="button" class="import-btn" data-import="library">${ic('book')}<b>Bibliothèque</b><small>${D.size().toLocaleString('fr-FR')} mots définis</small></button>
-        <button type="button" class="import-btn" data-import="themes">${ic('sparkle')}<b>Thèmes</b><small>Packs & Wiktionnaire</small></button>
-        <button type="button" class="import-btn" data-import="paste">${ic('paste')}<b>Coller</b><small>Texte, tableur</small></button>
-        <button type="button" class="import-btn" data-import="file">${ic('file')}<b>Fichier</b><small>Excel, CSV, TXT, JSON</small></button>
+      <div class="import-row" role="group" aria-label="Ajouter plusieurs mots">
+        <button type="button" class="import-btn" data-import="library" title="${D.size().toLocaleString('fr-FR')} mots déjà définis">${ic('book')}Bibliothèque</button>
+        <button type="button" class="import-btn" data-import="random" title="Choisis combien de mots et leur longueur">${ic('dice')}Hasard</button>
+        <button type="button" class="import-btn" data-import="themes" title="Packs prêts et thèmes du Wiktionnaire">${ic('sparkle')}Thèmes</button>
+        <button type="button" class="import-btn" data-import="paste" title="Texte ou colonnes de tableur">${ic('paste')}Coller</button>
+        <button type="button" class="import-btn" data-import="file" title="Excel, CSV, TXT, JSON">${ic('file')}Fichier</button>
       </div>
 
       <div class="list-head">
@@ -90,7 +91,7 @@ MF.panels.words = (() => {
 
     bindComposer(root, puzzle, actions, view, game);
 
-    root.querySelector('.import-grid').addEventListener('click', e => {
+    root.querySelector('.import-row').addEventListener('click', e => {
       const b = e.target.closest('[data-import]'); if (!b) return;
       if (b.dataset.import === 'file') root.querySelector('#words-file').click();
       else actions.importWords(b.dataset.import);

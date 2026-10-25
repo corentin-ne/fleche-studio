@@ -102,7 +102,8 @@ MF.createActions = app => {
     /* ---------------- Imports ---------------- */
     async importWords(kind) {
       const pz = active();
-      const list = kind === 'library' ? await MF.pickers.library(pz) : kind === 'themes' ? await MF.pickers.themes(pz) : await MF.pickers.paste(pz);
+      const pick = { library: MF.pickers.library, themes: MF.pickers.themes, random: MF.pickers.random, paste: MF.pickers.paste }[kind] || MF.pickers.paste;
+      const list = await pick(pz);
       if (list?.length) {
         const n = actions.addWords(list, { silent: true });
         afterImport(n);
@@ -246,13 +247,13 @@ MF.createActions = app => {
     refreshSide() { app.renderSide(); },
 
     /* ---------------- Grilles & données ---------------- */
-    async newPuzzle() {
-      const res = await MF.welcome.wizard();
+    async newPuzzle(defaults = {}) {
+      const res = await MF.welcome.wizard(defaults);
       if (!res) return;
-      const pz = store.makePuzzle({ name: res.name || 'Ma grille', game: res.game, options: { shape: res.shape } });
+      const pz = store.makePuzzle({ name: res.name || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape } });
       pz.design = MF.themes.apply(pz.design, res.theme);
       let words = [];
-      if (res.start === 'random') words = MF.dictionary.random(15, { min: 3, max: 8 }).map(x => ({ text: MF.dictionary.pretty(x.word), clue: x.clue }));
+      if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
       else if (res.start.startsWith('pack:')) words = (MF.packs[res.start.slice(5)]?.words || []).map(([text, clue]) => ({ text, clue }));
       pz.words = words.map(S.word).filter(Boolean);
       view.page = 0; view.selected = null; view.filter = '';
@@ -260,10 +261,7 @@ MF.createActions = app => {
       if (!words.length) requestAnimationFrame(() => document.querySelector('#add-form [name=text]')?.focus());
     },
     quickStart(game) {
-      const pz = store.makePuzzle({ name: MF.games.get(game).label, game });
-      pz.design = MF.themes.apply(pz.design, game === 'meles' ? 'candy' : game === 'codes' ? 'minimal' : game === 'croises' ? 'print' : 'violet');
-      pz.words = MF.dictionary.random(game === 'meles' ? 14 : 16, { min: 3, max: 8 }).map(x => S.word({ text: MF.dictionary.pretty(x.word), clue: x.clue }));
-      store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; }, 'puzzles');
+      return actions.newPuzzle({ game, start: 'random', theme: game === 'meles' ? 'candy' : game === 'codes' ? 'minimal' : game === 'croises' ? 'print' : 'violet' });
     },
     switchPuzzle(id) {
       if (id === store.get().activeId) return;

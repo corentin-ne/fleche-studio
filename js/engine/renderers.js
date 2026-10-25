@@ -167,10 +167,12 @@ MF.renderers = (() => {
     return { images, patterns };
   }
 
-  async function canvas(scene, { scale = 2 } = {}) {
+  /** @param matte couleur peinte sous l'affiche (formats sans transparence, ex. JPEG) */
+  async function canvas(scene, { scale = 2, matte = null } = {}) {
     const cv = document.createElement('canvas');
     cv.width = Math.round(scene.W * scale); cv.height = Math.round(scene.H * scale);
     const g = cv.getContext('2d');
+    if (matte) { g.fillStyle = matte; g.fillRect(0, 0, cv.width, cv.height); }
     g.scale(scale, scale);
     const { images, patterns } = await preload(scene.ops, scale);
     const color = (hex, a = 1) => { if (a >= 1) return hex; const [r, gg, b] = MF.util.hexToRgb(hex); return `rgba(${r},${gg},${b},${a})`; };
