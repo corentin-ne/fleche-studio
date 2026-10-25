@@ -1,43 +1,47 @@
 /* =========================================================================
-   Vue de la grille à l'écran : SVG (identique aux exports) + surcouche de jeu.
-   Modes : 'solution' (lettres visibles), 'blank' (grille vierge), 'play' (on remplit).
+   Vue de la grille à l'écran : affiche (SVG, identique aux exports) + jeu.
+   Modes : 'solution' (lettres visibles), 'blank' (grille vierge), 'play' (on joue).
+   Jeu : saisie case par case (fléchés, croisés, codés) ou sélection à la
+   souris / au doigt des mots cachés (mêlés).
    ========================================================================= */
 window.MF = window.MF || {};
 
 MF.gridView = (() => {
-  const { U, FRAME } = MF.gridModel;
-  let ctx = null; // { container, model, puzzle, mode, entries, dir, onEntries }
+  const U = 100;
+  let ctx = null;
 
-  function render(container, model, puzzle, { mode = 'solution', cell = 64, entries = {}, onEntries, onMissing, photoMarks = false } = {}) {
-    if (!model.cols) {
-      container.innerHTML = `<div class="empty">${MF.icons.svg('grid')}<h3>Aucune grille</h3><p>Ajoute au moins deux mots pour générer la grille.</p></div>`;
-      ctx = null;
-      return;
-    }
-    const { w } = MF.renderers.size(model);
-    const width = Math.round(w * cell / U);
-    const svg = MF.renderers.svg(model, puzzle.accent, {
-      letters: mode === 'solution',
-      style: { clueFill: puzzle.options?.clueFill },
-      photoMarks,
-    });
-    container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''}" style="width:${width}px">${svg}</div>`;
-    ctx = { container, model, puzzle, mode, entries: { ...entries }, dir: 'H', onEntries, cellPx: cell };
-    if (mode === 'play') mountPlay(container.firstElementChild);
-    container.querySelector('.mf-svg')?.addEventListener('click', e => {
+  /**
+   * @param o.cell      taille d'une case à l'écran (px)
+   * @param o.entries   saisies du joueur
+   * @param o.assetUrl  id d'image -> URL
+   */
+  function render(container, model, puzzle, o = {}) {
+    const { mode = 'solution', entries = {} } = o;
+    if (!model.cols) { container.innerHTML = ''; ctx = null; return null; }
+    const scene = MF.scene.compose(model, puzzle, { letters: mode === 'solution', photoMarks: o.photoMarks, assetUrl: o.assetUrl });
+    // Taille d'une case à l'écran : fixe, ou calculée pour que toute l'affiche tienne (fonction)
+    const cell = typeof o.cell === 'function' ? o.cell(scene.W, scene.H) : o.cell || 64;
+    const width = Math.round((scene.W * cell) / U);
+    container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''} ${o.animate ? 'enter' : ''}" style="width:${width}px">${MF.renderers.svg(scene)}</div>`;
+    const sheet = container.firstElementChild;
+    ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: 'H', o, cellPx: cell };
+    if (mode === 'play') (model.game === 'meles' ? mountWordSearch : mountPlay)(sheet);
+    sheet.querySelector('.mf-svg').addEventListener('click', e => {
       const m = e.target.closest('.missing');
-      if (m) onMissing?.(m.dataset.key);
+      if (m) o.onMissing?.(m.dataset.key);
     });
+    return ctx;
   }
 
-  /* ---------- Surbrillance d'un mot (depuis la liste) ---------- */
+  const pct = (v, total) => `${(v / total) * 100}%`;
+  const cellBox = (r, c) => ({ x: ctx.scene.grid.ox + c * U, y: ctx.scene.grid.oy + r * U });
+
+  /* ---------- Surbrillance d'un mot ---------- */
   function cellsOf(wid) {
-    const out = [];
-    if (!ctx) return out;
-    ctx.model.cells.forEach((row, r) => row.forEach((cell, c) => {
-      if (cell.type === 'letter' && (cell.words.H === wid || cell.words.V === wid)) out.push([r, c]);
-      if (cell.type === 'clue' && cell.clues.some(cl => cl.wid === wid)) out.push([r, c]);
-    }));
+    const s = ctx?.model.slots.get(wid);
+    if (!s) return [];
+    const out = [...s.cells];
+    if (ctx.model.game === 'fleches' && s.holder) out.push(s.holder);
     return out;
   }
 
@@ -45,24 +49,26 @@ MF.gridView = (() => {
     if (!ctx) return false;
     ctx.container.querySelectorAll('.hl').forEach(el => el.classList.remove('hl', 'flash'));
     const cells = cellsOf(wid);
+    let first = null;
     cells.forEach(([r, c]) => {
-      const el = ctx.container.querySelector(`rect[data-r="${r}"][data-c="${c}"]`);
-      if (el) { el.classList.add('hl'); if (flash) el.classList.add('flash'); }
+      const el = ctx.container.querySelector(`.mf-svg [data-r="${r}"][data-c="${c}"]`);
+      if (el) { el.classList.add('hl'); if (flash) el.classList.add('flash'); first = first || el; }
     });
-    if (scroll && cells.length) {
-      ctx.container.querySelector(`rect[data-r="${cells[0][0]}"][data-c="${cells[0][1]}"]`)
-        ?.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
-    }
+    if (scroll && first) first.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
     return cells.length > 0;
   }
 
-  /* ---------- Mode jeu ---------- */
+  /* ---------- Saisie (fléchés, croisés, codés) ---------- */
   const key = (r, c) => `${r},${c}`;
 
   function mountPlay(sheet) {
-    const { w, h } = MF.renderers.size(ctx.model);
+    const { W, H } = ctx.scene;
     const layer = document.createElement('div');
     layer.className = 'play-layer';
+    const C = MF.design.resolve(ctx.puzzle.design);
+    layer.style.setProperty('--play-ink', C.ink);
+    layer.style.setProperty('--play-font', MF.design.font(ctx.puzzle.design.font.letter).css);
+    const codes = ctx.model.game === 'codes';
     ctx.model.cells.forEach((row, r) => row.forEach((cell, c) => {
       if (cell.type !== 'letter') return;
       const inp = document.createElement('input');
@@ -70,19 +76,31 @@ MF.gridView = (() => {
       inp.maxLength = 1;
       inp.autocomplete = 'off';
       inp.spellcheck = false;
+      inp.setAttribute('autocapitalize', 'characters');
       inp.setAttribute('aria-label', `Case ligne ${r + 1}, colonne ${c + 1}`);
       inp.dataset.r = r; inp.dataset.c = c;
-      inp.value = ctx.entries[key(r, c)] || '';
+      const given = codes && ctx.model.givens.has(cell.ch);
+      if (given) { inp.value = cell.ch; inp.readOnly = true; inp.classList.add('given'); } else inp.value = ctx.entries[key(r, c)] || '';
+      const { x, y } = cellBox(r, c);
       Object.assign(inp.style, {
-        left: `${((FRAME + c * U) / w) * 100}%`, top: `${((FRAME + r * U) / h) * 100}%`,
-        width: `${(U / w) * 100}%`, height: `${(U / h) * 100}%`,
-        fontSize: `${ctx.cellPx * 0.52}px`,
+        left: pct(x, W), top: pct(y, H), width: pct(U, W), height: pct(U, H),
+        fontSize: `${ctx.cellPx * (codes || ctx.model.game === 'croises' ? 0.46 : 0.52)}px`,
+        paddingTop: codes || ctx.model.game === 'croises' ? `${ctx.cellPx * 0.16}px` : '0',
       });
       layer.appendChild(inp);
     }));
     sheet.appendChild(layer);
 
-    layer.addEventListener('focusin', e => { if (e.target.matches('.play-cell')) markWord(+e.target.dataset.r, +e.target.dataset.c); });
+    layer.addEventListener('focusin', e => {
+      if (!e.target.matches('.play-cell')) return;
+      e.target.select(); // une nouvelle lettre remplace l'ancienne
+      markWord(+e.target.dataset.r, +e.target.dataset.c);
+    });
+    // Case déjà remplie : la lettre tapée remplace (même si le curseur est resté en place)
+    layer.addEventListener('keydown', e => {
+      const t = e.target;
+      if (t.matches('.play-cell') && !t.readOnly && e.key.length === 1 && !e.ctrlKey && !e.metaKey && t.value) t.select();
+    });
     layer.addEventListener('mousedown', e => {
       const t = e.target;
       if (!t.matches('.play-cell') || document.activeElement !== t) return;
@@ -92,24 +110,41 @@ MF.gridView = (() => {
     layer.addEventListener('keydown', onKey);
     layer.addEventListener('input', e => {
       const t = e.target;
+      if (t.readOnly) return;
       const ch = MF.util.normalize(t.value).slice(-1);
       t.value = ch;
-      t.classList.remove('wrong', 'right');
-      setEntry(+t.dataset.r, +t.dataset.c, ch);
-      if (ch) move(+t.dataset.r, +t.dataset.c, 1);
+      const r = +t.dataset.r, c = +t.dataset.c;
+      if (codes) {
+        // Mots codés : une lettre trouvée remplit toutes les cases du même nombre
+        const code = ctx.model.cells[r][c].code;
+        ctx.model.cells.forEach((row, rr) => row.forEach((cl, cc) => {
+          if (cl.type !== 'letter' || cl.code !== code) return;
+          const inp = inputAt(rr, cc);
+          if (inp && !inp.readOnly) { inp.value = ch; inp.classList.remove('wrong', 'right'); setEntry(rr, cc, ch, false); }
+        }));
+        ctx.o.onEntries?.(ctx.entries);
+      } else {
+        t.classList.remove('wrong', 'right');
+        setEntry(r, c, ch);
+      }
+      if (ch) move(r, c, 1, ctx.dir, true);
+      checkDone();
     });
   }
 
-  function setEntry(r, c, ch) {
+  function setEntry(r, c, ch, notify = true) {
     if (ch) ctx.entries[key(r, c)] = ch; else delete ctx.entries[key(r, c)];
-    ctx.onEntries?.(ctx.entries);
+    if (notify) ctx.o.onEntries?.(ctx.entries);
   }
 
   const inputAt = (r, c) => ctx.container.querySelector(`.play-cell[data-r="${r}"][data-c="${c}"]`);
 
-  function move(r, c, step, dir = ctx.dir) {
+  /** Case suivante dans le sens donné (saute les cases données des mots codés si `skipGiven`). */
+  function move(r, c, step, dir = ctx.dir, skipGiven = false) {
     const [dr, dc] = dir === 'H' ? [0, step] : [step, 0];
-    const next = inputAt(r + dr, c + dc);
+    let rr = r + dr, cc = c + dc;
+    let next = inputAt(rr, cc);
+    while (skipGiven && next?.readOnly) { rr += dr; cc += dc; next = inputAt(rr, cc); }
     if (next) next.focus();
     return !!next;
   }
@@ -122,12 +157,18 @@ MF.gridView = (() => {
     if (arrows[e.key]) {
       e.preventDefault();
       const [dir, step] = arrows[e.key];
-      const cell = ctx.model.cells[r][c];
-      if (cell.words[dir]) ctx.dir = dir;
+      if (ctx.model.cells[r][c].words[dir]) ctx.dir = dir;
       move(r, c, step, dir);
-    } else if (e.key === 'Backspace' && !t.value) {
+    } else if (e.key === 'Backspace' && (!t.value || t.readOnly)) {
       e.preventDefault();
-      if (move(r, c, -1)) { const prev = document.activeElement; prev.value = ''; setEntry(+prev.dataset.r, +prev.dataset.c, ''); }
+      if (move(r, c, -1)) {
+        const prev = document.activeElement;
+        if (!prev.readOnly) { prev.value = ''; prev.dispatchEvent(new Event('input', { bubbles: true })); }
+      }
+    } else if (e.key === ' ') {
+      e.preventDefault();
+      const cell = ctx.model.cells[r][c];
+      if (cell.words.H && cell.words.V) { ctx.dir = ctx.dir === 'H' ? 'V' : 'H'; markWord(r, c); }
     }
   }
 
@@ -135,32 +176,152 @@ MF.gridView = (() => {
     const cell = ctx.model.cells[r][c];
     if (!cell.words[ctx.dir]) ctx.dir = ctx.dir === 'H' ? 'V' : 'H';
     const wid = cell.words[ctx.dir];
+    ctx.current = wid;
     ctx.container.querySelectorAll('.play-cell.cur').forEach(el => el.classList.remove('cur'));
-    cellsOf(wid).forEach(([rr, cc]) => inputAt(rr, cc)?.classList.add('cur'));
+    (ctx.model.slots.get(wid)?.cells || []).forEach(([rr, cc]) => inputAt(rr, cc)?.classList.add('cur'));
     highlight(wid, { flash: false, scroll: false });
+    ctx.o.onWord?.(wid);
   }
 
+  /* ---------- Mots mêlés : sélection par glisser ---------- */
+  function mountWordSearch(sheet) {
+    const { W, H } = ctx.scene;
+    const ns = 'http://www.w3.org/2000/svg';
+    const over = document.createElementNS(ns, 'svg');
+    over.setAttribute('viewBox', `0 0 ${W} ${H}`);
+    over.setAttribute('class', 'ws-layer');
+    sheet.appendChild(over);
+    ctx.found = new Set(Array.isArray(ctx.entries.found) ? ctx.entries.found.filter(k => ctx.model.slots.has(k)) : []);
+    const C = MF.design.resolve(ctx.puzzle.design);
+
+    const capsule = (a, b, cls) => {
+      const p = cellBox(a[0], a[1]), q = cellBox(b[0], b[1]);
+      const x0 = p.x + U / 2, y0 = p.y + U / 2, x1 = q.x + U / 2, y1 = q.y + U / 2;
+      const len = Math.hypot(x1 - x0, y1 - y0) + U * 0.8;
+      const g = document.createElementNS(ns, 'rect');
+      g.setAttribute('x', -len / 2); g.setAttribute('y', -U * 0.36); g.setAttribute('width', len); g.setAttribute('height', U * 0.72); g.setAttribute('rx', U * 0.36);
+      g.setAttribute('transform', `translate(${(x0 + x1) / 2} ${(y0 + y1) / 2}) rotate(${(Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI})`);
+      g.setAttribute('class', cls);
+      g.style.setProperty('--ws', C.arrow);
+      over.appendChild(g);
+      return g;
+    };
+    const drawFound = () => {
+      over.querySelectorAll('.ws-found').forEach(n => n.remove());
+      ctx.found.forEach(k => { const s = ctx.model.slots.get(k); capsule(s.cells[0], s.cells[s.cells.length - 1], 'ws-found'); });
+      sheet.querySelectorAll('.mf-svg [data-key]').forEach(t => t.classList.toggle('found', ctx.found.has(t.dataset.key)));
+    };
+    drawFound();
+    ctx.redrawFound = drawFound;
+
+    const cellAt = e => {
+      const rect = over.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * W - ctx.scene.grid.ox;
+      const y = ((e.clientY - rect.top) / rect.height) * H - ctx.scene.grid.oy;
+      const r = Math.floor(y / U), c = Math.floor(x / U);
+      return ctx.model.cells[r]?.[c]?.type === 'letter' ? [r, c] : null;
+    };
+    let start = null, temp = null, end = null;
+    sheet.addEventListener('pointerdown', e => {
+      start = cellAt(e);
+      if (!start) return;
+      e.preventDefault();
+      sheet.setPointerCapture(e.pointerId);
+      end = start;
+      temp = capsule(start, start, 'ws-temp');
+    });
+    sheet.addEventListener('pointermove', e => {
+      if (!start) return;
+      const c = cellAt(e);
+      if (!c) return;
+      const dr = c[0] - start[0], dc = c[1] - start[1];
+      // Seulement en ligne droite (horizontale, verticale ou diagonale)
+      if (dr && dc && Math.abs(dr) !== Math.abs(dc)) return;
+      end = c;
+      temp.remove();
+      temp = capsule(start, end, 'ws-temp');
+    });
+    const finish = () => {
+      if (!start) return;
+      temp?.remove();
+      const sel = `${start}|${end}`, rev = `${end}|${start}`;
+      for (const [k, s] of ctx.model.slots) {
+        const ends = `${s.cells[0]}|${s.cells[s.cells.length - 1]}`;
+        if ((ends === sel || ends === rev) && !ctx.found.has(k)) {
+          ctx.found.add(k);
+          ctx.entries.found = [...ctx.found];
+          ctx.o.onEntries?.(ctx.entries);
+          drawFound();
+          ctx.o.onFound?.(s, ctx.found.size, ctx.model.slots.size);
+          checkDone();
+          break;
+        }
+      }
+      start = null;
+    };
+    sheet.addEventListener('pointerup', finish);
+    sheet.addEventListener('pointercancel', () => { temp?.remove(); start = null; });
+  }
+
+  /* ---------- Vérification, aides ---------- */
   /** Vérifie les lettres saisies. Renvoie { filled, total, wrong }. */
-  function check() {
+  function check({ mark = true } = {}) {
     if (!ctx || ctx.mode !== 'play') return null;
+    if (ctx.model.game === 'meles') return { filled: ctx.found.size, total: ctx.model.slots.size, wrong: 0 };
     let filled = 0, total = 0, wrong = 0;
     ctx.container.querySelectorAll('.play-cell').forEach(inp => {
       const sol = ctx.model.cells[+inp.dataset.r][+inp.dataset.c].ch;
       total++;
-      inp.classList.remove('wrong', 'right');
+      if (mark) inp.classList.remove('wrong', 'right');
       if (!inp.value) return;
       filled++;
-      if (inp.value === sol) inp.classList.add('right'); else { inp.classList.add('wrong'); wrong++; }
+      if (inp.value === sol) { if (mark && !inp.readOnly) inp.classList.add('right'); } else { if (mark) inp.classList.add('wrong'); wrong++; }
     });
     return { filled, total, wrong };
   }
 
-  function clearEntries() {
-    if (!ctx) return;
-    ctx.container.querySelectorAll('.play-cell').forEach(inp => { inp.value = ''; inp.classList.remove('wrong', 'right'); });
-    ctx.entries = {};
-    ctx.onEntries?.(ctx.entries);
+  function checkDone() {
+    const r = check({ mark: false });
+    if (r && r.filled === r.total && !r.wrong) ctx.o.onComplete?.();
   }
 
-  return { render, highlight, check, clearEntries };
+  /** Révèle la lettre de la case active, ou tout le mot courant. */
+  function reveal(what = 'letter') {
+    if (!ctx || ctx.mode !== 'play') return false;
+    if (ctx.model.game === 'meles') {
+      const k = [...ctx.model.slots.keys()].find(x => !ctx.found.has(x));
+      if (!k) return false;
+      ctx.found.add(k);
+      ctx.entries.found = [...ctx.found];
+      ctx.o.onEntries?.(ctx.entries);
+      ctx.redrawFound();
+      checkDone();
+      return true;
+    }
+    const act = document.activeElement?.matches?.('.play-cell') ? document.activeElement : null;
+    const cells = what === 'word' && ctx.current ? ctx.model.slots.get(ctx.current).cells : act ? [[+act.dataset.r, +act.dataset.c]] : [];
+    if (!cells.length) return false;
+    cells.forEach(([r, c]) => {
+      const inp = inputAt(r, c);
+      if (!inp || inp.readOnly) return;
+      inp.value = ctx.model.cells[r][c].ch;
+      inp.classList.remove('wrong');
+      inp.classList.add('revealed');
+      inp.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    act?.focus();
+    return true;
+  }
+
+  function clearEntries() {
+    if (!ctx) return;
+    ctx.container.querySelectorAll('.play-cell').forEach(inp => { if (!inp.readOnly) { inp.value = ''; inp.classList.remove('wrong', 'right', 'revealed'); } });
+    ctx.entries = {};
+    if (ctx.found) { ctx.found.clear(); ctx.redrawFound?.(); }
+    ctx.o.onEntries?.(ctx.entries);
+  }
+
+  const current = () => ctx;
+
+  return { render, highlight, check, reveal, clearEntries, current };
 })();

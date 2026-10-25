@@ -1,10 +1,9 @@
-/* Impression : seule la grille (préparée dans #print-area par l'exporteur) est imprimée.
-   Le format de la feuille (@page, hauteur max) est injecté par l'exporteur selon la grille (MF.paper.printCss). */
+/* Impression : seule l'affiche (préparée dans #print-area par l'exporteur) est imprimée.
+   Le format de la feuille (@page) est injecté par l'exporteur selon la mise en page choisie. */
 @media print {
-  @page { size: A4 portrait; margin: 12mm; }
-  body { overflow: visible; background: #fff; }
-  #bg3d, .bg-fallback, .app, #modal-root, .toasts { display: none !important; }
-  #print-area { display: flex !important; flex-direction: column; align-items: center; gap: 8mm; }
-  #print-area h1 { font: 600 22pt var(--font-display); color: #231f20; }
-  #print-area svg { width: 100%; max-height: 245mm; height: auto; }
+  @page { size: A4 portrait; margin: 8mm; }
+  html, body { height: auto; overflow: visible; background: #fff; }
+  .bg-ambient, .app, #modal-root, .toasts, .drop-overlay { display: none !important; }
+  #print-area { display: flex !important; justify-content: center; align-items: center; height: 100vh; }
+  #print-area svg { max-width: 100%; max-height: 100%; width: auto; height: auto; }
 }

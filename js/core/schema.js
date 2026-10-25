@@ -1,0 +1,255 @@
+/* =========================================================================
+   Schéma et assainissement des données.
+   TOUTE donnée qui entre dans l'application (stockage local, fichier importé,
+   lien de partage) passe par ici : types vérifiés, valeurs bornées, listes
+   blanches pour les énumérations et les couleurs. Rien d'autre n'est conservé,
+   ce qui empêche l'injection de code via un attribut SVG/HTML ou la pollution
+   de prototype.
+   ========================================================================= */
+window.MF = window.MF || {};
+
+MF.schema = (() => {
+  const { clamp, cleanText, uid, HEX } = MF.util;
+
+  const LIMITS = { puzzles: 200, words: 1500, wordLen: 40, clue: 260, name: 80, stickers: 300, text: 400, title: 120 };
+
+  /* ---------------- Primitives ---------------- */
+  const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+  const obj = v => (isObj(v) ? v : {});
+  const color = (v, d) => (typeof v === 'string' && HEX.test(v) ? v.toLowerCase() : d);
+  const colorOrAuto = (v, d = 'auto') => (v === 'auto' ? 'auto' : color(v, d));
+  const num = (v, min, max, d) => { const n = Number(v); return Number.isFinite(n) ? clamp(n, min, max) : d; };
+  const int = (v, min, max, d) => Math.round(num(v, min, max, d));
+  const oneOf = (v, list, d) => (list.includes(v) ? v : d);
+  const str = (v, max, d = '') => (typeof v === 'string' || typeof v === 'number' ? cleanText(v, max) : d);
+  const bool = (v, d) => (typeof v === 'boolean' ? v : d);
+  const id = v => (typeof v === 'string' && /^[A-Za-z0-9_-]{4,40}$/.test(v) ? v : uid());
+  const optId = v => (typeof v === 'string' && /^[A-Za-z0-9_-]{4,40}$/.test(v) ? v : '');
+  const WORD = /^[A-Z]{2,40}$/;
+
+  /* ---------------- Options de génération ---------------- */
+  const DEFAULT_OPTIONS = {
+    size: 'auto', pages: 1, fillers: true, cols: 15, rows: 19, effort: 'normal', photoBand: 0,
+    paper: 'A4', orientation: 'portrait', shape: 'rect', directions: 'normal', givens: 3, density: 'normal',
+  };
+  function options(o) {
+    o = obj(o);
+    const D = DEFAULT_OPTIONS;
+    return {
+      size: oneOf(o.size, ['auto', 'fixed'], D.size),
+      pages: int(o.pages, 1, 2, D.pages),
+      fillers: bool(o.fillers, D.fillers),
+      cols: int(o.cols, 5, 50, D.cols),
+      rows: int(o.rows, 5, 50, D.rows),
+      effort: oneOf(o.effort, ['fast', 'normal', 'deep'], D.effort),
+      photoBand: int(o.photoBand, 0, 20, D.photoBand),
+      paper: oneOf(o.paper, ['A4', 'A3'], D.paper),
+      orientation: oneOf(o.orientation, ['portrait', 'landscape'], D.orientation),
+      shape: oneOf(o.shape, MF.shapes.ids, D.shape),
+      directions: oneOf(o.directions, ['easy', 'normal', 'hard'], D.directions),
+      givens: int(o.givens, 0, 12, D.givens),
+      density: oneOf(o.density, ['airy', 'normal', 'dense'], D.density),
+    };
+  }
+
+  /* ---------------- Design ---------------- */
+  function design(d) {
+    d = obj(d);
+    const D = MF.design.DEFAULT;
+    const fonts = Object.keys(MF.design.FONTS);
+    const c = obj(d.colors), b = obj(d.background), f = obj(d.frame), ce = obj(d.cell), fo = obj(d.font);
+    const ar = obj(d.arrows), po = obj(d.poster), ti = obj(d.title), li = obj(d.lists);
+    return {
+      theme: str(d.theme, 30, D.theme),
+      accent: color(d.accent, D.accent),
+      colors: Object.fromEntries(Object.keys(D.colors).map(k => [k, colorOrAuto(c[k])])),
+      background: {
+        type: oneOf(b.type, Object.keys(MF.backgrounds.TYPES), D.background.type),
+        c1: color(b.c1, D.background.c1), c2: color(b.c2, D.background.c2), c3: color(b.c3, D.background.c3),
+        angle: int(b.angle, 0, 360, D.background.angle),
+        pattern: oneOf(b.pattern, Object.keys(MF.backgrounds.PATTERNS), D.background.pattern),
+        scale: num(b.scale, 0.3, 4, D.background.scale),
+        imageId: optId(b.imageId),
+        fit: oneOf(b.fit, ['cover', 'contain', 'tile'], D.background.fit),
+        imageOpacity: num(b.imageOpacity, 0, 1, 1),
+        overlay: color(b.overlay, D.background.overlay),
+        overlayOpacity: num(b.overlayOpacity, 0, 0.9, 0),
+      },
+      frame: { width: num(f.width, 0, 80, D.frame.width), radius: num(f.radius, 0, 120, D.frame.radius) },
+      voids: oneOf(d.voids, Object.keys(MF.design.VOIDS), D.voids),
+      cell: {
+        style: oneOf(ce.style, Object.keys(MF.design.CELL_STYLES), D.cell.style),
+        gap: num(ce.gap, 0, 24, D.cell.gap),
+        radius: num(ce.radius, 0, 50, D.cell.radius),
+        line: num(ce.line, 0, 12, D.cell.line),
+        letterShape: oneOf(ce.letterShape, ['square', 'circle'], D.cell.letterShape),
+        shadow: bool(ce.shadow, D.cell.shadow),
+      },
+      font: {
+        clue: oneOf(fo.clue, fonts, D.font.clue),
+        letter: oneOf(fo.letter, fonts, D.font.letter),
+        clueWeight: oneOf(+fo.clueWeight, [400, 500, 600, 700, 800], D.font.clueWeight),
+        clueSize: num(fo.clueSize, 11, 26, D.font.clueSize),
+        upper: bool(fo.upper, D.font.upper),
+      },
+      arrows: { style: oneOf(ar.style, Object.keys(MF.design.ARROWS), D.arrows.style), size: num(ar.size, 0.6, 1.8, 1) },
+      poster: {
+        format: oneOf(po.format, Object.keys(MF.design.FORMATS), D.poster.format),
+        orientation: oneOf(po.orientation, ['portrait', 'landscape'], D.poster.orientation),
+        padding: num(po.padding, 0, 400, D.poster.padding),
+        anchor: oneOf(po.anchor, MF.design.ANCHORS, D.poster.anchor),
+        scale: num(po.scale, 0.3, 1, D.poster.scale),
+        radius: num(po.radius, 0, 200, D.poster.radius),
+      },
+      title: {
+        show: bool(ti.show, D.title.show),
+        text: str(ti.text, LIMITS.title), subtitle: str(ti.subtitle, LIMITS.title),
+        font: oneOf(ti.font, fonts, D.title.font),
+        color: colorOrAuto(ti.color),
+        size: num(ti.size, 40, 260, D.title.size),
+        align: oneOf(ti.align, ['left', 'center', 'right'], D.title.align),
+      },
+      lists: { font: oneOf(li.font, fonts, D.lists.font), size: num(li.size, 18, 60, D.lists.size), color: colorOrAuto(li.color) },
+    };
+  }
+
+  /* ---------------- Stickers (décor posé sur l'affiche) ---------------- */
+  const STICKER_KINDS = ['emoji', 'shape', 'image', 'text'];
+  function sticker(s) {
+    s = obj(s);
+    const kind = oneOf(s.kind, STICKER_KINDS, null);
+    if (!kind) return null;
+    const out = {
+      id: id(s.id), kind,
+      x: num(s.x, -0.5, 1.5, 0.5), y: num(s.y, -0.5, 1.5, 0.5),
+      w: num(s.w, 0.01, 3, 0.15), ar: num(s.ar, 0.05, 20, 1),
+      rot: num(s.rot, -360, 360, 0), opacity: num(s.opacity, 0.05, 1, 1),
+      flip: bool(s.flip, false), layer: oneOf(s.layer, ['above', 'below'], 'above'),
+      shadow: bool(s.shadow, false), locked: bool(s.locked, false),
+    };
+    if (kind === 'emoji') {
+      // Un seul « graphème » emoji, pas de texte arbitraire
+      const e = str(s.emoji, 16);
+      if (!e || /[<>&"'\\]/.test(e)) return null;
+      out.emoji = e;
+    } else if (kind === 'shape') {
+      out.shape = oneOf(s.shape, Object.keys(MF.stickers?.SHAPES || {}), null);
+      if (!out.shape) return null;
+      out.color = color(s.color, '#ff5c8a');
+      out.color2 = color(s.color2, '#ffd23f');
+    } else if (kind === 'image') {
+      out.imageId = optId(s.imageId);
+      if (!out.imageId) return null;
+      out.mask = oneOf(s.mask, ['none', 'rounded', 'circle', 'heart', 'star'], 'none');
+      out.border = num(s.border, 0, 40, 0);
+      out.borderColor = color(s.borderColor, '#ffffff');
+    } else {
+      out.text = str(s.text, LIMITS.text);
+      if (!out.text) return null;
+      out.font = oneOf(s.font, Object.keys(MF.design.FONTS), 'baloo');
+      out.color = color(s.color, '#231f20');
+      out.bg = color(s.bg, 'none');
+      out.weight = oneOf(+s.weight, [400, 500, 600, 700, 800], 700);
+      out.align = oneOf(s.align, ['left', 'center', 'right'], 'center');
+    }
+    return out;
+  }
+
+  /* ---------------- Mots ---------------- */
+  function word(w) {
+    w = obj(w);
+    const text = str(w.text, LIMITS.wordLen);
+    if (!text) return null;
+    return { id: id(w.id), text, clue: str(w.clue, LIMITS.clue), priority: !!w.priority };
+  }
+
+  /* ---------------- Grilles calculées ---------------- */
+  const ARROW_SET = ['right', 'down', 'downRight', 'rightDown'];
+  function frame(f) {
+    f = obj(f);
+    const w = int(f.w, 3, 90, 0), h = int(f.h, 3, 90, 0);
+    if (!w || !h) return null;
+    return { w, h, top: int(f.top, 0, h - 1, 0), shape: oneOf(f.shape, MF.shapes.ids, 'rect') };
+  }
+  function builderPage(p) {
+    p = obj(p);
+    const fr = frame(p.frame);
+    if (!fr || !Array.isArray(p.rows) || p.rows.length !== fr.h) return null;
+    if (!p.rows.every(r => typeof r === 'string' && r.length === fr.w && /^[A-Z#]+$/.test(r))) return null;
+    if (!Array.isArray(p.words) || p.words.length > 2000) return null;
+    const inR = (r, c) => Number.isInteger(r) && Number.isInteger(c) && r >= 0 && c >= 0 && r < fr.h && c < fr.w;
+    const words = [];
+    for (const w of p.words) {
+      if (!isObj(w) || !inR(w.r, w.c) || !inR(w.sr, w.sc) || !['H', 'V'].includes(w.dir)) return null;
+      if (typeof w.word !== 'string' || !WORD.test(w.word) || w.word.length !== w.len || !ARROW_SET.includes(w.arrow)) return null;
+      const [dr, dc] = w.dir === 'H' ? [0, 1] : [1, 0];
+      if (!inR(w.r + (w.len - 1) * dr, w.c + (w.len - 1) * dc)) return null;
+      for (let i = 0; i < w.len; i++) if (p.rows[w.r + i * dr][w.c + i * dc] !== w.word[i]) return null;
+      words.push({ r: w.r, c: w.c, dir: w.dir, len: w.len, word: w.word, sr: w.sr, sc: w.sc, arrow: w.arrow, src: w.src === 'theme' ? 'theme' : 'curated', wid: optId(w.wid) || undefined });
+    }
+    return {
+      engine: 'builder', frame: fr, rows: p.rows.slice(), words,
+      photos: int(p.photos, 0, 9000, 0),
+      unplaced: Array.isArray(p.unplaced) ? p.unplaced.map(optId).filter(Boolean).slice(0, LIMITS.words) : [],
+      attempts: int(p.attempts, 0, 1e9, 0),
+    };
+  }
+  function melesPage(p) {
+    p = obj(p);
+    const fr = frame(p.frame);
+    if (!fr || !Array.isArray(p.rows) || p.rows.length !== fr.h) return null;
+    if (!p.rows.every(r => typeof r === 'string' && r.length === fr.w && /^[A-Z.]+$/.test(r))) return null;
+    if (!Array.isArray(p.words) || p.words.length > 600) return null;
+    const words = [];
+    for (const w of p.words) {
+      if (!isObj(w) || typeof w.word !== 'string' || !WORD.test(w.word)) return null;
+      const [r, c, dr, dc] = [w.r, w.c, w.dr, w.dc].map(Number);
+      if (![r, c, dr, dc].every(Number.isInteger) || Math.abs(dr) > 1 || Math.abs(dc) > 1 || (!dr && !dc)) return null;
+      const L = w.word.length;
+      for (let i = 0; i < L; i++) if (p.rows[r + i * dr]?.[c + i * dc] !== w.word[i]) return null;
+      words.push({ word: w.word, r, c, dr, dc, len: L, wid: optId(w.wid) || undefined, label: str(w.label, LIMITS.wordLen) || w.word });
+    }
+    return { engine: 'meles', frame: fr, rows: p.rows.slice(), words, unplaced: Array.isArray(p.unplaced) ? p.unplaced.map(optId).filter(Boolean) : [] };
+  }
+  function layout(l) {
+    if (!isObj(l) || !Array.isArray(l.pages) || !l.pages.length || l.pages.length > 2) return null;
+    const engine = oneOf(l.engine, ['builder', 'meles'], null);
+    if (!engine) return null;
+    const pages = l.pages.map(engine === 'builder' ? builderPage : melesPage);
+    if (pages.some(p => !p)) return null;
+    // Données de jeu propres à la grille (codes des mots codés)
+    const extra = {};
+    if (isObj(l.codes)) {
+      const codes = {};
+      for (const [k, v] of Object.entries(l.codes)) if (/^[A-Z]$/.test(k)) codes[k] = int(v, 1, 26, 1);
+      if (new Set(Object.values(codes)).size === Object.keys(codes).length) extra.codes = codes;
+    }
+    if (Array.isArray(l.givens)) extra.givens = l.givens.filter(x => typeof x === 'string' && /^[A-Z]$/.test(x)).slice(0, 26);
+    return { engine, pages, hash: str(l.hash, 40), at: num(l.at, 0, 1e15, Date.now()), ...extra };
+  }
+
+  /* ---------------- Grille complète ---------------- */
+  function puzzle(p) {
+    p = obj(p);
+    const fillerClues = {};
+    for (const [k, v] of Object.entries(obj(p.fillerClues))) if (WORD.test(k)) fillerClues[k] = str(v, LIMITS.clue);
+    const legacyAccent = color(p.accent, null);
+    const des = design(p.design || (legacyAccent ? { accent: legacyAccent, poster: { padding: 0 }, background: { type: 'none' } } : {}));
+    return {
+      id: id(p.id),
+      name: str(p.name, LIMITS.name) || 'Nouvelle grille',
+      game: oneOf(p.game, MF.games.ids, 'fleches'),
+      createdAt: num(p.createdAt, 0, 1e15, Date.now()),
+      updatedAt: num(p.updatedAt, 0, 1e15, Date.now()),
+      words: (Array.isArray(p.words) ? p.words : []).slice(0, LIMITS.words).map(word).filter(Boolean),
+      fillerClues,
+      banned: (Array.isArray(p.banned) ? p.banned : []).filter(w => typeof w === 'string' && WORD.test(w)).slice(0, 2000),
+      options: options(p.options),
+      design: des,
+      stickers: (Array.isArray(p.stickers) ? p.stickers : []).slice(0, LIMITS.stickers).map(sticker).filter(Boolean),
+      layout: layout(p.layout),
+    };
+  }
+
+  return { LIMITS, DEFAULT_OPTIONS, options, design, sticker, word, puzzle, layout, color, num, int, oneOf, str, bool, isObj, WORD };
+})();

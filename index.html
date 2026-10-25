@@ -3,25 +3,29 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Sécurité : seuls nos propres scripts s'exécutent ; réseau limité aux polices et au Wiktionnaire / Wikipédia -->
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob:; connect-src 'self' https://fr.wiktionary.org https://fr.wikipedia.org; object-src 'none'; base-uri 'none'; form-action 'none'; frame-src 'none'; worker-src 'none'; media-src 'none'">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
   <title>Mots fléchés Maker</title>
   <meta name="theme-color" content="#07090d">
-  <meta name="description" content="Créateur de grilles de mots fléchés pleines (format magazine) avec vos mots perso, export PNG / SVG pour Canva.">
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%23e8212b'/%3E%3Cpath d='M18 18h12v12H18zM34 34h12v12H34z' fill='white'/%3E%3Cpath d='M34 22h10l-4-4m4 4-4 4' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+  <meta name="description" content="Créateur de grilles de mots fléchés, croisés, mêlés et codés : vos mots, vos définitions, votre style. Export PNG, SVG, PDF. Tout reste dans votre navigateur.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='4' y='4' width='56' height='56' rx='14' fill='%237b3fe4'/%3E%3Cpath d='M18 18h12v12H18zM34 34h12v12H34z' fill='white'/%3E%3Cpath d='M34 22h10l-4-4m4 4-4 4' stroke='white' stroke-width='3.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Baloo+2:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Caveat:wght@600;700&family=Patrick+Hand&family=Permanent+Marker&display=swap" rel="stylesheet">
 
   <!-- ?v=… : à changer à chaque mise à jour, sinon le navigateur peut garder d'anciens fichiers en cache -->
-  <link rel="stylesheet" href="css/tokens.css?v=2026-10-25">
-  <link rel="stylesheet" href="css/base.css?v=2026-10-25">
-  <link rel="stylesheet" href="css/glass.css?v=2026-10-25">
-  <link rel="stylesheet" href="css/components.css?v=2026-10-25">
-  <link rel="stylesheet" href="css/app.css?v=2026-10-25">
-  <link rel="stylesheet" href="css/print.css?v=2026-10-25">
+  <link rel="stylesheet" href="css/tokens.css?v=3.0.0">
+  <link rel="stylesheet" href="css/base.css?v=3.0.0">
+  <link rel="stylesheet" href="css/glass.css?v=3.0.0">
+  <link rel="stylesheet" href="css/components.css?v=3.0.0">
+  <link rel="stylesheet" href="css/app.css?v=3.0.0">
+  <link rel="stylesheet" href="css/panels.css?v=3.0.0">
+  <link rel="stylesheet" href="css/print.css?v=3.0.0">
 </head>
 <body>
-  <canvas id="bg3d" aria-hidden="true"></canvas>
-  <div class="bg-fallback" aria-hidden="true"></div>
+  <div class="bg-ambient" aria-hidden="true"></div>
 
   <div class="app">
     <header class="topbar glass">
@@ -29,12 +33,17 @@
         <span class="brand-mark" aria-hidden="true">MF</span>
         <span class="brand-text"><strong>Mots fléchés</strong><small>Maker</small></span>
       </div>
-      <nav class="puzzle-tabs" id="puzzle-tabs" aria-label="Grilles"></nav>
+      <nav class="puzzle-tabs" id="puzzle-tabs" aria-label="Mes grilles"></nav>
       <div class="topbar-actions">
-        <button class="btn btn-ghost btn-icon" id="btn-import" title="Importer un fichier JSON" aria-label="Importer"><span data-icon="upload"></span></button>
-        <button class="btn btn-ghost btn-icon" id="btn-export-json" title="Sauvegarder toutes les grilles (JSON)" aria-label="Sauvegarder en JSON"><span data-icon="download"></span></button>
+        <button class="btn btn-ghost btn-icon" id="btn-undo" title="Annuler (Ctrl+Z)" aria-label="Annuler"><span data-icon="undo"></span></button>
+        <button class="btn btn-ghost btn-icon" id="btn-redo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><span data-icon="redo"></span></button>
+        <span class="tb-sep" aria-hidden="true"></span>
+        <button class="btn btn-ghost btn-icon only-puzzle" id="btn-share" title="Partager un lien pour jouer" aria-label="Partager"><span data-icon="share"></span></button>
+        <button class="btn btn-ghost btn-icon" id="btn-open" title="Ouvrir un fichier (sauvegarde, liste de mots, Excel…)" aria-label="Ouvrir"><span data-icon="folder"></span></button>
+        <button class="btn btn-ghost btn-icon only-puzzle" id="btn-save" title="Sauvegarder toutes mes grilles" aria-label="Sauvegarder"><span data-icon="download"></span></button>
+        <button class="btn btn-ghost btn-icon" id="btn-help" title="Aide & raccourcis (?)" aria-label="Aide"><span data-icon="help"></span></button>
         <button class="btn btn-ghost btn-icon" id="btn-theme" title="Thème clair / sombre" aria-label="Changer de thème"><span data-icon="contrast"></span></button>
-        <input type="file" id="file-import" accept=".json,application/json" hidden>
+        <input type="file" id="file-open" accept=".json,.txt,.csv,.tsv,.xlsx,application/json,text/plain,text/csv,image/png,image/jpeg,image/webp" hidden>
       </div>
     </header>
 
@@ -42,85 +51,114 @@
       <section class="grid-card glass" aria-label="Grille">
         <div class="grid-head">
           <div class="grid-title">
-            <div class="eyebrow">Mes 25 ans en fléchés</div>
-            <h1 id="grid-name">—</h1>
+            <div class="eyebrow" id="grid-game"></div>
+            <h1 id="grid-name" title="Cliquer pour renommer">—</h1>
             <div class="grid-stats" id="grid-stats"></div>
           </div>
           <div class="grid-tools">
-            <div class="segmented page-switch" id="page-switch" aria-label="Grilles" hidden></div>
+            <div class="segmented page-switch" id="page-switch" aria-label="Pages" hidden></div>
             <div class="segmented" id="mode-switch" role="tablist" aria-label="Affichage">
-              <button data-mode="solution"><span data-icon="eye"></span>Solution</button>
-              <button data-mode="blank"><span data-icon="eyeOff"></span>Vierge</button>
-              <button data-mode="play"><span data-icon="play"></span>Jouer</button>
+              <button data-mode="solution" title="Voir les réponses"><span data-icon="eye"></span><span class="lbl">Solution</span></button>
+              <button data-mode="blank" title="Grille à remplir"><span data-icon="eyeOff"></span><span class="lbl">Vierge</span></button>
+              <button data-mode="play" title="Jouer (P)"><span data-icon="play"></span><span class="lbl">Jouer</span></button>
             </div>
             <div class="zoom">
-              <button class="btn btn-sm btn-ghost" id="btn-fit" title="Ajuster la grille à l'écran"><span data-icon="grid"></span>Ajuster</button>
-              <input type="range" id="zoom" min="16" max="120" step="2" aria-label="Zoom" title="Zoom (Ctrl + molette)">
+              <button class="btn btn-sm btn-ghost" id="btn-fit" title="Ajuster à l'écran"><span data-icon="grid"></span></button>
+              <input type="range" id="zoom" min="10" max="140" step="2" aria-label="Zoom" title="Zoom (Ctrl + molette)">
             </div>
-            <button class="btn" id="btn-shuffle" title="Calculer une nouvelle grille"><span data-icon="shuffle"></span>Mélanger</button>
-            <button class="btn btn-primary" id="btn-export"><span data-icon="image"></span>Exporter</button>
+            <button class="btn" id="btn-shuffle" title="Calculer une autre grille (M)"><span data-icon="shuffle"></span><span class="lbl">Mélanger</span></button>
+            <button class="btn btn-primary" id="btn-export" title="Exporter (E)"><span data-icon="download"></span>Exporter</button>
           </div>
         </div>
         <div class="gen-bar" id="gen-bar" hidden>
           <div class="progress"><i id="gen-progress" style="width:0%"></i></div>
-          <span id="gen-label">Construction de la grille : placement de vos mots, puis remplissage…</span>
+          <span>Construction de la grille : placement de tes mots, puis remplissage…</span>
         </div>
         <div class="stale-bar" id="stale-bar" hidden>
           <span data-icon="info"></span>
-          <span>La liste de mots a changé depuis le dernier calcul.</span>
+          <span>Ta liste a changé depuis le dernier calcul.</span>
           <span class="spacer"></span>
-          <button class="btn btn-sm btn-primary" data-regen><span data-icon="refresh"></span>Recalculer la grille</button>
+          <button class="btn btn-sm btn-primary" data-regen><span data-icon="refresh"></span>Mettre à jour la grille</button>
         </div>
         <div class="play-bar" id="play-bar" hidden>
-          <span class="muted small">Clique une case et tape. Re-clique pour changer de sens, flèches pour se déplacer.</span>
+          <span class="play-time"><span data-icon="clock"></span><b id="play-time">0:00</b></span>
+          <span class="muted small play-tip">Clique une case et tape · re-clic ou Espace : change de sens</span>
           <span class="spacer"></span>
+          <button class="btn btn-sm btn-ghost" id="btn-hint"></button>
+          <button class="btn btn-sm btn-ghost" id="btn-hint-word"><span data-icon="wand"></span>Mot</button>
           <button class="btn btn-sm" id="btn-check"><span data-icon="check"></span>Vérifier</button>
-          <button class="btn btn-sm btn-ghost" id="btn-clear-play"><span data-icon="refresh"></span>Effacer</button>
+          <button class="btn btn-sm btn-ghost" id="btn-clear-play" title="Tout effacer"><span data-icon="refresh"></span></button>
         </div>
         <div class="grid-scroll" id="grid-scroll"></div>
       </section>
 
       <aside class="side glass" aria-label="Édition">
-        <div class="tabs" id="side-tabs" role="tablist">
-          <button data-tab="words"><span data-icon="list"></span>Mots <span class="badge" id="count-words">0</span></button>
-          <button data-tab="diag"><span data-icon="edit"></span>Définitions <span class="badge" id="count-diag">0</span></button>
-          <button data-tab="settings"><span data-icon="sliders"></span>Réglages</button>
+        <div class="tabs side-tabs" id="side-tabs" role="tablist">
+          <button data-tab="words" title="Mots (1)"><span data-icon="list"></span><span class="lbl">Mots</span> <span class="badge" id="count-words">0</span></button>
+          <button data-tab="diag" title="Définitions (2)"><span data-icon="edit"></span><span class="lbl">Définitions</span> <span class="badge" id="count-diag">0</span></button>
+          <button data-tab="design" title="Design (3)"><span data-icon="palette"></span><span class="lbl">Design</span></button>
+          <button data-tab="decor" title="Décor (4)"><span data-icon="sticker"></span><span class="lbl">Décor</span> <span class="badge" id="count-decor" hidden></span></button>
+          <button data-tab="settings" title="Grille (5)"><span data-icon="sliders"></span><span class="lbl">Grille</span></button>
         </div>
         <div class="side-body" id="side-body"></div>
       </aside>
     </main>
+
+    <section class="welcome-wrap" id="welcome" aria-label="Accueil"></section>
   </div>
 
+  <div class="drop-overlay" aria-hidden="true"><div><span data-icon="upload"></span><b>Dépose tes fichiers</b><small>Photos, listes de mots (Excel, CSV, TXT), sauvegardes</small></div></div>
   <div id="print-area" aria-hidden="true"></div>
   <div id="modal-root"></div>
   <div class="toasts" id="toasts" aria-live="polite"></div>
 
-  <!-- Bibliothèque externe facultative : sans elle, fond dégradé statique -->
-  <script src="https://cdn.jsdelivr.net/npm/three@0.149.0/build/three.min.js"></script>
+  <!-- Noyau -->
+  <script src="js/core/utils.js?v=3.0.0"></script>
+  <script src="js/core/text.js?v=3.0.0"></script>
+  <script src="js/engine/design.js?v=3.0.0"></script>
+  <script src="js/engine/shapes.js?v=3.0.0"></script>
+  <script src="js/engine/backgrounds.js?v=3.0.0"></script>
+  <script src="js/engine/games.js?v=3.0.0"></script>
+  <script src="js/data/stickers.js?v=3.0.0"></script>
+  <script src="js/core/schema.js?v=3.0.0"></script>
+  <script src="js/core/assets.js?v=3.0.0"></script>
+  <script src="js/core/store.js?v=3.0.0"></script>
+  <script src="js/core/zip.js?v=3.0.0"></script>
+  <script src="js/core/share.js?v=3.0.0"></script>
 
-  <!-- Noyau & données -->
-  <script src="js/core/utils.js?v=2026-10-25"></script>
-  <script src="js/data/seed.js?v=2026-10-25"></script>
-  <script src="js/core/store.js?v=2026-10-25"></script>
-  <script src="js/core/zip.js?v=2026-10-25"></script>
+  <!-- Données : dictionnaire, packs de mots, thèmes -->
+  <script src="js/data/clues-fr.js?v=3.0.0"></script>
+  <script src="js/data/packs.js?v=3.0.0"></script>
+  <script src="js/data/themes.js?v=3.0.0"></script>
 
-  <!-- Dictionnaire : mots courants avec leur définition -->
-  <script src="js/data/clues-fr.js?v=2026-10-25"></script>
+  <!-- Services -->
+  <script src="js/services/dictionary.js?v=3.0.0"></script>
+  <script src="js/services/wiki.js?v=3.0.0"></script>
+  <script src="js/services/importer.js?v=3.0.0"></script>
 
   <!-- Moteur -->
-  <script src="js/engine/paper.js?v=2026-10-25"></script>
-  <script src="js/engine/builder.js?v=2026-10-25"></script>
-  <script src="js/engine/grid-model.js?v=2026-10-25"></script>
-  <script src="js/engine/diagnostics.js?v=2026-10-25"></script>
-  <script src="js/engine/renderers.js?v=2026-10-25"></script>
+  <script src="js/engine/paper.js?v=3.0.0"></script>
+  <script src="js/engine/builder.js?v=3.0.0"></script>
+  <script src="js/engine/wordsearch.js?v=3.0.0"></script>
+  <script src="js/engine/grid-model.js?v=3.0.0"></script>
+  <script src="js/engine/diagnostics.js?v=3.0.0"></script>
+  <script src="js/engine/renderers.js?v=3.0.0"></script>
+  <script src="js/engine/scene.js?v=3.0.0"></script>
 
   <!-- Interface -->
-  <script src="js/ui/components.js?v=2026-10-25"></script>
-  <script src="js/ui/background3d.js?v=2026-10-25"></script>
-  <script src="js/ui/grid-view.js?v=2026-10-25"></script>
-  <script src="js/ui/exporter.js?v=2026-10-25"></script>
-  <script src="js/ui/panels.js?v=2026-10-25"></script>
+  <script src="js/ui/components.js?v=3.0.0"></script>
+  <script src="js/ui/grid-view.js?v=3.0.0"></script>
+  <script src="js/ui/sticker-editor.js?v=3.0.0"></script>
+  <script src="js/ui/pickers.js?v=3.0.0"></script>
+  <script src="js/ui/panels/words.js?v=3.0.0"></script>
+  <script src="js/ui/panels/clues.js?v=3.0.0"></script>
+  <script src="js/ui/panels/design.js?v=3.0.0"></script>
+  <script src="js/ui/panels/decor.js?v=3.0.0"></script>
+  <script src="js/ui/panels/settings.js?v=3.0.0"></script>
+  <script src="js/ui/exporter.js?v=3.0.0"></script>
+  <script src="js/ui/welcome.js?v=3.0.0"></script>
 
-  <script src="js/app.js?v=2026-10-25"></script>
+  <script src="js/app/actions.js?v=3.0.0"></script>
+  <script src="js/app.js?v=3.0.0"></script>
 </body>
 </html>

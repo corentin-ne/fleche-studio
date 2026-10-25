@@ -31,6 +31,7 @@ MF.builder = (() => {
   class Board {
     constructor(frame) {
       this.frame = frame;
+      this.mask = MF.shapes.mask(frame.shape || 'rect', frame.w, frame.h, frame.top || 0);
       this.cells = new Map();
       this.byLetter = new Map();
       this.placements = [];
@@ -39,8 +40,8 @@ MF.builder = (() => {
     }
     get(r, c) { return this.cells.get(K(r, c)); }
     set(r, c, v) { this.cells.set(K(r, c), v); }
-    /** Les `frame.top` premières lignes forment la bande photo : ni lettre ni définition. */
-    inside(r, c) { return r >= (this.frame.top || 0) && c >= 0 && r < this.frame.h && c < this.frame.w; }
+    /** Case utilisable : dans le cadre, sous la bande libre du haut et dans la forme choisie. */
+    inside(r, c) { return r >= (this.frame.top || 0) && c >= 0 && r < this.frame.h && c < this.frame.w && this.mask[r * this.frame.w + c] === 1; }
     clone() {
       const b = new Board(this.frame);
       for (const p of this.placements) place(b, p);
@@ -209,9 +210,12 @@ MF.builder = (() => {
     return fillerIndex;
   }
 
-  function fillGaps(board, rnd, used, deadline) {
+  const DENSITY = { airy: { rounds: 70, islands: false }, normal: { rounds: 400, islands: true }, dense: { rounds: 600, islands: true } };
+
+  function fillGaps(board, rnd, used, deadline, density = 'normal') {
     const index = fillers();
-    for (let round = 0; round < 400 && performance.now() < deadline; round++) {
+    const dz = DENSITY[density] || DENSITY.normal;
+    for (let round = 0; round < dz.rounds && performance.now() < deadline; round++) {
       let best = null, bestScore = -Infinity;
       // Ancres : lettres posées qui peuvent encore être croisées
       for (const [, spots] of board.byLetter) {
@@ -238,7 +242,7 @@ MF.builder = (() => {
       used.add(best.w);
       place(board, toPlacement(best.w, 'curated', undefined, best.ev));
     }
-    fillIslands(board, rnd, used, deadline);
+    if (dz.islands) fillIslands(board, rnd, used, deadline);
   }
 
   /** Mots courants posés seuls dans les zones encore vides (les plus longs d'abord). */
@@ -326,13 +330,15 @@ MF.builder = (() => {
     const words = board.placements.map(p => ({ r: p.r, c: p.c, dir: p.dir, len: p.len, word: p.word, sr: p.sr, sc: p.sc, arrow: p.arrow, src: p.src, wid: p.wid }));
     const holders = new Set(words.map(w => w.sr * W + w.sc));
     let photos = 0;
-    rows.forEach((row, r) => { if (r >= top) [...row].forEach((x, c) => { if (x === '#' && !holders.has(r * W + c)) photos++; }); });
+    // Cases vides dans la forme (hors bande libre) = cases « photo »
+    rows.forEach((row, r) => { if (r >= top) [...row].forEach((x, c) => { if (x === '#' && board.mask[r * W + c] && !holders.has(r * W + c)) photos++; }); });
     const placed = new Set(words.filter(w => w.src === 'theme').map(w => w.wid));
     return { engine: 'builder', frame: board.frame, rows, words, photos, unplaced: all.filter(it => !placed.has(it.id)).map(it => it.id), ...extra };
   }
 
-  /** Cadre aux proportions de la feuille (portrait ou paysage) de h lignes, dont `top` lignes de bande photo en haut. */
-  const sheetFrame = (opts, h, top = 0) => ({ w: MF.paper.colsFor(h, opts), h, top });
+  /** Cadre aux proportions de la feuille (portrait ou paysage) de h lignes, dont `top` lignes de bande libre en haut. */
+  // Une forme (cercle, cœur…) garde ses vraies proportions : sa zone utile est carrée
+  const sheetFrame = (opts, h, top = 0) => ({ w: opts.shape && opts.shape !== 'rect' ? h - top : MF.paper.colsFor(h, opts), h, top, shape: opts.shape || 'rect' });
 
   /** Hauteur de la bande photo, bornée pour laisser au moins 7 lignes de grille. */
   const bandRows = (opts, h) => Math.max(0, Math.min(+opts.photoBand || 0, h - 7));
@@ -344,7 +350,8 @@ MF.builder = (() => {
    *  - Taille fixe : on place le maximum de mots perso dans le cadre demandé.
    * Ensuite, comblement des meilleures dispositions ; on garde celle qui laisse le moins de cases photo.
    */
-  async function generate(words, opts = {}, { seed = Date.now(), onProgress, signal, exclude = new Set() } = {}) {
+  async function generate(words, opts = {}, { seed = Date.now(), onProgress, signal, exclude = new Set(), banned = [] } = {}) {
+    if (!prepare(words).length) return null;
     const all = prepare(words);
     const budget = EFFORT_MS[opts.effort] || EFFORT_MS.normal;
     const t0 = performance.now();
@@ -381,20 +388,24 @@ MF.builder = (() => {
     }
 
     let top;
+    const shape = opts.shape || 'rect';
     if (opts.size === 'fixed') {
       const h = opts.rows || 21;
-      top = await search({ w: opts.cols || 15, h, top: bandRows(opts, h) }, budget * 0.7, false);
+      top = await search({ w: opts.cols || 15, h, top: bandRows(opts, h), shape }, budget * 0.7, false);
     } else {
-      // Plus petit cadre (aux proportions de la feuille) dont la partie sous la bande photo contient
-      // tous les mots : le plus long doit tenir dans un sens, la surface utile doit suffire.
+      // Plus petit cadre (aux proportions de la feuille) dont la partie sous la bande libre contient
+      // tous les mots : le plus long doit tenir dans un sens, la surface utile (dans la forme) doit suffire.
       // En A3, on part d'une taille minimale pour profiter de toute la feuille.
       const band = +opts.photoBand || 0;
       const longest = Math.max(...all.map(it => it.norm.length), 5);
       const letters = all.reduce((s, it) => s + it.norm.length, 0);
+      const area = MF.shapes.fraction(shape);
+      // Dans une forme, les lignes les plus longues sont plus courtes que le cadre
+      const reach = shape === 'rect' ? 1 : 0.82;
       const frameAt = hh => sheetFrame(opts, hh, bandRows(opts, hh));
       const roomy = hh => {
         const f = frameAt(hh), useful = hh - f.top;
-        return Math.max(f.w, useful) > longest && f.w * useful >= letters * 2.2;
+        return Math.max(f.w, useful) * reach > longest && f.w * useful * area >= letters * 2.2;
       };
       let h = Math.max(band + 7, MF.paper.minRows(opts));
       while (!roomy(h)) h++;
@@ -416,8 +427,9 @@ MF.builder = (() => {
     let best = null;
     for (const [i, cand] of top.entries()) {
       const board = cand.board.clone();
-      const used = new Set([...exclude, ...board.placements.map(p => p.word)]);
-      if (withFillers) fillGaps(board, MF.util.rng((seed + i * 104729) >>> 0), used, performance.now() + Math.max(400, (budget * 0.3) / top.length));
+      // Mots déjà utilisés ailleurs ou bannis par l'utilisateur : jamais proposés en remplissage
+      const used = new Set([...exclude, ...banned, ...board.placements.map(p => p.word)]);
+      if (withFillers) fillGaps(board, MF.util.rng((seed + i * 104729) >>> 0), used, performance.now() + Math.max(400, (budget * 0.3) / top.length), opts.density);
       const res = summarize(board, all, { seed, attempts: n });
       res.score = cand.score * 10 - res.photos;
       if (!best || res.score > best.score) best = res;
@@ -431,13 +443,13 @@ MF.builder = (() => {
   const optionsKey = (o = {}) => {
     const paper = MF.paper.label(o);
     // A4 portrait (format historique) n'apparaît pas : les grilles déjà calculées restent à jour
-    return `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}${paper === 'A4 portrait' ? '' : `|${paper}`}`;
+    return `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}|${paper}|${o.shape || 'rect'}|${o.density || 'normal'}`;
   };
 
   /** Empreinte des données qui influencent la grille. */
   function layoutHash(puzzle) {
     const sig = prepare(puzzle.words).map(it => `${it.id}:${it.norm}:${it.priority ? 1 : 0}`).join('|');
-    return MF.util.hash(`builder2#${sig}#${optionsKey(puzzle.options)}`);
+    return MF.util.hash(`builder3#${sig}#${optionsKey(puzzle.options)}#${(puzzle.banned || []).join(',')}`);
   }
 
   return { generate, split, prepare, layoutHash, optionsKey };

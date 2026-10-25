@@ -1,191 +1,272 @@
 /* =========================================================================
-   Rendus d'un modèle de grille : SVG (écran + export vectoriel) et Canvas (PNG).
-   Style « DA Canva » : cadre épais et cases vides pleines dans la couleur,
-   cases lettres blanches, cases définitions teintées.
+   Rendus d'une scène (liste d'opérations de dessin, voir MF.scene) :
+     - svg()    : écran et export vectoriel ;
+     - canvas() : export PNG (asynchrone : images et motifs sont préchargés).
+   Les deux interprètent exactement les mêmes opérations : ce qu'on voit est
+   ce qu'on exporte.
+
+   Opérations : rect, circle, line, poly, polyline, path, text, image, group.
+   Peintures  : '#rrggbb' | { type: 'linear' | 'radial' | 'pattern' | 'hatch', … }
    ========================================================================= */
 window.MF = window.MF || {};
 
 MF.renderers = (() => {
-  const M = MF.gridModel;
-  const { U, LINE, FRAME, FONT, CLUE_WEIGHT, LINE_H } = M;
-  const INK = '#231f20';
-  const PAPER = '#ffffff';
+  const xml = s => String(s).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
+  const f = v => (Math.round(v * 10) / 10).toString();
+  const pts = list => list.map(([a, b]) => `${f(a)},${f(b)}`).join(' ');
+  const EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif';
 
-  /** Mélange une couleur hex avec du blanc (t = part de blanc). */
-  function tint(hex, t) {
-    const [r, g, b] = MF.util.hexToRgb(hex);
-    const mix = v => Math.round(v + (255 - v) * t).toString(16).padStart(2, '0');
-    return `#${mix(r)}${mix(g)}${mix(b)}`;
-  }
-
-  function palette(accent, style = {}) {
-    return {
-      frame: accent,
-      line: accent,
-      letter: PAPER,
-      clue: style.clueFill === 'white' ? PAPER : tint(accent, 0.86),
-      ink: INK,
-      arrow: accent,
-    };
-  }
-
-  const size = model => ({ w: model.cols * U + FRAME * 2, h: model.rows * U + FRAME * 2 });
-  const cellX = c => FRAME + c * U;
-  const cellY = r => FRAME + r * U;
-
-  /** Position verticale (ligne de base) de chaque ligne d'une définition. */
-  function clueLines(cell, x, y) {
-    const out = [];
-    for (const { fit, box } of cell.clues) {
-      const { size: fs, lines } = fit;
-      const blockH = lines.length * fs * LINE_H;
-      const top = y + box.y + (box.h - blockH) / 2;
-      lines.forEach((text, k) => out.push({ text, fs, x: x + box.x + box.w / 2, y: top + k * fs * LINE_H + (fs * LINE_H - fs) / 2 + fs * 0.8 }));
+  /** Contour de découpe (masque d'image / sticker) dans une boîte. */
+  function clipPath(kind, x, y, w, h) {
+    if (kind === 'circle') {
+      const rx = w / 2, ry = h / 2;
+      return `M${f(x)} ${f(y + ry)}a${f(rx)} ${f(ry)} 0 1 0 ${f(w)} 0a${f(rx)} ${f(ry)} 0 1 0 ${f(-w)} 0Z`;
     }
-    return out;
+    if (kind === 'rounded') {
+      const r = Math.min(w, h) * 0.12;
+      return `M${f(x + r)} ${f(y)}H${f(x + w - r)}Q${f(x + w)} ${f(y)} ${f(x + w)} ${f(y + r)}V${f(y + h - r)}Q${f(x + w)} ${f(y + h)} ${f(x + w - r)} ${f(y + h)}H${f(x + r)}Q${f(x)} ${f(y + h)} ${f(x)} ${f(y + h - r)}V${f(y + r)}Q${f(x)} ${f(y)} ${f(x + r)} ${f(y)}Z`;
+    }
+    if (kind === 'heart') {
+      const X = u => f(x + u * w), Y = v => f(y + v * h);
+      return `M${X(0.5)} ${Y(1)}C${X(-0.05)} ${Y(0.62)} ${X(-0.04)} ${Y(0.05)} ${X(0.27)} ${Y(0.04)}C${X(0.4)} ${Y(0.03)} ${X(0.47)} ${Y(0.12)} ${X(0.5)} ${Y(0.2)}C${X(0.53)} ${Y(0.12)} ${X(0.6)} ${Y(0.03)} ${X(0.73)} ${Y(0.04)}C${X(1.04)} ${Y(0.05)} ${X(1.05)} ${Y(0.62)} ${X(0.5)} ${Y(1)}Z`;
+    }
+    if (kind === 'star') {
+      return 'M' + Array.from({ length: 10 }, (_, i) => {
+        const a = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? 0.45 : 1;
+        return `${f(x + w / 2 + Math.cos(a) * r * w / 2)} ${f(y + h * 0.55 + Math.sin(a) * r * h * 0.55)}`;
+      }).join('L') + 'Z';
+    }
+    return `M${f(x)} ${f(y)}H${f(x + w)}V${f(y + h)}H${f(x)}Z`;
   }
 
-  /** Trait séparant les deux définitions d'une case coupée (horizontal ou vertical). */
-  function divider(cell, x, y) {
-    if (!cell.split) return null;
-    const a = LINE / 2, b = U - LINE / 2, m = U / 2;
-    return cell.split === 'v'
-      ? { x1: x + m, y1: y + a, x2: x + m, y2: y + b }
-      : { x1: x + a, y1: y + m, x2: x + b, y2: y + m };
-  }
+  /** Rectangle à coins arrondis en chemin (pour les découpes canvas). */
+  const roundRect = (x, y, w, h, r) => {
+    r = Math.min(r || 0, w / 2, h / 2);
+    if (!r) return `M${f(x)} ${f(y)}H${f(x + w)}V${f(y + h)}H${f(x)}Z`;
+    return `M${f(x + r)} ${f(y)}H${f(x + w - r)}A${f(r)} ${f(r)} 0 0 1 ${f(x + w)} ${f(y + r)}V${f(y + h - r)}A${f(r)} ${f(r)} 0 0 1 ${f(x + w - r)} ${f(y + h)}H${f(x + r)}A${f(r)} ${f(r)} 0 0 1 ${f(x)} ${f(y + h - r)}V${f(y + r)}A${f(r)} ${f(r)} 0 0 1 ${f(x + r)} ${f(y)}Z`;
+  };
 
-  /** Repère « zone photo » couvrant toute la bande du haut. */
-  function bandMark(model) {
-    const x = FRAME + 20, y = FRAME + 20, bw = model.cols * U - 40, bh = model.band * U - 40;
-    const cx = x + bw / 2, cy = y + bh / 2;
-    return `<g class="photo-band" opacity=".6"><rect x="${x}" y="${y}" width="${bw}" height="${bh}" rx="24" fill="none" stroke="#fff" stroke-width="4" stroke-dasharray="14 10"/>`
-      + `<path d="M${cx - 60} ${cy + 20}l35-40 24 27 18-18 43 31Z" fill="#fff"/><circle cx="${cx + 30}" cy="${cy - 30}" r="12" fill="#fff"/>`
-      + `<text x="${cx}" y="${cy + 70}" font-family='${FONT}' font-size="34" font-weight="700" fill="#fff" text-anchor="middle">Zone photo · ${model.cols} × ${model.band} cases</text></g>`;
-  }
+  /* =================================== SVG =================================== */
+  function svg(scene, { forExport = false, cls = 'mf-svg' } = {}) {
+    const defs = [];
+    const ids = new Map();
+    let n = 0;
+    const uidFor = (key, make) => {
+      if (ids.has(key)) return ids.get(key);
+      const id = `p${++n}`;
+      ids.set(key, id);
+      defs.push(make(id));
+      return id;
+    };
+    const stops = list => list.map(([o, c, a = 1]) => `<stop offset="${o}" stop-color="${c}"${a < 1 ? ` stop-opacity="${a}"` : ''}/>`).join('');
 
-  /* ---------------- SVG ---------------- */
-  const xml = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
-  const pts = (list, ox, oy) => list.map(([a, b]) => `${(ox + a).toFixed(1)},${(oy + b).toFixed(1)}`).join(' ');
-
-  /**
-   * @param opts.letters   afficher la solution
-   * @param opts.forExport SVG autonome (dimensions explicites, pas de classes d'interaction)
-   */
-  function svg(model, accent, opts = {}) {
-    const { w, h } = size(model);
-    const p = palette(accent, opts.style);
-    const parts = [];
-    const font = `font-family='${FONT}'`;
-    parts.push(`<rect x="0" y="0" width="${w}" height="${h}" fill="${p.frame}"/>`);
-    // Bande photo : un seul grand repère à l'écran (l'export la laisse pleine dans la couleur)
-    if (!opts.forExport && opts.photoMarks && model.band) parts.push(bandMark(model));
-
-    model.cells.forEach((row, r) => row.forEach((cell, c) => {
-      if (cell.type === 'void') {
-        // Case photo : pleine dans la couleur (export) ; repère discret à l'écran si demandé
-        if (!opts.forExport && opts.photoMarks && r >= model.band) {
-          const x = cellX(c), y = cellY(r);
-          parts.push(`<g class="photo-cell" opacity=".55"><rect x="${x + 14}" y="${y + 14}" width="${U - 28}" height="${U - 28}" rx="10" fill="none" stroke="#fff" stroke-width="2.5" stroke-dasharray="6 5"/><path d="M${x + 30} ${y + 66}l13-15 9 10 7-7 11 12Z" fill="#fff"/><circle cx="${x + 62}" cy="${y + 38}" r="5" fill="#fff"/></g>`);
-        }
-        return;
+    function paint(p) {
+      if (!p) return 'none';
+      if (typeof p === 'string') return p;
+      if (p.type === 'linear') return `url(#${uidFor(JSON.stringify(p), id => `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${f(p.x1)}" y1="${f(p.y1)}" x2="${f(p.x2)}" y2="${f(p.y2)}">${stops(p.stops)}</linearGradient>`)})`;
+      if (p.type === 'radial') return `url(#${uidFor(JSON.stringify(p), id => `<radialGradient id="${id}" gradientUnits="userSpaceOnUse" cx="${f(p.cx)}" cy="${f(p.cy)}" r="${f(p.r)}">${stops(p.stops)}</radialGradient>`)})`;
+      if (p.type === 'pattern' || p.type === 'hatch') {
+        const t = p.type === 'hatch' ? MF.backgrounds.hatch(p.color) : MF.backgrounds.tile(p.pattern, p.a, p.b);
+        const s = p.scale || 1;
+        return `url(#${uidFor(JSON.stringify(p), id => `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${t.w}" height="${t.h}"${s !== 1 ? ` patternTransform="scale(${s})"` : ''}>${t.svg}</pattern>`)})`;
       }
-      const x = cellX(c), y = cellY(r);
-      const attrs = opts.forExport ? '' : ` class="cell ${cell.type}" data-r="${r}" data-c="${c}"`;
-      const fill = cell.type === 'clue' ? p.clue : p.letter;
-      parts.push(`<rect${attrs} x="${x + LINE / 2}" y="${y + LINE / 2}" width="${U - LINE}" height="${U - LINE}" fill="${fill}"/>`);
+      return 'none';
+    }
+    const shadowId = () => uidFor('shadow', id => `<filter id="${id}" x="-20%" y="-20%" width="140%" height="150%"><feDropShadow dx="0" dy="5" stdDeviation="6" flood-color="#000" flood-opacity=".25"/></filter>`);
 
-      if (cell.type === 'clue') {
-        const d = divider(cell, x, y);
-        if (d) parts.push(`<line x1="${d.x1}" y1="${d.y1}" x2="${d.x2}" y2="${d.y2}" stroke="${p.line}" stroke-width="${LINE * 0.7}"/>`);
-        for (const l of clueLines(cell, x, y)) {
-          parts.push(`<text x="${l.x.toFixed(1)}" y="${l.y.toFixed(1)}" ${font} font-size="${l.fs}" font-weight="${CLUE_WEIGHT}" fill="${p.ink}" text-anchor="middle">${xml(l.text)}</text>`);
+    function attrs(o) {
+      let a = '';
+      if (!forExport) {
+        if (o.cls) a += ` class="${o.cls}"`;
+        if (o.data) for (const [k, v] of Object.entries(o.data)) a += ` data-${k}="${xml(v)}"`;
+      }
+      if (o.opacity !== undefined && o.opacity < 1) a += ` opacity="${f(o.opacity * 100) / 100}"`;
+      if (o.shadow) a += ` filter="url(#${shadowId()})"`;
+      return a;
+    }
+    const stroke = o => (o.stroke ? ` stroke="${paint(o.stroke)}" stroke-width="${f(o.sw || 1)}"${o.dash ? ` stroke-dasharray="${o.dash}"` : ''}${o.cap ? ` stroke-linecap="${o.cap}"` : ''}${o.join ? ` stroke-linejoin="${o.join}"` : ''}` : '');
+
+    function draw(o) {
+      switch (o.op) {
+        case 'rect': {
+          const r = o.r ? ` rx="${f(Math.min(o.r, o.w / 2, o.h / 2))}"` : '';
+          return `<rect${attrs(o)} x="${f(o.x)}" y="${f(o.y)}" width="${f(o.w)}" height="${f(o.h)}"${r} fill="${paint(o.fill)}"${stroke(o)}/>`;
         }
-        // Définition manquante : repère à l'écran seulement (l'export laisse la case vierge)
-        if (!opts.forExport) {
-          for (const cl of cell.clues) {
-            if (!cl.missing) continue;
-            const { box } = cl;
-            const narrow = box.w < U / 2;
-            const cx = x + box.x + box.w / 2, cy = y + box.y + box.h / 2;
-            const bw = box.w - 10, bh = narrow ? 44 : 26;
-            const label = narrow
-              ? `<text x="${cx}" y="${cy - 3}" ${font} font-size="11" font-weight="700" fill="${p.arrow}" text-anchor="middle">à</text><text x="${cx}" y="${cy + 11}" ${font} font-size="11" font-weight="700" fill="${p.arrow}" text-anchor="middle">définir</text>`
-              : `<text x="${cx}" y="${cy + 5}" ${font} font-size="13" font-weight="700" fill="${p.arrow}" text-anchor="middle">à définir</text>`;
-            parts.push(`<g class="missing" data-key="${cl.wid}"><rect x="${cx - bw / 2}" y="${cy - bh / 2}" width="${bw}" height="${bh}" rx="13" fill="#fff" stroke="${p.arrow}" stroke-width="2" stroke-dasharray="5 4"/>${label}</g>`);
+        case 'circle': return `<circle${attrs(o)} cx="${f(o.cx)}" cy="${f(o.cy)}" r="${f(o.r)}" fill="${paint(o.fill)}"${stroke(o)}/>`;
+        case 'line': return `<line${attrs(o)} x1="${f(o.x1)}" y1="${f(o.y1)}" x2="${f(o.x2)}" y2="${f(o.y2)}"${stroke(o)}/>`;
+        case 'poly': return `<polygon${attrs(o)} points="${pts(o.pts)}" fill="${paint(o.fill)}"${stroke(o)}/>`;
+        case 'polyline': return `<polyline${attrs(o)} points="${pts(o.pts)}" fill="none"${stroke(o)}/>`;
+        case 'path': return `<path${attrs(o)} d="${o.d}" fill="${paint(o.fill)}"${stroke(o)}${o.evenodd ? ' fill-rule="evenodd"' : ''}/>`;
+        case 'text': {
+          const anchor = o.anchor && o.anchor !== 'start' ? ` text-anchor="${o.anchor}"` : '';
+          const base = o.baseline === 'middle' ? ' dominant-baseline="central"' : '';
+          const family = o.emoji ? EMOJI_FONT : o.font;
+          return `<text${attrs(o)} x="${f(o.x)}" y="${f(o.y)}" font-family='${xml(family)}' font-size="${f(o.size)}" font-weight="${o.weight || 400}" fill="${paint(o.fill)}"${anchor}${base}${o.ls ? ` letter-spacing="${o.ls}"` : ''}>${xml(o.text)}</text>`;
+        }
+        case 'image': {
+          if (!o.src) return '';
+          let clip = '';
+          if (o.clip || o.r) {
+            const d = o.clip ? clipPath(o.clip, o.x, o.y, o.w, o.h) : roundRect(o.x, o.y, o.w, o.h, o.r);
+            clip = ` clip-path="url(#${uidFor('clip' + d, id => `<clipPath id="${id}"><path d="${d}"/></clipPath>`)})"`;
           }
+          if (o.fit === 'tile' && o.iw) {
+            const tw = o.tile || 400, th = tw * (o.ih / o.iw);
+            const pid = uidFor('img' + o.src + tw, id => `<pattern id="${id}" patternUnits="userSpaceOnUse" width="${f(tw)}" height="${f(th)}"><image href="${xml(o.src)}" width="${f(tw)}" height="${f(th)}"/></pattern>`);
+            return `<rect${attrs(o)} x="${f(o.x)}" y="${f(o.y)}" width="${f(o.w)}" height="${f(o.h)}" fill="url(#${pid})"${clip}/>`;
+          }
+          const par = o.fit === 'contain' ? 'xMidYMid meet' : o.fit === 'fill' ? 'none' : 'xMidYMid slice';
+          return `<image${attrs(o)} href="${xml(o.src)}" x="${f(o.x)}" y="${f(o.y)}" width="${f(o.w)}" height="${f(o.h)}" preserveAspectRatio="${par}"${clip}/>`;
         }
-      } else {
-        if (opts.letters) {
-          parts.push(`<text${opts.forExport ? '' : ' class="sol"'} x="${x + U / 2}" y="${y + U * 0.69}" ${font} font-size="${U * 0.56}" font-weight="700" fill="${p.ink}" text-anchor="middle">${cell.ch}</text>`);
+        case 'group': {
+          const t = [];
+          if (o.tx || o.ty) t.push(`translate(${f(o.tx || 0)} ${f(o.ty || 0)})`);
+          if (o.rot) t.push(`rotate(${f(o.rot)})`);
+          if ((o.sx ?? 1) !== 1 || (o.sy ?? 1) !== 1) t.push(`scale(${o.sx ?? 1} ${o.sy ?? 1})`);
+          return `<g${attrs(o)}${t.length ? ` transform="${t.join(' ')}"` : ''}>${o.children.map(draw).join('')}</g>`;
         }
-        for (const a of cell.arrows) {
-          const g = M.arrowShape(a.arrow, a.at);
-          if (g.line) parts.push(`<polyline points="${pts(g.line, x, y)}" fill="none" stroke="${p.arrow}" stroke-width="3.2" stroke-linejoin="round"/>`);
-          if (g.poly) parts.push(`<polygon points="${pts(g.poly, x, y)}" fill="${p.arrow}"/>`);
-        }
+        default: return '';
       }
-    }));
+    }
 
-    const dims = opts.forExport ? ` width="${w}" height="${h}"` : '';
-    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${w} ${h}"${dims} class="mf-svg">${parts.join('')}</svg>`;
+    const body = scene.ops.map(draw).join('');
+    const dims = forExport ? ` width="${f(scene.W)}" height="${f(scene.H)}"` : '';
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(scene.W)} ${f(scene.H)}"${dims} class="${cls}">${defs.length ? `<defs>${defs.join('')}</defs>` : ''}${body}</svg>`;
   }
 
-  /* ---------------- Canvas (PNG) ---------------- */
-  function canvas(model, accent, opts = {}) {
-    const { w, h } = size(model);
-    const scale = opts.scale || 2;
+  /* ================================== Canvas ================================== */
+  const loadImage = src => new Promise(resolve => {
+    const img = new Image();
+    img.decoding = 'async';
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = src;
+  });
+
+  /** Toutes les sources d'images et de motifs de la scène, préchargées. */
+  async function preload(ops, scale) {
+    const images = new Map(), tiles = new Map();
+    const walk = list => list.forEach(o => {
+      if (o.op === 'image' && o.src) images.set(o.src, null);
+      if (o.op === 'group') walk(o.children);
+      for (const p of [o.fill, o.stroke]) {
+        if (p && (p.type === 'pattern' || p.type === 'hatch')) tiles.set(JSON.stringify(p), p);
+      }
+    });
+    walk(ops);
+    await Promise.all([...images.keys()].map(async src => images.set(src, await loadImage(src))));
+    const patterns = new Map();
+    await Promise.all([...tiles.entries()].map(async ([key, p]) => {
+      const t = p.type === 'hatch' ? MF.backgrounds.hatch(p.color) : MF.backgrounds.tile(p.pattern, p.a, p.b);
+      const k = scale * (p.scale || 1);
+      const pw = Math.max(1, Math.round(t.w * k)), ph = Math.max(1, Math.round(t.h * k));
+      const markup = `<svg xmlns="http://www.w3.org/2000/svg" width="${pw}" height="${ph}" viewBox="0 0 ${t.w} ${t.h}" preserveAspectRatio="none">${t.svg}</svg>`;
+      const img = await loadImage(`data:image/svg+xml;charset=utf-8,${encodeURIComponent(markup)}`);
+      patterns.set(key, { img, sx: t.w / pw, sy: t.h / ph, s: p.scale || 1 });
+    }));
+    return { images, patterns };
+  }
+
+  async function canvas(scene, { scale = 2 } = {}) {
     const cv = document.createElement('canvas');
-    cv.width = Math.round(w * scale); cv.height = Math.round(h * scale);
+    cv.width = Math.round(scene.W * scale); cv.height = Math.round(scene.H * scale);
     const g = cv.getContext('2d');
     g.scale(scale, scale);
-    const p = palette(accent, opts.style);
+    const { images, patterns } = await preload(scene.ops, scale);
+    const color = (hex, a = 1) => { if (a >= 1) return hex; const [r, gg, b] = MF.util.hexToRgb(hex); return `rgba(${r},${gg},${b},${a})`; };
 
-    g.fillStyle = p.frame;
-    g.fillRect(0, 0, w, h);
-    g.textAlign = 'center';
-    g.textBaseline = 'alphabetic';
-
-    model.cells.forEach((row, r) => row.forEach((cell, c) => {
-      if (cell.type === 'void') return;
-      const x = cellX(c), y = cellY(r);
-      g.fillStyle = cell.type === 'clue' ? p.clue : p.letter;
-      g.fillRect(x + LINE / 2, y + LINE / 2, U - LINE, U - LINE);
-
-      if (cell.type === 'clue') {
-        const d = divider(cell, x, y);
-        if (d) {
-          g.strokeStyle = p.line; g.lineWidth = LINE * 0.7;
-          g.beginPath(); g.moveTo(d.x1, d.y1); g.lineTo(d.x2, d.y2); g.stroke();
-        }
-        g.fillStyle = p.ink;
-        for (const l of clueLines(cell, x, y)) {
-          g.font = `${CLUE_WEIGHT} ${l.fs}px ${FONT}`;
-          g.fillText(l.text, l.x, l.y);
-        }
-      } else {
-        if (opts.letters) {
-          g.fillStyle = p.ink;
-          g.font = `700 ${U * 0.56}px ${FONT}`;
-          g.fillText(cell.ch, x + U / 2, y + U * 0.69);
-        }
-        for (const a of cell.arrows) {
-          const shape = M.arrowShape(a.arrow, a.at);
-          g.fillStyle = p.arrow; g.strokeStyle = p.arrow; g.lineWidth = 3.2; g.lineJoin = 'round';
-          if (shape.line) {
-            g.beginPath();
-            shape.line.forEach(([a1, b1], i) => (i ? g.lineTo(x + a1, y + b1) : g.moveTo(x + a1, y + b1)));
-            g.stroke();
-          }
-          if (shape.poly) {
-            g.beginPath();
-            shape.poly.forEach(([a1, b1], i) => (i ? g.lineTo(x + a1, y + b1) : g.moveTo(x + a1, y + b1)));
-            g.closePath(); g.fill();
-          }
-        }
+    function paint(p) {
+      if (!p) return null;
+      if (typeof p === 'string') return p;
+      if (p.type === 'linear' || p.type === 'radial') {
+        const gr = p.type === 'linear' ? g.createLinearGradient(p.x1, p.y1, p.x2, p.y2) : g.createRadialGradient(p.cx, p.cy, 0, p.cx, p.cy, p.r);
+        p.stops.forEach(([o, c, a = 1]) => gr.addColorStop(o, color(c, a)));
+        return gr;
       }
-    }));
+      if (p.type === 'pattern' || p.type === 'hatch') {
+        const t = patterns.get(JSON.stringify(p));
+        if (!t?.img) return null;
+        const pat = g.createPattern(t.img, 'repeat');
+        pat.setTransform(new DOMMatrix().scale(t.sx * t.s, t.sy * t.s));
+        return pat;
+      }
+      return null;
+    }
+    const withShadow = (o, fn) => {
+      if (!o.shadow) return fn();
+      g.save();
+      g.shadowColor = 'rgba(0,0,0,.25)'; g.shadowBlur = 12 * scale; g.shadowOffsetY = 5 * scale;
+      fn();
+      g.restore();
+    };
+    const fillStroke = (o, path) => {
+      const fp = paint(o.fill);
+      if (fp) { g.fillStyle = fp; path ? g.fill(path, o.evenodd ? 'evenodd' : 'nonzero') : g.fill(); }
+      if (o.stroke) {
+        g.strokeStyle = paint(o.stroke); g.lineWidth = o.sw || 1;
+        g.lineCap = o.cap || 'butt'; g.lineJoin = o.join || 'miter';
+        g.setLineDash(o.dash ? o.dash.split(/\s+/).map(Number) : []);
+        path ? g.stroke(path) : g.stroke();
+      }
+    };
+
+    function draw(o) {
+      const alpha = g.globalAlpha;
+      if (o.opacity !== undefined) g.globalAlpha = alpha * o.opacity;
+      switch (o.op) {
+        case 'rect': withShadow(o, () => { const p = new Path2D(roundRect(o.x, o.y, o.w, o.h, o.r)); fillStroke(o, p); }); break;
+        case 'circle': withShadow(o, () => { g.beginPath(); g.arc(o.cx, o.cy, o.r, 0, Math.PI * 2); fillStroke(o); }); break;
+        case 'line': g.beginPath(); g.moveTo(o.x1, o.y1); g.lineTo(o.x2, o.y2); fillStroke({ ...o, fill: null }); break;
+        case 'poly': g.beginPath(); o.pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); g.closePath(); fillStroke(o); break;
+        case 'polyline': g.beginPath(); o.pts.forEach(([x, y], i) => (i ? g.lineTo(x, y) : g.moveTo(x, y))); fillStroke({ ...o, fill: null }); break;
+        case 'path': withShadow(o, () => fillStroke(o, new Path2D(o.d))); break;
+        case 'text': {
+          g.font = `${o.weight || 400} ${o.size}px ${o.emoji ? EMOJI_FONT : o.font}`;
+          g.textAlign = o.anchor === 'middle' ? 'center' : o.anchor === 'end' ? 'right' : 'left';
+          g.textBaseline = o.baseline === 'middle' ? 'middle' : 'alphabetic';
+          if ('letterSpacing' in g) g.letterSpacing = o.ls ? `${o.ls}px` : '0px';
+          withShadow(o, () => { g.fillStyle = paint(o.fill) || '#000'; g.fillText(o.text, o.x, o.y); });
+          break;
+        }
+        case 'image': {
+          const img = images.get(o.src);
+          if (!img) break;
+          g.save();
+          if (o.clip || o.r) g.clip(new Path2D(o.clip ? clipPath(o.clip, o.x, o.y, o.w, o.h) : roundRect(o.x, o.y, o.w, o.h, o.r)));
+          if (o.fit === 'tile') {
+            const tw = o.tile || 400, th = tw * (img.naturalHeight / img.naturalWidth);
+            const pat = g.createPattern(img, 'repeat');
+            pat.setTransform(new DOMMatrix().scale(tw / img.naturalWidth, th / img.naturalHeight));
+            g.fillStyle = pat; g.fillRect(o.x, o.y, o.w, o.h);
+          } else if (o.fit === 'fill') {
+            g.drawImage(img, o.x, o.y, o.w, o.h);
+          } else {
+            const ir = img.naturalWidth / img.naturalHeight, br = o.w / o.h;
+            const cover = o.fit !== 'contain';
+            let w = o.w, h = o.h;
+            if ((ir > br) === cover) w = h * ir; else h = w / ir;
+            g.drawImage(img, o.x + (o.w - w) / 2, o.y + (o.h - h) / 2, w, h);
+          }
+          g.restore();
+          break;
+        }
+        case 'group': {
+          g.save();
+          g.translate(o.tx || 0, o.ty || 0);
+          if (o.rot) g.rotate((o.rot * Math.PI) / 180);
+          g.scale(o.sx ?? 1, o.sy ?? 1);
+          if (o.shadow) { g.shadowColor = 'rgba(0,0,0,.25)'; g.shadowBlur = 12 * scale; g.shadowOffsetY = 5 * scale; }
+          o.children.forEach(draw);
+          g.restore();
+          break;
+        }
+        default: break;
+      }
+      g.globalAlpha = alpha;
+    }
+    scene.ops.forEach(draw);
     return cv;
   }
 
-  return { svg, canvas, size, tint };
+  return { svg, canvas, clipPath, roundRect, EMOJI_FONT };
 })();

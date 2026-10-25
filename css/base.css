@@ -33,18 +33,18 @@ kbd {
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 10px; border: 3px solid transparent; background-clip: padding-box; }
 
-/* ---------- Fond animé ---------- */
-#bg3d { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; display: block; }
-.bg-fallback {
-  position: fixed; inset: 0; z-index: -1;
+/* ---------- Fond d'ambiance (CSS pur, aucune bibliothèque externe) ---------- */
+.bg-ambient {
+  position: fixed; inset: -10%; z-index: 0; pointer-events: none;
   background:
-    radial-gradient(60vw 60vw at 15% 10%, rgba(var(--accent-rgb), .35), transparent 60%),
-    radial-gradient(50vw 50vw at 90% 80%, rgba(90, 120, 255, .22), transparent 60%),
-    radial-gradient(40vw 40vw at 60% 30%, rgba(40, 200, 170, .14), transparent 60%),
+    radial-gradient(45vw 45vw at 12% 8%, rgba(var(--accent-rgb), .30), transparent 62%),
+    radial-gradient(40vw 40vw at 92% 85%, rgba(90, 120, 255, .20), transparent 60%),
+    radial-gradient(32vw 32vw at 62% 28%, rgba(40, 200, 170, .12), transparent 60%),
     var(--bg);
+  animation: ambient 26s ease-in-out infinite alternate;
+  transition: background var(--t-med);
 }
-.no-webgl #bg3d { display: none; }
-.no-webgl .bg-fallback { z-index: 0; }
+@keyframes ambient { to { transform: translate3d(2%, -2%, 0) scale(1.05); } }
 
 /* ---------- Coquille ---------- */
 .app {
@@ -80,18 +80,27 @@ kbd {
 .workspace > * { animation: viewIn var(--t-med) var(--ease) backwards; }
 @keyframes viewIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
 
-@media (max-width: 1080px) {
+.no-puzzle .workspace, .no-puzzle .only-puzzle { display: none; }
+.welcome-wrap { display: none; }
+.no-puzzle .welcome-wrap { display: block; flex: 1; min-height: 0; overflow: auto; }
+
+@media (max-width: 1180px) {
+  .workspace { grid-template-columns: minmax(0, 1fr) 380px; }
+}
+@media (max-width: 1000px) {
   body { overflow: auto; }
   .app { height: auto; min-height: 100vh; }
   .workspace { grid-template-columns: 1fr; }
-  .grid-card { height: 72vh; }
+  .grid-card { height: 70vh; }
   .side { max-height: none; }
+  .side-body { overflow: visible; }
 }
 @media (max-width: 640px) {
-  .app { padding: var(--sp-2); }
+  .app { padding: var(--sp-2); gap: var(--sp-2); }
   .topbar { flex-wrap: wrap; gap: var(--sp-2); }
   .brand-text { display: none; }
   .puzzle-tabs { order: 3; width: 100%; }
+  .tb-sep { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
