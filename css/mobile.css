@@ -33,6 +33,7 @@
   /* Actions secondaires regroupées dans le menu « Plus » */
   #btn-share, #btn-open, #btn-save, #btn-help, #btn-theme { display: none; }
   .only-phone { display: inline-flex; }
+  .topbar-actions #btn-more { display: inline-flex; }
 
   /* Clavier ouvert : la barre du bas s'efface, la grille garde toute la hauteur */
   body.kb-open .phone-nav { display: none; }

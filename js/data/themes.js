@@ -122,12 +122,7 @@ MF.themes = (() => {
   function swatch(id) {
     const d = MF.schema.design(MF.design.merge(MF.design.DEFAULT, T[id].design));
     const C = MF.design.resolve(d);
-    const b = d.background;
-    const bg = b.type === 'none' ? 'repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0/10px 10px'
-      : b.type === 'pattern' ? `${MF.backgrounds.thumb(b.pattern, b.c1, b.c2, b.c3)} 0 0/24px auto`
-        : b.type === 'gradient' ? `linear-gradient(${b.angle}deg, ${b.c1}, ${b.c2}, ${b.c3})`
-          : b.type === 'mesh' ? `radial-gradient(circle at 15% 15%, ${b.c2}, transparent 60%), radial-gradient(circle at 85% 85%, ${b.c3}, transparent 60%), ${b.c1}`
-            : b.type === 'radial' ? `radial-gradient(circle, ${b.c1}, ${b.c2})` : b.c1;
+    const bg = MF.backgrounds.css(d.background, { none: 'repeating-conic-gradient(#ddd 0 25%, #fff 0 50%) 0 0/10px 10px' });
     return { bg, C, d };
   }
 

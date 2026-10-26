@@ -106,7 +106,7 @@
   /** Construction en direct (chaque instantané est mis en file et rejoué à l'image par MF.liveBuild). */
   function renderLive(job) {
     if (jobs.get(store.get().activeId) !== job || view.home) return;
-    MF.liveBuild.update($('#grid-scroll'), job.live, { onCancel: cancelGeneration });
+    MF.liveBuild.update($('#grid-scroll'), job.live, { onCancel: cancelGeneration, design: store.active()?.design });
   }
 
   function setBusy(on, p = 0) {
@@ -215,7 +215,7 @@
       // Pendant le calcul : la grille se construit en direct (remplace l'ancienne grille)
       lastView = null;
       view.shownGrid = null;
-      MF.liveBuild.update(box, jobs.get(pz.id).live || { engine: engineOf(pz) }, { onCancel: cancelGeneration });
+      MF.liveBuild.update(box, jobs.get(pz.id).live || { engine: engineOf(pz) }, { onCancel: cancelGeneration, design: pz.design });
       return;
     }
     if (!d.model.cols) {
@@ -566,14 +566,22 @@
     // Les boutons ne prennent pas le focus : la case active (et le clavier du téléphone) reste ouverte
     $$('#play-clue button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
 
-    // Téléphone : actions secondaires de la barre du haut regroupées dans « Plus »
-    $('#btn-more').onclick = () => MF.phoneNav.menu([
-      { id: 'btn-share', icon: 'share', label: 'Partager un lien pour jouer' },
-      { id: 'btn-save', icon: 'download', label: 'Sauvegarder toutes mes grilles' },
-      { id: 'btn-open', icon: 'folder', label: 'Ouvrir un fichier' },
-      { id: 'btn-theme', icon: 'contrast', label: 'Thème clair / sombre' },
-      { id: 'btn-help', icon: 'help', label: 'Aide' },
-    ]);
+    // Actions secondaires regroupées dans « Plus » : menu déroulant (feuille du bas sur téléphone)
+    $('#btn-more').onclick = e => {
+      const phone = matchMedia('(max-width: 760px)').matches;
+      const items = [
+        { id: 'btn-share', icon: 'share', label: 'Partager un lien pour jouer' },
+        { id: 'btn-open', icon: 'folder', label: 'Ouvrir un fichier (mots, Excel, sauvegarde)' },
+        { id: 'btn-save', icon: 'download', label: 'Sauvegarder toutes mes grilles' },
+        ...(phone ? [{ id: 'btn-theme', icon: 'contrast', label: 'Thème clair / sombre' }] : []),
+        { id: 'btn-help', icon: 'help', label: 'Aide & raccourcis', hint: '?' },
+      ];
+      if (phone) { MF.phoneNav.menu(items); return; }
+      const noPuzzle = document.body.classList.contains('no-puzzle');
+      MF.ui.menu(e.currentTarget, items
+        .filter(it => !(noPuzzle && $(`#${it.id}`).classList.contains('only-puzzle')))
+        .map(it => ({ ...it, run: () => $(`#${it.id}`).click() })));
+    };
   }
 
   /** Jeu : affiche la définition du mot actif (sens indiqué par une flèche). */

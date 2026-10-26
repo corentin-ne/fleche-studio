@@ -108,5 +108,26 @@ MF.backgrounds = (() => {
     }
   }
 
-  return { TYPES, PATTERNS, tile, hatch, thumb, ops, linear };
+  /**
+   * Équivalent CSS (approché) d'un fond : vignettes de thèmes, construction en direct.
+   * @param none      rendu du fond transparent
+   * @param tile      taille d'affichage d'une tuile de motif (px)
+   */
+  function css(bg, { none = 'transparent', tile: size = 24, assetUrl } = {}) {
+    switch (bg.type) {
+      case 'none': return none;
+      case 'pattern': return `${thumb(bg.pattern, bg.c1, bg.c2, bg.c3)} 0 0 / ${Math.round(size * bg.scale)}px auto, ${bg.c1}`;
+      case 'gradient': return `linear-gradient(${bg.angle}deg, ${bg.c1}, ${bg.c2} 55%, ${bg.c3})`;
+      case 'mesh': return `radial-gradient(circle at 12% 10%, ${bg.c2}, transparent 60%), radial-gradient(circle at 92% 85%, ${bg.c3}, transparent 60%), ${bg.c1}`;
+      case 'radial': return `radial-gradient(circle at 50% 42%, ${bg.c1}, ${bg.c2})`;
+      case 'image': {
+        const src = bg.imageId && assetUrl?.(bg.imageId);
+        const veil = bg.overlayOpacity > 0 ? `linear-gradient(color-mix(in srgb, ${bg.overlay} ${Math.round(bg.overlayOpacity * 100)}%, transparent) 0 0), ` : '';
+        return `${veil}${src ? `url("${src}") center / ${bg.fit === 'tile' ? 'auto' : bg.fit} ${bg.fit === 'tile' ? 'repeat' : 'no-repeat'}, ` : ''}${bg.c1}`;
+      }
+      default: return bg.c1;
+    }
+  }
+
+  return { TYPES, PATTERNS, tile, hatch, thumb, css, ops, linear };
 })();

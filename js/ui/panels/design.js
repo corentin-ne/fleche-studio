@@ -1,5 +1,7 @@
 /* =========================================================================
-   Panneau « Design » en six onglets : Thème, Couleurs, Fond, Cases, Texte, Page.
+   Panneau « Design » en six onglets : Style, Couleurs, Fond, Cases, Texte, Page.
+   « Style » suffit au parcours de base (un thème + une couleur) ; les autres
+   onglets affinent, avec leurs réglages fins repliés par défaut.
    Chaque contrôle porte le chemin de la valeur qu'il règle (ex. « cell.gap ») :
    un seul gestionnaire d'événements pour tout le panneau.
    ========================================================================= */
@@ -10,7 +12,7 @@ MF.panels.design = (() => {
   const { esc } = MF.util;
   const ic = MF.icons.svg;
   const ui = MF.ui;
-  const TABS = [['theme', 'Thème', 'sparkle'], ['colors', 'Couleurs', 'palette'], ['background', 'Fond', 'image'], ['cells', 'Cases', 'grid'], ['text', 'Texte', 'type'], ['page', 'Page', 'frame']];
+  const TABS = [['theme', 'Style', 'sparkle'], ['colors', 'Couleurs', 'palette'], ['background', 'Fond', 'image'], ['cells', 'Cases', 'grid'], ['text', 'Texte', 'type'], ['page', 'Page', 'frame']];
 
   const fontOptions = value => Object.entries(MF.design.FONTS).map(([id, f]) => `<option value="${id}" ${id === value ? 'selected' : ''} style="font-family:${esc(f.css)}">${esc(f.label)}</option>`).join('');
   const group = (title, content) => `<div class="pgroup">${title ? `<div class="pgroup-title">${esc(title)}</div>` : ''}${content}</div>`;
@@ -18,10 +20,13 @@ MF.panels.design = (() => {
   /** Thèmes filtrés sur place par ambiance (aucun nouveau rendu). */
   function themeTab(d, filter = 'all') {
     const filters = [['all', 'Tous'], ...Object.entries(MF.themes.MOODS)];
-    return `<div class="chips theme-filters" role="toolbar" aria-label="Filtrer les thèmes">${filters.map(([k, l]) => `<button type="button" class="chip chip-btn ${k === filter ? 'active' : ''}" data-theme-filter="${k}">${esc(l)}</button>`).join('')}</div>
+    const quick = MF.palettes.ACCENTS[0][1];
+    return group('Couleur', `<div class="swatches quick-colors">${quick.map(x => `<button type="button" class="swatch-btn ${x === d.accent ? 'active' : ''}" data-accent="${x}" style="--c:${x}" aria-label="${x}" title="${x}"></button>`).join('')}
+        <button type="button" class="btn btn-sm btn-ghost more-colors" data-dtab="colors">${quick.includes(d.accent) ? '' : `<i class="dot" style="--c:${d.accent}"></i>`}Plus de couleurs${ic('chevronRight')}</button></div>`)
+      + `<div class="pgroup"><div class="pgroup-title">Thème</div><div class="chips theme-filters" role="toolbar" aria-label="Filtrer les thèmes">${filters.map(([k, l]) => `<button type="button" class="chip chip-btn ${k === filter ? 'active' : ''}" data-theme-filter="${k}">${esc(l)}</button>`).join('')}</div>
       <div class="theme-grid">${Object.entries(MF.themes.THEMES).map(([id, t]) => `
       <button type="button" class="theme-card ${d.theme === id ? 'active' : ''}" data-theme-id="${id}" data-moods="${esc(t.moods.join(' '))}" ${filter === 'all' || t.moods.includes(filter) ? '' : 'hidden'} title="${esc(t.label)}">
-        <span class="theme-thumb">${MF.previews.theme(id)}</span><span class="theme-name">${esc(t.label)}</span></button>`).join('')}</div>`;
+        <span class="theme-thumb">${MF.previews.theme(id)}</span><span class="theme-name">${esc(t.label)}</span></button>`).join('')}</div></div>`;
   }
 
   /** Nuancier rangé par familles ; `attr` porte la valeur (ex. data-accent="#e8212b"). */
@@ -37,8 +42,8 @@ MF.panels.design = (() => {
           <span class="palette-current"><i style="--c:${d.accent}"></i><code>${esc(d.accent)}</code></span>
         </div>
         <p class="field-hint">Le cadre, les flèches et les cases définitions suivent cette couleur. Les textes restent toujours lisibles (contraste automatique).</p>`)
-      + group('Détail', `<div class="color-grid">${c('frame', 'Cadre & cases noires')}${c('line', 'Traits')}${c('letter', 'Cases lettres')}${c('clue', 'Cases définitions')}${c('clueInk', 'Texte des définitions')}${c('arrow', 'Flèches')}${c('solution', 'Lettres solution')}${c('ink', 'Numéros & lettres')}${c('void', 'Cases vides claires')}</div>
-        <button type="button" class="btn btn-sm btn-ghost" data-reset-colors>${ic('refresh')}Tout en automatique</button>`);
+      + group('', ui.advanced('colors-detail', 'Couleur de chaque élément', `<div class="color-grid">${c('frame', 'Cadre & cases noires')}${c('line', 'Traits')}${c('letter', 'Cases lettres')}${c('clue', 'Cases définitions')}${c('clueInk', 'Texte des définitions')}${c('arrow', 'Flèches')}${c('solution', 'Lettres solution')}${c('ink', 'Numéros & lettres')}${c('void', 'Cases vides claires')}</div>
+        <button type="button" class="btn btn-sm btn-ghost" data-reset-colors>${ic('refresh')}Tout en automatique</button>`));
   }
 
   function backgroundTab(d) {
@@ -75,12 +80,12 @@ MF.panels.design = (() => {
       const { label, ...vals } = s;
       return `<button type="button" class="cell-style ${d.cell.style === id ? 'active' : ''}" data-cell-style="${id}"><span class="cs-thumb">${MF.previews.design(MF.design.merge(d, { cell: { ...vals, style: id } }))}</span><span>${esc(label)}</span></button>`;
     }).join('')}</div>`)
-      + group('Réglages fins', `${ui.slider('cell.gap', 'Espace entre les cases', d.cell.gap, 0, 24, 1)}
+      + group('', ui.advanced('cells-fine', 'Réglages fins des cases', `${ui.slider('cell.gap', 'Espace entre les cases', d.cell.gap, 0, 24, 1)}
         ${ui.slider('cell.radius', 'Arrondi', d.cell.radius, 0, 50, 1)}
         ${ui.slider('cell.line', 'Épaisseur des traits', d.cell.line, 0, 12, 0.5)}
         <div class="row"><div class="field"><span>Cases lettres</span>${ui.segmented('cell.letterShape', [['square', 'Carrées'], ['circle', 'Rondes']], d.cell.letterShape)}</div>
         <label class="check"><input type="checkbox" data-toggle="cell.shadow" ${d.cell.shadow ? 'checked' : ''}> Ombre</label></div>
-        <div class="field"><span>Cases vides</span>${ui.segmented('voids', Object.entries(MF.design.VOIDS).map(([k, v]) => [k, v.split(' (')[0]]), d.voids)}</div>`)
+        <div class="field"><span>Cases vides</span>${ui.segmented('voids', Object.entries(MF.design.VOIDS).map(([k, v]) => [k, v.split(' (')[0]]), d.voids)}</div>`))
       + (game === 'fleches' ? group('Flèches', `${ui.segmented('arrows.style', Object.entries(MF.design.ARROWS), d.arrows.style)}${ui.slider('arrows.size', 'Taille', d.arrows.size, 0.6, 1.8, 0.05, '×')}`) : '')
       + group('Cadre', `${ui.slider('frame.width', 'Épaisseur', d.frame.width, 0, 80, 1)}${ui.slider('frame.radius', 'Arrondi', d.frame.radius, 0, 120, 1)}`);
   }
@@ -145,8 +150,9 @@ MF.panels.design = (() => {
     if (layout) MF.layoutControls.bind(layout, (patch, live) => actions.setDesign({ poster: patch }, { live }), () => {});
     root.addEventListener('click', e => {
       const t = e.target.closest('button');
-      if (!t || t.closest('#layout-box') || t.dataset.dtab) return;
-      if (t.dataset.themeId) actions.applyTheme(t.dataset.themeId);
+      if (!t || t.closest('#layout-box') || t.closest('#design-tabs')) return;
+      if (t.dataset.dtab) { view.designTab = t.dataset.dtab; actions.refreshSide(); } // raccourci vers un autre onglet
+      else if (t.dataset.themeId) actions.applyTheme(t.dataset.themeId);
       else if (t.dataset.themeFilter) { view.themeFilter = t.dataset.themeFilter; filterThemes(root, t); }
       else if (t.dataset.accent) actions.setDesign({ accent: t.dataset.accent });
       else if (t.dataset.bgColor) set('background.c1', t.dataset.bgColor);
@@ -174,6 +180,7 @@ MF.panels.design = (() => {
       }
     });
     ui.bindFields(root, set, { skip: '#layout-box' });
+    ui.bindAdvanced(root);
     root.querySelector('[data-accent-input]')?.addEventListener('input', MF.util.debounce(e => actions.setDesign({ accent: e.target.value }, { live: true }), 60));
     root.querySelector('[data-accent-input]')?.addEventListener('change', e => actions.setDesign({ accent: e.target.value }));
     root.querySelector('#bg-file').addEventListener('change', e => {

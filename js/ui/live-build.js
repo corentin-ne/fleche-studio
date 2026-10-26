@@ -9,6 +9,9 @@
 
    Les instantanés passent par une file rejouée à l'image : le remplissage,
    qui ne dure qu'une fraction de seconde côté moteur, se voit mot par mot.
+
+   La grille en construction porte déjà le design choisi (fond, cadre, cases,
+   couleurs, police) : quand la grille est trouvée, le style ne change pas.
    ========================================================================= */
 window.MF = window.MF || {};
 
@@ -36,7 +39,7 @@ MF.liveBuild = (() => {
         <div class="lb-stage">
           <div class="lb-aura" aria-hidden="true"><i></i><i></i><i></i></div>
           <div class="lb-board">
-            <div class="lb-grid" role="img" aria-label="Grille en cours de construction"></div>
+            <div class="lb-frame"><div class="lb-grid" role="img" aria-label="Grille en cours de construction"></div></div>
             <div class="lb-scan" aria-hidden="true"></div>
           </div>
         </div>
@@ -68,9 +71,45 @@ MF.liveBuild = (() => {
       steps: root.querySelector('.lb-steps'),
       hud: root.querySelector('.lb-hud'),
       cells: [], state: [], words: new Set(), frameKey: null, frame: null,
-      queue: [], last: null, shown: null, live: {}, raf: 0, idle: [],
+      queue: [], last: null, shown: null, live: {}, raf: 0, idle: [], skinKey: null,
     };
     root.querySelector('.lb-stop').onclick = () => o.onCancel?.();
+  }
+
+  /* ---------------- Habillage : le design de la grille ---------------- */
+  /** Variables CSS tirées du design (mêmes couleurs résolues que le rendu final). */
+  function skin(design) {
+    if (!design) return;
+    const key = MF.util.hash(JSON.stringify([design.accent, design.colors, design.background, design.frame, design.voids, design.cell, design.font.letter, design.poster.radius]));
+    if (key === st.skinKey) return;
+    st.skinKey = key;
+    const d = design, C = MF.design.resolve(d), M = MF.design.metrics(d);
+    const k = v => `calc(var(--cs) * ${(v / 100).toFixed(3)})`;
+    const vars = {
+      '--lb-bg': MF.backgrounds.css(d.background, { assetUrl: MF.assets.url }),
+      '--lb-poster-r': k(d.poster.radius),
+      '--lb-poster-shadow': d.background.type === 'none' ? 'none' : '',
+      '--lb-frame': C.frame,
+      '--lb-frame-w': k(d.frame.width),
+      '--lb-frame-r': k(d.frame.radius),
+      '--lb-grid-bg': d.voids === 'frame' ? C.frame : 'transparent',
+      '--lb-gap': d.cell.gap > 0 ? k(d.cell.gap) : '0px',
+      '--lb-lw': d.cell.gap > 0 || !d.cell.line ? '0px' : `max(.5px, ${k(d.cell.line / 2)})`,
+      '--lb-line': C.line,
+      '--lb-r': k(M.radius),
+      '--lb-letter-r': d.cell.letterShape === 'circle' ? '50%' : k(M.radius),
+      '--lb-letter': C.letter,
+      '--lb-ink': C.ink,
+      '--lb-clue': C.clue,
+      '--lb-arrow': C.arrow,
+      '--lb-void': { frame: C.frame, light: C.void, hatch: `repeating-linear-gradient(135deg, ${C.letter} 0 5px, ${C.line} 5px 6.5px)` }[d.voids] || 'transparent',
+      '--lb-void-shaped': d.voids === 'transparent' ? `color-mix(in srgb, ${C.letter} 35%, transparent)` : '',
+      '--lb-font': M.letterFont,
+      '--lb-weight': M.letterWeight,
+      '--lb-shadow': d.cell.shadow ? '0 calc(var(--cs) * .06) calc(var(--cs) * .16) rgba(0, 0, 0, .2)' : 'none',
+    };
+    for (const [prop, v] of Object.entries(vars)) if (v) st.root.style.setProperty(prop, v); else st.root.style.removeProperty(prop);
+    st.root.classList.add('skinned');
   }
 
   /* ---------------- Grille ---------------- */
@@ -90,6 +129,7 @@ MF.liveBuild = (() => {
         cells.push(el);
       }
     }
+    st.root.classList.toggle('shaped', shape !== 'rect');
     st.grid.style.setProperty('--w', w);
     st.grid.style.setProperty('--h', h);
     st.grid.replaceChildren(frag);
@@ -260,10 +300,11 @@ MF.liveBuild = (() => {
    * Affiche (ou met à jour) la construction en direct dans `box`. À appeler pour chaque
    * instantané reçu : ils sont mis en file et rejoués à l'image.
    * @param live { snapshot?, progress, page, pages, engine }
-   * @param o { onCancel }
+   * @param o { onCancel, design } : design de la grille, appliqué dès la grille fantôme
    */
   function update(box, live = {}, o = {}) {
-    if (!active(box)) { mount(box, o); show(null); }
+    if (!active(box)) { mount(box, o); skin(o.design); show(null); }
+    skin(o.design);
     st.live = live;
     if (live.snapshot && live.snapshot !== st.last) { st.last = live.snapshot; st.queue.push(live.snapshot); }
     schedule();

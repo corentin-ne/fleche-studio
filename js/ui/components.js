@@ -278,5 +278,57 @@ MF.ui = (() => {
 
   /** Contrôle segmenté. */
   const segmented = (key, items, value, attr = 'data-seg') => `<div class="segmented" ${attr}="${esc(key)}">${items.map(([v, l, icon]) => `<button type="button" data-v="${esc(v)}" class="${String(value) === String(v) ? 'active' : ''}">${icon ? ic(icon) : ''}${esc(l)}</button>`).join('')}</div>`;
-  return { toast, modal, confirm, prompt, autocomplete, colorField, slider, bindFields, segmented };
+
+  /* ---------------- Réglages avancés repliables ---------------- */
+  // Sections ouvertes : retenues pour survivre aux nouveaux rendus des panneaux
+  const openSections = new Set();
+  /** Section repliée par défaut : garde le parcours simple, sans rien cacher pour de bon. */
+  const advanced = (id, title, content) => `<details class="adv" data-adv="${esc(id)}" ${openSections.has(id) ? 'open' : ''}>
+      <summary>${ic('sliders')}<span>${esc(title)}</span>${ic('chevronDown', 'adv-chev')}</summary><div class="adv-body">${content}</div></details>`;
+  function bindAdvanced(root) {
+    root.querySelectorAll('details[data-adv]').forEach(d => d.addEventListener('toggle', () => {
+      if (d.open) openSections.add(d.dataset.adv); else openSections.delete(d.dataset.adv);
+    }));
+  }
+
+  /* ---------------- Menu déroulant ---------------- */
+  /**
+   * Menu ancré sous un bouton. items : [{ icon, label, hint?, run }] ; '-' = séparateur.
+   * Fermé par un clic dehors, Échap ou le choix d'une action ; flèches pour naviguer.
+   */
+  function menu(anchor, items) {
+    document.querySelector('.menu-pop')?.remove();
+    const el = html(`<div class="menu-pop glass" role="menu">${items.map((it, i) => (it === '-' ? '<hr>'
+      : `<button type="button" role="menuitem" data-i="${i}">${ic(it.icon)}<span>${esc(it.label)}</span>${it.hint ? `<kbd>${esc(it.hint)}</kbd>` : ''}</button>`)).join('')}</div>`);
+    document.body.appendChild(el);
+    const r = anchor.getBoundingClientRect();
+    el.style.top = `${r.bottom + 6}px`;
+    el.style.left = `${Math.max(8, Math.min(innerWidth - el.offsetWidth - 8, r.right - el.offsetWidth))}px`;
+    anchor.setAttribute('aria-expanded', 'true');
+    const buttons = [...el.querySelectorAll('button')];
+    const close = () => {
+      el.remove();
+      anchor.setAttribute('aria-expanded', 'false');
+      document.removeEventListener('pointerdown', outside, true);
+      document.removeEventListener('keydown', onKey, true);
+    };
+    const outside = e => { if (!el.contains(e.target) && !anchor.contains(e.target)) close(); };
+    const onKey = e => {
+      const i = buttons.indexOf(document.activeElement);
+      if (e.key === 'Escape') { e.stopPropagation(); close(); anchor.focus(); }
+      else if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); buttons[(i + (e.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length].focus(); }
+    };
+    el.addEventListener('click', e => {
+      const b = e.target.closest('[data-i]');
+      if (!b) return;
+      close();
+      items[+b.dataset.i].run();
+    });
+    document.addEventListener('pointerdown', outside, true);
+    document.addEventListener('keydown', onKey, true);
+    buttons[0]?.focus();
+    return close;
+  }
+
+  return { toast, modal, confirm, prompt, autocomplete, colorField, slider, bindFields, segmented, advanced, bindAdvanced, menu };
 })();
