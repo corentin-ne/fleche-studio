@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Réglages de mise en page de l'affiche (format, orientation, position,
    taille de la grille, marge) : panneau Design → Page, seul endroit où le

@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Diagnostic d'une grille :
      - mots perso invalides, en double, sans définition ou à définition longue ;
@@ -27,7 +28,7 @@ MF.diagnostics = (() => {
         continue;
       }
       seen.add(norm);
-      if (o.size === 'fixed' && norm.length > Math.max(o.cols || 13, (o.rows || 17) - (+o.photoBand || 0)) - (puzzle.game === 'meles' ? 0 : 1)) {
+      if (o.size === 'fixed' && norm.length > Math.max(o.cols || 13, (o.rows || 17) - (+o.photoBand || 0)) - (MF.games.get(puzzle.game).wordSearch ? 0 : 1)) {
         issues.push({ level: 'warn', wid: w.id, title: t('{word} est trop long pour la grille', { word: norm }), detail: t('{n} lettres : agrandis la grille pour qu\'il puisse y entrer.', { n: norm.length }) });
       }
       if (!needsClues) continue;

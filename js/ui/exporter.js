@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Export : PNG, JPEG, WebP, SVG, impression / PDF, lot ZIP.
    La fenêtre d'export règle le fichier : type, résolution (dpi pour
@@ -12,8 +13,7 @@ MF.exporter = (() => {
   const { esc, plural } = MF.util;
   const { t } = MF.i18n;
   const ic = MF.icons.svg;
-  /** Nom de fichier lisible : « Test étoile » -> « test-etoile ». */
-  const slug = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || t('grille');
+  const slug = s => MF.util.slug(s, t('grille'));
 
   const TYPES = {
     png: { label: 'PNG', mime: 'image/png', alpha: true, hint: t('Qualité parfaite, fond transparent possible') },
@@ -35,7 +35,7 @@ MF.exporter = (() => {
 
   /** Images utilisées par une page, en data URL (SVG autonome). */
   async function dataUrls(pz) {
-    const ids = [pz.design.background.imageId, ...pz.stickers.map(s => s.imageId)].filter(Boolean);
+    const ids = [...new Set(MF.schema.assetIds(pz))];
     const map = new Map();
     await Promise.all(ids.map(async id => map.set(id, await MF.assets.dataUrl(id))));
     return id => map.get(id) || null;
@@ -234,5 +234,5 @@ MF.exporter = (() => {
     });
   }
 
-  return { open, download, print, bundle, slug };
+  return { open, download, print, bundle };
 })();

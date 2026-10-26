@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Panneau « Grille » : type de jeu, forme, feuille, taille, remplissage,
    et gestion des données locales (sauvegarde, stockage, effacement).
@@ -31,7 +32,7 @@ MF.panels.settings = (() => {
         <div class="field"><span>${t('Langue des mots')}</span>${ui.segmented('lang', MF.lexicon.ids.map(l => [l, MF.lexicon.LANGS[l].label]), o.lang, 'data-opt')}
           <span class="field-hint">${t('Mots ajoutés, définitions proposées et recherches en ligne dans cette langue.')}</span></div>
         ${puzzle.game === 'codes' ? ui.slider('opt.givens', t('Lettres données au départ'), o.givens, 0, 8, 1) : ''}
-        ${puzzle.game === 'meles' ? `<div class="field"><span>${t('Sens des mots cachés')}</span>${ui.segmented('directions', [['easy', t('Facile →↓')], ['normal', t('Normal + diagonales')], ['hard', t('Expert : tous sens')]], o.directions, 'data-opt')}</div>` : ''}`)}
+        ${MF.games.get(puzzle.game).wordSearch ? `<div class="field"><span>${t('Sens des mots cachés')}</span>${ui.segmented('directions', [['easy', t('Facile →↓')], ['normal', t('Normal + diagonales')], ['hard', t('Expert : tous sens')]], o.directions, 'data-opt')}</div>` : ''}`)}
 
       ${S('shape', t('Forme de la grille'), 'heart', `${MF.shapePicker.html(o.shape)}
         <p class="field-hint">${t('Les mots ne sont placés qu\'à l\'intérieur de la forme. Une forme (ou une lettre) demande un peu plus de place : la grille s\'agrandit toute seule. Astuce : une lettre ressort mieux sur une grande grille.')}</p>`)}

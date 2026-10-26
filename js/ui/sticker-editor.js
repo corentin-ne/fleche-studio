@@ -11,6 +11,7 @@ MF.stickerEditor = (() => {
   const { esc } = MF.util;
   const { t } = MF.i18n;
   let st = null; // { view, opts, box }
+  const bound = new WeakSet();
 
   /**
    * @param view  contexte renvoyé par MF.gridView.render
@@ -20,16 +21,19 @@ MF.stickerEditor = (() => {
     st = { view, opts, box: null };
     if (!view || view.mode === 'play') return;
     const svg = view.sheet.querySelector('.mf-svg');
-    svg.addEventListener('pointerdown', e => {
-      const g = e.target.closest('.sticker');
-      if (!g) { if (st.opts.selected && !e.target.closest('.missing')) st.opts.onSelect(null); return; }
-      const s = sticker(g.dataset.sticker);
-      if (!s) return;
-      e.preventDefault();
-      if (st.opts.selected !== s.id) st.opts.onSelect(s.id, { silent: true });
-      if (!s.locked) startDrag(e, s, 'move');
-    });
-    if (opts.selected) drawBox();
+    // Affiche conservée d'un rendu à l'autre (MF.gridView) : un seul écouteur, qui lit toujours `st`
+    if (!bound.has(svg)) { bound.add(svg); svg.addEventListener('pointerdown', onPointerDown); }
+    if (opts.selected) drawBox(); else view.sheet.querySelector('.sel-box')?.remove();
+  }
+
+  function onPointerDown(e) {
+    const g = e.target.closest('.sticker');
+    if (!g) { if (st.opts.selected && !e.target.closest('.missing')) st.opts.onSelect(null); return; }
+    const s = sticker(g.dataset.sticker);
+    if (!s) return;
+    e.preventDefault();
+    if (st.opts.selected !== s.id) st.opts.onSelect(s.id, { silent: true });
+    if (!s.locked) startDrag(e, s, 'move');
   }
 
   const sticker = id => st.view.puzzle.stickers.find(s => s.id === id);
@@ -129,6 +133,8 @@ MF.stickerEditor = (() => {
   function preview(s, live) {
     const g = geometry(s, live);
     const el = groupOf(s.id);
+    // Le DOM ne correspond plus au dessin mémorisé : le prochain rendu le reconstruira
+    st.view.markup = null;
     if (el) {
       const k = g.w / s.w;
       el.setAttribute('transform', `translate(${g.x * g.W} ${g.y * g.H}) rotate(${g.rot}) scale(${(s.flip ? -1 : 1) * k} ${k})`);

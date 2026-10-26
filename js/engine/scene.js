@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Composition de l'affiche : fond, titre, grille, listes (croisés, mêlés,
    codés), stickers. Produit une scène = { W, H, ops, grid } que MF.renderers
@@ -317,10 +318,11 @@ MF.scene = (() => {
 
   /* ---------------- Affiche complète ---------------- */
   /**
-   * @param opts.letters     afficher la solution
-   * @param opts.forExport   pas d'éléments d'interface (repères, zones cliquables)
-   * @param opts.assetUrl    id d'image -> URL
-   * @param opts.stickers    false pour ne pas dessiner les stickers
+   * @param {any} model    modèle de dessin (MF.gridModel.from)
+   * @param {any} puzzle
+   * @param {{ letters?: boolean, forExport?: boolean, assetUrl?: (id: string) => string | null, stickers?: boolean, title?: boolean, photoMarks?: boolean }} [opts]
+   *   letters : afficher la solution ; forExport : pas d'éléments d'interface (repères, zones cliquables) ;
+   *   assetUrl : id d'image -> URL ; stickers / title : false pour ne pas les dessiner
    */
   function compose(model, puzzle, opts = {}) {
     const d = puzzle.design;
@@ -352,7 +354,8 @@ MF.scene = (() => {
     }
 
     const ops = [];
-    ops.push(...MF.backgrounds.ops(d.background, 0, 0, W, H, { assetUrl: opts.assetUrl, radius: d.poster.radius }).map(o => (o.op === 'image' ? { ...o, iw: MF.assets.size(d.background.imageId)?.w, ih: MF.assets.size(d.background.imageId)?.h } : o)));
+    const bgSize = d.background.imageId ? MF.assets.size(d.background.imageId) : null;
+    ops.push(...MF.backgrounds.ops(d.background, 0, 0, W, H, { assetUrl: opts.assetUrl, radius: d.poster.radius }).map(o => (o.op === 'image' ? { ...o, iw: bgSize?.w, ih: bgSize?.h } : o)));
     const stickers = opts.stickers === false ? [] : puzzle.stickers || [];
     stickers.filter(s => s.layer === 'below').forEach(s => ops.push(stickerOps(s, W, H, opts)));
 

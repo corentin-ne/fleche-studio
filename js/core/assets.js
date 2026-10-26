@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Images importées (fonds, photos) : stockées dans IndexedDB, côté navigateur.
 

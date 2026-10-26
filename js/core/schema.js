@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Schéma et assainissement des données.
    TOUTE donnée qui entre dans l'application (stockage local, fichier importé,
@@ -230,6 +231,9 @@ MF.schema = (() => {
     return { engine, pages, hash: str(l.hash, 40), at: num(l.at, 0, 1e15, Date.now()), ...extra };
   }
 
+  /** Images (identifiants MF.assets) utilisées par une grille : fond et photos du décor. */
+  const assetIds = p => [p?.design?.background?.imageId, ...(p?.stickers || []).map(s => s.imageId)].filter(Boolean);
+
   /* ---------------- Grille complète ---------------- */
   function puzzle(p) {
     p = obj(p);
@@ -260,5 +264,5 @@ MF.schema = (() => {
     };
   }
 
-  return { LIMITS, DEFAULT_OPTIONS, options, design, sticker, word, puzzle, layout, color, num, int, oneOf, str, bool, isObj, WORD };
+  return { LIMITS, DEFAULT_OPTIONS, options, design, sticker, word, puzzle, layout, assetIds, color, num, int, oneOf, str, bool, isObj, WORD };
 })();

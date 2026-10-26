@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Langues de l'interface.
    Le texte français sert de clé et de repli : t('Mots fléchés') renvoie la
@@ -15,15 +16,14 @@ MF.i18n = (() => {
     fr: { label: 'Français', short: 'FR', locale: 'fr-FR' },
     en: { label: 'English', short: 'EN', locale: 'en-GB' },
   };
-  const KEY = 'fleche-studio-lang';
+  // Le worker n'a ni DOM ni stockage (MF.storage n'y est pas chargé) : il reste en français
+  const KEY = MF.storage?.KEYS.lang;
   const catalogs = {};
 
   /** Choix mémorisé, sinon première langue connue du navigateur (anglais par défaut). */
   function detect() {
-    try {
-      const saved = localStorage.getItem(KEY);
-      if (LANGS[saved]) return saved;
-    } catch { /* stockage indisponible */ }
+    const saved = MF.storage.get(KEY);
+    if (LANGS[saved]) return saved;
     for (const l of navigator.languages || [navigator.language || '']) {
       const code = String(l).slice(0, 2).toLowerCase();
       if (LANGS[code]) return code;
@@ -59,7 +59,7 @@ MF.i18n = (() => {
 
   function set(l) {
     if (!LANGS[l] || l === lang) return;
-    try { localStorage.setItem(KEY, l); } catch { /* le choix ne sera pas retenu */ }
+    MF.storage.set(KEY, l); // stockage indisponible : le choix ne sera pas retenu
     location.reload();
   }
 
@@ -80,7 +80,7 @@ MF.i18n = (() => {
     for (const attr of ['title', 'aria-label', 'placeholder']) {
       (root.body || root).querySelectorAll(`[${attr}]`).forEach(el => { const v = dict[el.getAttribute(attr)]; if (v) el.setAttribute(attr, v); });
     }
-    const desc = document.querySelector('meta[name="description"]');
+    const desc = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="description"]'));
     if (desc && dict[desc.content]) desc.content = dict[desc.content];
   }
 

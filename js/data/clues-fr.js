@@ -2,7 +2,8 @@
    Ce sont les seuls mots utilisés pour compléter les grilles : aucun mot obscur.
    Clé : mot sans accents en majuscules. */
 window.MF = window.MF || {};
-MF.cluesFr = {"ABANDON":"Fait de laisser tomber",
+// JSON.parse : décodage bien plus rapide qu'un objet littéral de cette taille (une ligne par mot, comme avant)
+MF.cluesFr = JSON.parse(String.raw`{"ABANDON":"Fait de laisser tomber",
 "ABATS":"Fait tomber",
 "ABATTRE":"Faire tomber un arbre",
 "ABEILLE":"Butineuse",
@@ -4422,4 +4423,4 @@ MF.cluesFr = {"ABANDON":"Fait de laisser tomber",
 "ZOOS":"Parcs animaliers",
 "ZULU":"Peuple d'Afrique australe",
 "ZURICH":"Ville suisse",
-"ZUT":"Mince alors"};
+"ZUT":"Mince alors"}`);

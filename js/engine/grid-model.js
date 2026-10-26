@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Modèle de dessin d'une grille, partagé par l'écran et les exports.
    Toutes les cotes sont exprimées en « unités case » : une case = 100 unités.
@@ -40,6 +41,15 @@ MF.gridModel = (() => {
 
   /** Identifiant stable d'un mot de la grille (sens + case de départ). */
   const slotKey = w => `${w.dir}:${w.r},${w.c}`;
+
+  /** Clé du i-ème mot d'une page calculée (celle des `slots` du modèle). */
+  const wordKey = (page, i) => (page.engine === 'meles' ? `W${i}` : slotKey(page.words[i]));
+
+  /** Ce mot de la grille est-il un mot de l'utilisateur (et non un mot de remplissage) ? */
+  const isPlaced = (w, engine) => !!w.wid && (engine === 'meles' || w.src === 'theme');
+
+  /** Mots de l'utilisateur placés dans une page calculée. */
+  const placedIn = page => page.words.filter(w => isPlaced(w, page.engine));
 
   /** Définition d'un mot : mot perso -> sa définition ; sinon celle écrite par l'utilisateur, sinon celle du dictionnaire. */
   function clueText(w, puzzle, wordsById = new Map(puzzle.words.map(x => [x.id, x]))) {
@@ -203,5 +213,5 @@ MF.gridModel = (() => {
     }
   }
 
-  return { from, clueText, slotKey, arrowShape, codesFor, BELOW, U };
+  return { from, clueText, slotKey, wordKey, isPlaced, placedIn, arrowShape, codesFor, BELOW, U };
 })();

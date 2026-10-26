@@ -2,7 +2,8 @@
    They are the only words used to fill English grids: no obscure words.
    Key: word in capitals, letters only. */
 window.MF = window.MF || {};
-MF.cluesEn = {"AB":"Muscle in a six-pack, briefly",
+// JSON.parse : décodage bien plus rapide qu'un objet littéral de cette taille (une ligne par mot, comme avant)
+MF.cluesEn = JSON.parse(String.raw`{"AB":"Muscle in a six-pack, briefly",
 "ABACUS":"Counting frame",
 "ABANDON":"Leave behind",
 "ABBEY":"Home for monks",
@@ -6749,4 +6750,4 @@ MF.cluesEn = {"AB":"Muscle in a six-pack, briefly",
 "ZOOMED":"Sped past",
 "ZOOMING":"Speeding past",
 "ZOOS":"Animal parks",
-"ZUCCHINI":"Green summer squash"};
+"ZUCCHINI":"Green summer squash"}`);

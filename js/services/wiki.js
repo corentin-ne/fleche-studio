@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Client Wiktionnaire / Wikipédia (API publiques, sans clé, CORS anonyme).
      - autocomplétion et correction orthographique (recherche floue) ;
@@ -110,14 +111,22 @@ MF.wiki = (() => {
   /** Un titre de page est-il un mot simple utilisable en grille ? */
   const isPlainWord = s => /^[a-zàâäéèêëîïôöùûüÿçœæ'-]{2,24}$/i.test(s) && MF.util.normalize(s).length >= 2;
 
-  /** Autocomplétion (préfixe). */
+  /**
+   * Autocomplétion (préfixe).
+   * @param {string} prefix
+   * @param {{ signal?: AbortSignal }} [o]
+   */
   async function complete(prefix, { signal } = {}) {
     if (!online || prefix.trim().length < 2) return [];
     const r = await api({ action: 'opensearch', search: prefix.trim(), limit: '10', namespace: '0', profile: 'normal' }, { signal, timeout: 5000 });
     return (Array.isArray(r?.[1]) ? r[1] : []).filter(isPlainWord).slice(0, 8);
   }
 
-  /** Correction : mots proches orthographiquement (recherche floue). */
+  /**
+   * Correction : mots proches orthographiquement (recherche floue).
+   * @param {string} word
+   * @param {{ signal?: AbortSignal }} [o]
+   */
   async function suggest(word, { signal } = {}) {
     if (!online || word.trim().length < 3) return { exists: false, suggestions: [] };
     const q = word.trim().toLowerCase();
@@ -193,7 +202,11 @@ MF.wiki = (() => {
     return out;
   }
 
-  /** Définitions d'un mot dans la langue de la grille : [{ pos, text, short }]. */
+  /**
+   * Définitions d'un mot dans la langue de la grille : [{ pos, text, short }].
+   * @param {string} word
+   * @param {{ signal?: AbortSignal }} [o]
+   */
   async function definitions(word, { signal } = {}) {
     if (!online) throw offline();
     const lang = current();
@@ -207,7 +220,11 @@ MF.wiki = (() => {
     return [];
   }
 
-  /** Premier paragraphe Wikipédia (noms propres, lieux, personnes). */
+  /**
+   * Premier paragraphe Wikipédia (noms propres, lieux, personnes).
+   * @param {string} title
+   * @param {{ signal?: AbortSignal }} [o]
+   */
   async function wikipedia(title, { signal } = {}) {
     if (!online) throw offline();
     const lang = current();
@@ -223,6 +240,8 @@ MF.wiki = (() => {
    * Catégories du Wiktionnaire correspondant à un thème (« oiseaux » -> « Oiseaux en français »,
    * « birds » -> « en:Birds »). Les noms rendus se passent tels quels à members() ;
    * categoryLabel() en donne le libellé à afficher.
+   * @param {string} theme
+   * @param {{ signal?: AbortSignal }} [o]
    */
   async function categories(theme, { signal } = {}) {
     if (!online) throw offline();
@@ -236,7 +255,11 @@ MF.wiki = (() => {
   /** Libellé lisible d'une catégorie (« Oiseaux en français » -> « Oiseaux », « en:Birds » -> « Birds »). */
   const categoryLabel = c => current().catLabel(String(c));
 
-  /** Mots simples d'une catégorie. */
+  /**
+   * Mots simples d'une catégorie.
+   * @param {string} category
+   * @param {{ signal?: AbortSignal, limit?: number }} [o]
+   */
   async function members(category, { signal, limit = 500 } = {}) {
     if (!online) throw offline();
     const r = await api({ action: 'query', list: 'categorymembers', cmtitle: `${current().catNs}:${category}`, cmnamespace: '0', cmlimit: String(limit), cmtype: 'page' }, { signal });

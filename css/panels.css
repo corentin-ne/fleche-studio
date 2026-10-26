@@ -271,7 +271,7 @@
 /* ---------- Export ---------- */
 .export-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }
 .export-preview { position: sticky; top: 0; display: grid; place-items: center; padding: var(--sp-4); border-radius: var(--r-md); background: repeating-conic-gradient(var(--glass-bg-soft) 0 25%, transparent 0 50%) 0 0 / 18px 18px; border: 1px solid var(--line); }
-.export-preview svg { width: 100%; height: auto; max-height: 62vh; display: block; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
+#exp-preview svg { width: 100%; height: auto; max-height: 62vh; display: block; box-shadow: 0 10px 30px rgba(0,0,0,.25); }
 @media (max-width: 820px) { .export-grid { grid-template-columns: 1fr; } .export-preview { position: static; } }
 
 /* ---------- Modales : variantes ---------- */
@@ -408,7 +408,7 @@
 .export-preview { flex-direction: column; gap: 8px; }
 @media (max-width: 820px) { .export-grid { grid-template-columns: 1fr; } }
 .export-preview #exp-preview { width: 100%; display: grid; place-items: center; }
-.export-preview svg { max-height: 60vh; }
+#exp-preview svg { max-height: 60vh; }
 .exp-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; font-size: 11px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .export-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .exp-tabs { width: 100%; }

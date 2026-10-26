@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Import de listes de mots, sous toutes leurs formes :
      - texte collé : « Mot ; Définition », tabulations (copié d'un tableur),

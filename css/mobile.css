@@ -129,7 +129,7 @@
   .modal-foot { padding: var(--sp-3) var(--sp-4) var(--sp-4); }
   .modal-foot .btn { flex: 1; justify-content: center; }
   .modal-foot .foot-note { flex-basis: 100%; }
-  .export-preview svg { max-height: 40vh; }
+  #exp-preview svg { max-height: 40vh; }
 
   /* ---------- Notifications au-dessus de la barre du bas ---------- */
   .toasts { left: 12px; right: 12px; bottom: calc(var(--nav-h) + 18px + var(--safe-b)); align-items: stretch; }

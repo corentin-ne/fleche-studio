@@ -47,12 +47,7 @@ MF.createActions = app => {
       if (!added.length) { if (!silent) MF.ui.toast(t(skipped ? 'Déjà dans la liste.' : 'Rien à ajouter.'), 'warn'); return 0; }
       view.draft = {};
       mutate(p => p.words.push(...added.map(w => ({ ...w, id: MF.util.uid() }))), 'words');
-      const game = MF.games.get(pz.game);
-      const missing = game.clues ? added.filter(w => !w.clue).length : 0;
-      if (!silent) {
-        MF.ui.toast(`${plural(added.length, 'mot ajouté', 'mots ajoutés')}${skipped ? ` (${plural(skipped, 'ignoré')})` : ''}${missing ? ` · ${t('{n} sans définition', { n: missing })}` : ''}`, 'ok', 4500,
-          missing && MF.wiki.isOnline() ? { label: t('Chercher en ligne'), run: () => actions.autoDefine() } : null);
-      }
+      if (!silent) toastAdded(added.length, { skipped, missing: MF.games.get(pz.game).clues ? added.filter(w => !w.clue).length : 0 });
       requestAnimationFrame(() => document.querySelector('#add-form [name=text]')?.focus());
       return added.length;
     },
@@ -79,8 +74,7 @@ MF.createActions = app => {
         if (slot < 0) continue;
         if (store.get().ui.mode === 'play') app.setMode('solution');
         if (page !== view.page) { view.page = page; app.renderAll(); }
-        const w = pg.words[slot];
-        MF.gridView.highlight(pg.engine === 'meles' ? `W${slot}` : MF.gridModel.slotKey(w));
+        MF.gridView.highlight(MF.gridModel.wordKey(pg, slot));
         return;
       }
       MF.ui.toast(t('Ce mot n\'est pas (encore) dans la grille.'), 'warn');
@@ -272,7 +266,7 @@ MF.createActions = app => {
       if (!words.length) requestAnimationFrame(() => document.querySelector('#add-form [name=text]')?.focus());
     },
     quickStart(game) {
-      return actions.newPuzzle({ game, start: 'random', theme: game === 'meles' ? 'candy' : game === 'codes' ? 'minimal' : game === 'croises' ? 'print' : 'violet' });
+      return actions.newPuzzle({ game, start: 'random', theme: MF.games.get(game).theme });
     },
     switchPuzzle(id) {
       if (view.home) { view.home = false; if (id === store.get().activeId) { app.renderAll(); return; } }
@@ -307,8 +301,9 @@ MF.createActions = app => {
       if (withImages === null) return;
       const assets = {};
       if (withImages) {
-        const ids = new Set(s.puzzles.flatMap(p => [p.design.background.imageId, ...p.stickers.map(x => x.imageId)]).filter(Boolean));
-        for (const id of ids) { const d = await MF.assets.dataUrl(id); if (d) assets[id] = d; }
+        const ids = [...new Set(s.puzzles.flatMap(MF.schema.assetIds))];
+        const urls = await MF.util.pool(ids, 4, id => MF.assets.dataUrl(id));
+        ids.forEach((id, i) => { if (urls[i]) assets[id] = urls[i]; });
       }
       const data = { app: 'mots-fleches-maker', v: 3, exportedAt: new Date().toISOString(), puzzles: s.puzzles, assets };
       MF.util.download(`${t('mes-grilles')}-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data));
@@ -357,60 +352,31 @@ MF.createActions = app => {
       if (!pz?.layout) { MF.ui.toast(t('Calcule d\'abord la grille.'), 'warn'); return; }
       let url;
       try { url = await MF.share.link(pz); } catch (e) { MF.ui.toast(e.message || t('Lien impossible.'), 'err'); return; }
-      const ic = MF.icons.svg;
-      // Ce qui ne voyage pas dans le lien (trop lourd pour une adresse) : annoncé avant l'envoi
-      const { photos, background } = MF.share.omitted(pz);
-      const lost = [photos && plural(photos, 'photo'), background && t('l\'image de fond')].filter(Boolean);
-      // QR code : à scanner depuis un téléphone, ou à imprimer à côté de la grille
-      const qr = url.length <= MF.qr.capacity('L') ? MF.qr.encode(url) : null;
-      // Au moins 3 px par module : un QR dense (lien long) reste lisible par un téléphone
-      const qrPx = qr ? (qr.size + 8) * 3 : 0;
-      await MF.ui.modal({
-        title: t('Partager la grille à jouer'), icon: 'share',
-        body: `<p class="muted small">${t('Envoie ce lien : on pourra jouer à ta grille directement dans le navigateur, sans compte. La grille est <b>dans le lien lui-même</b> (rien n\'est stocké sur un serveur).')}</p>
-          <div class="row share-row"><input class="input mono" id="share-url" readonly value="${MF.util.esc(url)}" aria-label="${MF.util.esc(t('Lien de partage'))}"><button class="btn btn-primary" id="share-copy">${ic('copy')}${t('Copier')}</button></div>
-          <p class="field-hint">${ic('info', 'ic-inline')} ${t('Le lien contient les réponses (pour vérifier). {size} Ko.', { size: MF.i18n.num(+(url.length / 1024).toFixed(1)) })}</p>
-          ${lost.length ? `<p class="share-lost small">${ic('alert', 'ic-inline')} ${t('Non inclus dans le lien : {list}. Le reste du design voyage avec la grille.', { list: MF.util.esc(lost.join(', ')) })}</p>` : ''}
-          ${qr ? `<div class="share-qr ${qrPx > 200 ? 'big' : ''}"><div class="share-qr-code" style="width:min(100%, ${Math.max(168, qrPx)}px)">${MF.qr.svg(qr)}</div><div class="share-qr-side"><b>${t('QR code')}</b><p class="muted small">${t('À scanner avec un téléphone, ou à imprimer à côté de la grille.')}</p><button class="btn btn-sm" id="share-qr-png">${ic('download')}${t('Télécharger (PNG)')}</button></div></div>`
-    : `<p class="field-hint">${ic('info', 'ic-inline')} ${t('Grille trop grande pour un QR code : partage le lien.')}</p>`}`,
-        onOpen: r => {
-          const inp = r.querySelector('#share-url');
-          inp.addEventListener('focus', () => inp.select());
-          r.querySelector('#share-copy').onclick = async () => {
-            try { await navigator.clipboard.writeText(url); MF.ui.toast(t('Lien copié !'), 'ok'); } catch { inp.select(); document.execCommand?.('copy'); }
-          };
-          r.querySelector('#share-qr-png')?.addEventListener('click', async () => {
-            const blob = await MF.qr.png(qr, { px: 10 });
-            if (blob) MF.util.downloadBlob(`${MF.exporter.slug(pz.name)}-qr.png`, blob);
-          });
-          if (navigator.share) {
-            const b = MF.util.html(`<button class="btn">${MF.icons.svg('share')}${t('Envoyer…')}</button>`);
-            b.onclick = () => navigator.share({ title: pz.name, url }).catch(() => {});
-            r.querySelector('.share-row').appendChild(b);
-          }
-        },
-        actions: [{ label: t('Fermer'), value: null }],
-      });
+      await MF.shareDialog.open(pz, url);
     },
   };
 
-  async function afterImport(n) {
+  /** « 3 mots ajoutés (1 ignoré) · 2 sans définition », avec recherche en ligne proposée. */
+  function toastAdded(n, { skipped = 0, missing = 0 } = {}) {
+    MF.ui.toast(`${plural(n, 'mot ajouté', 'mots ajoutés')}${skipped ? ` (${plural(skipped, 'ignoré')})` : ''}${missing ? ` · ${t('{n} sans définition', { n: missing })}` : ''}`, 'ok', 4500,
+      missing && MF.wiki.isOnline() ? { label: t('Chercher en ligne'), run: () => actions.autoDefine() } : null);
+  }
+
+  /** Après un import : toutes les définitions encore vides de la grille sont signalées. */
+  function afterImport(n) {
     if (!n) return;
     const pz = active();
-    const missing = MF.games.get(pz.game).clues ? pz.words.filter(w => !w.clue).length : 0;
-    MF.ui.toast(`${plural(n, 'mot ajouté', 'mots ajoutés')}${missing ? ` · ${t('{n} sans définition', { n: missing })}` : ''}`, 'ok', 5000,
-      missing && MF.wiki.isOnline() ? { label: t('Les chercher'), run: () => actions.autoDefine() } : null);
+    toastAdded(n, { missing: MF.games.get(pz.game).clues ? pz.words.filter(w => !w.clue).length : 0 });
   }
 
   /** Restaure une sauvegarde : images ré-assainies, identifiants remappés. */
   async function restoreData(data) {
     const remap = new Map();
-    if (S.isObj(data.assets)) {
-      for (const [id, url] of Object.entries(data.assets).slice(0, 500)) {
-        const a = await MF.assets.fromDataUrl(url);
-        if (a) remap.set(id, a.id);
-      }
-    }
+    const images = S.isObj(data.assets) ? Object.entries(data.assets).slice(0, 500) : [];
+    if (images.length > 8) MF.ui.toast(t('Restauration de {n}…', { n: plural(images.length, 'image') }), 'info', 3000);
+    // Images décodées et ré-assainies quelques-unes à la fois (rapide, sans saturer la mémoire)
+    const saved = await MF.util.pool(images, 4, ([, url]) => MF.assets.fromDataUrl(url));
+    images.forEach(([id], i) => { if (saved[i]) remap.set(id, saved[i].id); });
     const list = data.puzzles.slice(0, S.LIMITS.puzzles).map(p => {
       const pz = store.makePuzzle(p);
       if (pz.design.background.imageId) pz.design.background.imageId = remap.get(pz.design.background.imageId) || '';

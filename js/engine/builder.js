@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Générateur « mots perso d'abord » : objectif n°1 = placer le MAXIMUM de mots perso.
 
@@ -71,6 +72,7 @@ MF.builder = (() => {
       }
     }
     if (cross === L) return null;
+    /** @type {{ sr: number, sc: number, arrow: string, share: boolean, pref: number } | null} */
     let slot = null;
     SLOTS[dir].forEach((s, idx) => {
       const sr = r + s.dr, sc = c + s.dc;
@@ -312,7 +314,7 @@ MF.builder = (() => {
     const valid = prepare(words);
     const byId = new Map(words.map(w => [w.id, w]));
     const groups = Array.from({ length: pages }, () => ({ words: [], letters: 0 }));
-    const ordered = [...valid].sort((a, b) => (b.priority - a.priority) || (b.norm.length - a.norm.length));
+    const ordered = [...valid].sort((a, b) => (+b.priority - +a.priority) || (b.norm.length - a.norm.length));
     for (const it of ordered) {
       const g = groups.reduce((m, x) => (x.letters < m.letters || (x.letters === m.letters && x.words.length < m.words.length) ? x : m));
       g.words.push(byId.get(it.id));
@@ -364,6 +366,9 @@ MF.builder = (() => {
    *    les mots perso y entrent, puis on peaufine à cette taille.
    *  - Taille fixe : on place le maximum de mots perso dans le cadre demandé.
    * Ensuite, comblement des meilleures dispositions ; on garde celle qui laisse le moins de cases photo.
+   * @param {any[]} words
+   * @param {any} [opts]
+   * @param {{ seed?: number, onProgress?: (p: number) => void, onSnapshot?: Function, signal?: { cancelled: boolean }, exclude?: Set<string>, banned?: string[] }} [run]
    */
   async function generate(words, opts = {}, { seed = Date.now(), onProgress, onSnapshot, signal, exclude = new Set(), banned = [] } = {}) {
     if (!prepare(words).length) return null;

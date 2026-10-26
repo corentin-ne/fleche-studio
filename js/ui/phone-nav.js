@@ -7,6 +7,7 @@ window.MF = window.MF || {};
 
 MF.phoneNav = (() => {
   const { t } = MF.i18n;
+  // Seule définition du « téléphone » côté script : même largeur que css/mobile.css
   const query = matchMedia('(max-width: 760px)');
   const TABS = [
     { id: 'grid', icon: 'grid', label: t('Grille') },

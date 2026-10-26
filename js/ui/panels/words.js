@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Panneau « Mots » : saisie avec autocomplétion et correction, aide à la
    définition, imports (bibliothèque, thèmes, collage, fichier), liste.
@@ -14,26 +15,55 @@ MF.panels.words = (() => {
   const D = MF.dictionary;
   let statusCtrl = null;
 
+  const SORTERS = {
+    added: () => 0,
+    alpha: (a, b) => MF.i18n.compare(a.norm, b.norm),
+    length: (a, b) => b.norm.length - a.norm.length,
+    missing: (a, b) => (a.w.clue ? 1 : 0) - (b.w.clue ? 1 : 0),
+  };
+
+  /** Mots affichés (filtre, tri), le texte normalisé calculé une seule fois par mot. */
+  function visible(puzzle, view) {
+    const q = normalize(view.filter);
+    return puzzle.words
+      .map(w => ({ w, norm: normalize(w.text) }))
+      .filter(x => !q || x.norm.includes(q) || normalize(x.w.clue).includes(q))
+      .sort(SORTERS[view.sort] || SORTERS.added);
+  }
+
+  /** Lignes de la liste : seules elles sont redessinées quand on filtre ou trie. */
+  function listHtml(puzzle, derived, view, game) {
+    const hasGrid = !!derived.layout;
+    const multi = derived.pages.length > 1;
+    const status = (w, norm) => {
+      if (norm.length < 2) return ['err', t('Mot trop court')];
+      if (!hasGrid) return ['idle', t('Grille pas encore calculée')];
+      return derived.pageOf.has(w.id) ? ['ok', multi ? t('Grille {n}', { n: derived.pageOf.get(w.id) + 1 }) : t('Dans la grille')] : ['out', t('Pas dans la grille (recalcule ou agrandis-la)')];
+    };
+    const titles = {
+      starOn: t('Retirer la priorité'), starOff: t('Prioritaire : placé en premier'), edit: t('Modifier'), del: t('Supprimer'), addDef: t('+ ajouter une définition'),
+    };
+    return visible(puzzle, view).map(({ w, norm }) => {
+      const [st, label] = status(w, norm);
+      return `<li class="word-item ${st === 'out' ? 'is-out' : ''}" data-id="${w.id}" tabindex="0">
+            <button class="star ${w.priority ? 'on' : ''}" data-act="star" title="${w.priority ? titles.starOn : titles.starOff}" aria-pressed="${w.priority}">${ic('star')}</button>
+            <div class="wi-main">
+              <div class="wi-word"><span class="status-dot ${st}" title="${label}"></span><span class="mono">${esc(norm || w.text)}</span><small>${norm.length}</small>${multi && derived.pageOf.has(w.id) ? `<span class="chip page">G${derived.pageOf.get(w.id) + 1}</span>` : ''}</div>
+              ${game.clues ? `<div class="wi-clue">${w.clue ? esc(w.clue) : `<button type="button" class="link-btn" data-act="def">${titles.addDef}</button>`}</div>` : ''}
+            </div>
+            <div class="wi-actions">
+              <button class="btn btn-sm btn-icon btn-ghost" data-act="edit" title="${titles.edit}" aria-label="${titles.edit}">${ic('edit')}</button>
+              <button class="btn btn-sm btn-icon btn-ghost btn-danger" data-act="del" title="${titles.del}" aria-label="${titles.del}">${ic('trash')}</button>
+            </div>
+          </li>`;
+    }).join('') || (puzzle.words.length ? `<li class="empty small">${t('Aucun mot ne correspond.')}</li>` : `<li class="empty-words">${ic('sparkle')}<b>${t('Ta liste est vide')}</b><span>${t('Tape un mot ci-dessus, ou pioche dans la bibliothèque et les thèmes.')}</span></li>`);
+  }
+
   function render(root, { puzzle, derived, actions, view }) {
     const game = MF.games.get(puzzle.game);
-    const hasGrid = !!derived.layout;
-    const q = normalize(view.filter);
-    const sorters = {
-      added: () => 0,
-      alpha: (a, b) => MF.i18n.compare(normalize(a.text), normalize(b.text)),
-      length: (a, b) => normalize(b.text).length - normalize(a.text).length,
-      missing: (a, b) => (a.clue ? 1 : 0) - (b.clue ? 1 : 0),
-    };
-    const list = puzzle.words.filter(w => !q || normalize(w.text + ' ' + w.clue).includes(q)).sort(sorters[view.sort] || sorters.added);
     const stars = puzzle.words.filter(w => w.priority).length;
     const noClue = game.clues ? puzzle.words.filter(w => !w.clue.trim()).length : 0;
     const draft = view.draft;
-
-    const status = w => {
-      if (normalize(w.text).length < 2) return ['err', t('Mot trop court')];
-      if (!hasGrid) return ['idle', t('Grille pas encore calculée')];
-      return derived.pageOf.has(w.id) ? ['ok', derived.pages.length > 1 ? t('Grille {n}', { n: derived.pageOf.get(w.id) + 1 }) : t('Dans la grille')] : ['out', t('Pas dans la grille (recalcule ou agrandis-la)')];
-    };
 
     root.innerHTML = `
       <form class="composer glass-soft" id="add-form" autocomplete="off">
@@ -71,23 +101,7 @@ MF.panels.words = (() => {
         ${noClue ? `<button type="button" class="btn btn-sm btn-ghost" id="btn-autodef">${ic('wand')}${t('Définir les {n} manquants', { n: noClue })}</button>` : ''}
         ${puzzle.words.length ? `<button type="button" class="btn btn-sm btn-ghost btn-danger" id="btn-clear-words" title="${t('Supprimer tous les mots')}">${ic('trash')}</button>` : ''}
       </div>
-      <ul class="word-list" id="word-list">
-        ${list.map(w => {
-          const [st, label] = status(w);
-          const norm = normalize(w.text);
-          return `<li class="word-item ${st === 'out' ? 'is-out' : ''}" data-id="${w.id}" tabindex="0">
-            <button class="star ${w.priority ? 'on' : ''}" data-act="star" title="${w.priority ? t('Retirer la priorité') : t('Prioritaire : placé en premier')}" aria-pressed="${w.priority}">${ic('star')}</button>
-            <div class="wi-main">
-              <div class="wi-word"><span class="status-dot ${st}" title="${label}"></span><span class="mono">${esc(norm || w.text)}</span><small>${norm.length}</small>${derived.pages.length > 1 && derived.pageOf.has(w.id) ? `<span class="chip page">G${derived.pageOf.get(w.id) + 1}</span>` : ''}</div>
-              ${game.clues ? `<div class="wi-clue">${w.clue ? esc(w.clue) : `<button type="button" class="link-btn" data-act="def">${t('+ ajouter une définition')}</button>`}</div>` : ''}
-            </div>
-            <div class="wi-actions">
-              <button class="btn btn-sm btn-icon btn-ghost" data-act="edit" title="${t('Modifier')}" aria-label="${t('Modifier')}">${ic('edit')}</button>
-              <button class="btn btn-sm btn-icon btn-ghost btn-danger" data-act="del" title="${t('Supprimer')}" aria-label="${t('Supprimer')}">${ic('trash')}</button>
-            </div>
-          </li>`;
-        }).join('') || (puzzle.words.length ? `<li class="empty small">${t('Aucun mot ne correspond.')}</li>` : `<li class="empty-words">${ic('sparkle')}<b>${t('Ta liste est vide')}</b><span>${t('Tape un mot ci-dessus, ou pioche dans la bibliothèque et les thèmes.')}</span></li>`)}
-      </ul>
+      <ul class="word-list" id="word-list">${listHtml(puzzle, derived, view, game)}</ul>
       <input type="file" id="words-file" accept="${MF.importer.ACCEPT}" hidden>`;
 
     bindComposer(root, puzzle, actions, view, game);
@@ -102,12 +116,14 @@ MF.panels.words = (() => {
       e.target.value = '';
       if (file) actions.importFile(file);
     });
-    root.querySelector('#word-filter').addEventListener('input', MF.util.debounce(e => actions.setView({ filter: e.target.value }, '#word-filter'), 150));
-    root.querySelector('#word-sort').addEventListener('change', e => actions.setView({ sort: e.target.value }));
+    // Filtre et tri : seule la liste est redessinée (la saisie et le focus restent en place)
+    const wl = root.querySelector('#word-list');
+    const relist = patch => { Object.assign(view, patch); wl.innerHTML = listHtml(puzzle, derived, view, game); };
+    root.querySelector('#word-filter').addEventListener('input', MF.util.debounce(e => relist({ filter: e.target.value }), 120));
+    root.querySelector('#word-sort').addEventListener('change', e => relist({ sort: e.target.value }));
     root.querySelector('#btn-autodef')?.addEventListener('click', () => actions.autoDefine());
     root.querySelector('#btn-clear-words')?.addEventListener('click', () => actions.clearWords());
 
-    const wl = root.querySelector('#word-list');
     wl.addEventListener('click', e => {
       const li = e.target.closest('.word-item');
       if (!li) return;

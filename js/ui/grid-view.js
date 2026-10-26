@@ -14,6 +14,7 @@ MF.gridView = (() => {
    * @param o.cell      taille d'une case à l'écran (px)
    * @param o.entries   saisies du joueur
    * @param o.assetUrl  id d'image -> URL
+   * @param o.key       identité de la grille affichée (progression) : même clé et même dessin -> DOM conservé
    */
   function render(container, model, puzzle, o = {}) {
     const { mode = 'solution', entries = {} } = o;
@@ -22,18 +23,28 @@ MF.gridView = (() => {
     // Taille d'une case à l'écran : fixe, ou calculée pour que toute l'affiche tienne (fonction)
     const cell = typeof o.cell === 'function' ? o.cell(scene.W, scene.H) : o.cell || 64;
     const width = Math.round((scene.W * cell) / U);
+    const markup = MF.renderers.svg(scene);
+    // Dessin identique (zoom, rendu sans effet visible) : on garde le DOM, la partie en cours et le focus.
+    // Évite de reconstruire des milliers de nœuds SVG pendant qu'on fait glisser un curseur.
+    if (ctx && ctx.container === container && container.contains(ctx.sheet) && !o.animate
+      && ctx.markup === markup && ctx.mode === mode && ctx.key === o.key) {
+      ctx.sheet.style.width = `${width}px`;
+      ctx.sheet.classList.remove('enter');
+      Object.assign(ctx, { scene, model, puzzle, o, cellPx: cell });
+      return ctx;
+    }
     // Re-rendu en cours de partie (zoom, clavier du téléphone qui redimensionne l'écran) :
     // on garde la case active, sinon le clavier virtuel se refermerait
     const act = container.contains(document.activeElement) && document.activeElement.matches('.play-cell') ? document.activeElement : null;
     const keep = act && ctx && mode === 'play' ? { r: act.dataset.r, c: act.dataset.c, dir: ctx.dir } : null;
-    container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''} ${o.animate ? 'enter' : ''}" style="width:${width}px">${MF.renderers.svg(scene)}</div>`;
+    container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''} ${o.animate ? 'enter' : ''}" style="width:${width}px">${markup}</div>`;
     const sheet = container.firstElementChild;
-    ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: keep?.dir || 'H', o, cellPx: cell };
+    ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: keep?.dir || 'H', o, cellPx: cell, markup, key: o.key };
     if (mode === 'play') (model.game === 'meles' ? mountWordSearch : mountPlay)(sheet);
     if (keep) container.querySelector(`.play-cell[data-r="${keep.r}"][data-c="${keep.c}"]`)?.focus({ preventScroll: true });
     sheet.querySelector('.mf-svg').addEventListener('click', e => {
       const m = e.target.closest('.missing');
-      if (m) o.onMissing?.(m.dataset.key);
+      if (m) ctx.o.onMissing?.(m.dataset.key);
     });
     return ctx;
   }

@@ -5,15 +5,17 @@
 window.MF = window.MF || {};
 
 MF.util = (() => {
+  /** Texte sans accents ni ligatures (« Cœur été » -> « Coeur ete »). */
+  const stripAccents = text => String(text ?? '')
+    .replace(/œ/gi, m => (m === 'Œ' ? 'OE' : 'oe'))
+    .replace(/æ/gi, m => (m === 'Æ' ? 'AE' : 'ae'))
+    .normalize('NFD').replace(/[̀-ͯ]/g, '');
+
   /** Mot saisi -> lettres de grille : majuscules, sans accents, sans espaces ni tirets. */
-  function normalize(text) {
-    return String(text || '')
-      .replace(/œ/gi, m => (m === 'Œ' ? 'OE' : 'oe'))
-      .replace(/æ/gi, m => (m === 'Æ' ? 'AE' : 'ae'))
-      .normalize('NFD').replace(/[̀-ͯ]/g, '')
-      .toUpperCase()
-      .replace(/[^A-Z]/g, '');
-  }
+  const normalize = text => stripAccents(text).toUpperCase().replace(/[^A-Z]/g, '');
+
+  /** Nom de fichier lisible : « Test étoile » -> « test-etoile » (`fallback` si rien ne reste). */
+  const slug = (text, fallback = 'grille') => stripAccents(text).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 60) || fallback;
 
   const esc = s => String(s ?? '').replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[ch]));
 
@@ -199,6 +201,29 @@ MF.util = (() => {
     }
   }
 
+  /**
+   * Applique `fn` à chaque élément, au plus `limit` à la fois ; résultats dans l'ordre des éléments.
+   * @template T, R
+   * @param {T[]} items
+   * @param {number} limit
+   * @param {(item: T, index: number) => Promise<R>} fn
+   * @param {{ signal?: AbortSignal, onProgress?: (done: number, total: number) => void }} [o]
+   * @returns {Promise<R[]>}
+   */
+  async function pool(items, limit, fn, { signal, onProgress } = {}) {
+    const out = new Array(items.length);
+    let next = 0, done = 0;
+    const run = async () => {
+      while (next < items.length && !signal?.aborted) {
+        const i = next++;
+        out[i] = await fn(items[i], i);
+        onProgress?.(++done, items.length);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, run));
+    return out;
+  }
+
   const nextFrame = () => new Promise(r => setTimeout(r, 0));
   const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -208,10 +233,10 @@ MF.util = (() => {
   const deepClone = o => (typeof structuredClone === 'function' ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 
   return {
-    normalize, esc, cleanText, uid, rng, randomSeed, shuffle, hash, clamp, levenshtein,
+    normalize, stripAccents, slug, esc, cleanText, uid, rng, randomSeed, shuffle, hash, clamp, levenshtein,
     HEX, hexToRgb, rgbToHex, mix, tint, shade, luminance, onColor,
     html, $, $$, debounce, throttleFrame, plural,
     download, downloadBlob, readFile, blobToDataUrl, dataUrlToBlob, bytesToB64url, b64urlToBytes,
-    fetchJson, nextFrame, sleep, deepClone, parseValue,
+    fetchJson, pool, nextFrame, sleep, deepClone, parseValue,
   };
 })();

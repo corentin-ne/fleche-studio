@@ -29,6 +29,8 @@ MF.updates = (() => {
     if (!reg) return; // service workers désactivés par le navigateur
     // Premier passage (aucune version installée avant) : rien à annoncer
     const hadController = !!navigator.serviceWorker.controller;
+    // Dictionnaires chargés par cette page : gardés pour le hors ligne (ceux chargés plus tard passent par le service worker)
+    navigator.serviceWorker.ready.then(r => r.active?.postMessage({ type: 'warm', paths: MF.loader.loadedLexicons() })).catch(() => {});
     reg.addEventListener('updatefound', () => {
       const sw = reg.installing;
       sw?.addEventListener('statechange', () => { if (sw.state === 'activated' && hadController) announce(); });

@@ -61,6 +61,36 @@
   test('levenshtein', () => { eq(MF.util.levenshtein('CHEVAL', 'CHEVL'), 1); assert(MF.util.levenshtein('ABC', 'XYZWV', 2) > 2); });
   test('identifiants uniques', () => { const s = new Set(Array.from({ length: 2000 }, MF.util.uid)); eq(s.size, 2000); });
 
+  test('slug : noms de fichiers lisibles', () => {
+    eq(MF.util.slug('Test étoile !'), 'test-etoile');
+    eq(MF.util.slug('Cœur & Âme'), 'coeur-ame');
+    eq(MF.util.slug('***', 'grille'), 'grille');
+    eq(MF.util.slug('x'.repeat(100)).length, 60);
+  });
+  test('pool : ordre des résultats et nombre de tâches simultanées bornés', async () => {
+    let running = 0, peak = 0;
+    const out = await MF.util.pool([5, 1, 4, 2, 3], 2, async (n, i) => {
+      peak = Math.max(peak, ++running);
+      await MF.util.sleep(n * 3);
+      running--;
+      return n * 10 + i;
+    });
+    eq(out, [50, 11, 42, 23, 34]);
+    eq(peak, 2, 'simultanées');
+    eq(await MF.util.pool([], 4, async x => x), []);
+  });
+  test('stockage local : préfixes, lecture protégée, effacement ciblé', () => {
+    const P = 'mfm:test-storage:';
+    MF.storage.removeAll(P);
+    assert(MF.storage.set(`${P}a`, { n: 1 }) && MF.storage.set(`${P}b`, 'texte'));
+    eq(MF.storage.getJSON(`${P}a`), { n: 1 });
+    eq(MF.storage.getJSON(`${P}b`, 'repli'), 'repli', 'JSON illisible');
+    eq(MF.storage.getJSON(`${P}absent`, 7), 7);
+    eq(MF.storage.keys(P).sort(), [`${P}a`, `${P}b`]);
+    eq(MF.storage.removeAll(P), 2);
+    eq(MF.storage.keys(P), []);
+  });
+
   /* ---------------- Sécurité des données ---------------- */
   test('schéma : injections HTML/SVG rejetées', () => {
     const p = MF.schema.puzzle({
@@ -268,6 +298,34 @@
     assert(MF.games.engine('meles') === MF.wordsearch && MF.games.engine('croises') === MF.builder && MF.games.engine('inconnu') === MF.builder);
   });
 
+  test('jeux : particularités déclarées une seule fois', () => {
+    for (const [id, g] of Object.entries(MF.games.GAMES)) {
+      assert(MF.themes.THEMES[g.theme], `${id} : thème ${g.theme} inconnu`);
+      eq(g.wordSearch, g.engine === 'meles', `${id} : wordSearch`);
+    }
+    const pz = MF.schema.puzzle({ game: 'fleches', layout: null });
+    assert(!MF.games.compatible(pz), 'sans grille');
+    pz.layout = { engine: 'builder' };
+    assert(MF.games.compatible(pz) && !MF.games.compatible({ ...pz, game: 'meles' }), 'moteur du jeu');
+  });
+  test('grille : mots de l\'utilisateur et clés des mots', () => {
+    const builder = { engine: 'builder', words: [{ dir: 'H', r: 1, c: 2, wid: 'w1', src: 'theme' }, { dir: 'V', r: 0, c: 0, src: 'curated' }, { dir: 'H', r: 3, c: 0, wid: 'w2', src: 'curated' }] };
+    eq(MF.gridModel.placedIn(builder).map(w => w.wid), ['w1']);
+    eq(MF.gridModel.wordKey(builder, 0), 'H:1,2');
+    const meles = { engine: 'meles', words: [{ wid: 'a' }, { word: 'X' }] };
+    eq(MF.gridModel.placedIn(meles).map(w => w.wid), ['a']);
+    eq(MF.gridModel.wordKey(meles, 1), 'W1');
+  });
+  test('schéma : images utilisées par une grille', () => {
+    const pz = MF.schema.puzzle({
+      design: { background: { type: 'image', imageId: 'bgimage1' } },
+      stickers: [{ kind: 'image', imageId: 'photo001' }, { kind: 'emoji', emoji: '⭐' }],
+    });
+    eq(MF.schema.assetIds(pz), ['bgimage1', 'photo001']);
+    eq(MF.schema.assetIds(MF.schema.puzzle({})), []);
+    eq(MF.schema.assetIds(null), []);
+  });
+
   /* ---------------- Store (isolé : jamais les vraies données) ---------------- */
   /** Store de test avec deux grilles, A (active) et B ; renvoie aussi leurs identifiants. */
   const testStore = () => {
@@ -324,6 +382,106 @@
     const st = s.load({ theme: 'rose', ui: { cell: 9999, tab: '<script>' }, puzzles: 'nope', activeId: 'x' });
     eq([st.theme === 'rose', st.ui.cell, st.ui.tab, st.puzzles, st.activeId], [false, 140, 'words', [], null]);
   });
+
+  test('store : restauration de toutes les grilles annulable', () => {
+    const { s, a, b } = testStore();
+    s.replacePuzzles([{ name: 'Z' }], null);
+    eq(s.get().puzzles.map(p => p.name), ['Z']);
+    s.undo();
+    eq([s.get().puzzles.map(p => p.id), s.active().id], [[a, b], a]);
+  });
+  test('store : images de l\'historique gardées', () => {
+    const { s } = testStore();
+    s.update(st => { st.puzzles[0].design.background.imageId = 'oldimage'; }, 'design', { coalesce: 'un' });
+    s.update(st => { st.puzzles[0].design.background.imageId = 'newimage'; }, 'design', { coalesce: 'deux' });
+    const used = s.usedAssets();
+    assert(used.has('newimage') && used.has('oldimage'), 'image restaurable par Ctrl+Z');
+  });
+  test('store : stockage plein signalé, sans perte de l\'état', () => {
+    const key = 'mfm:test-quota';
+    const s = MF.createStore({ key, persist: true });
+    s.load({ puzzles: [{ name: 'A' }] });
+    const reasons = [];
+    s.subscribe(r => reasons.push(r));
+    const write = MF.storage.write;
+    MF.storage.write = () => { throw new DOMException('plein', 'QuotaExceededError'); };
+    try {
+      assert(!s.flush(), 'écriture refusée');
+      eq(reasons, ['quota']);
+      eq(s.active().name, 'A', 'état gardé en mémoire');
+    } finally { MF.storage.write = write; }
+    assert(s.flush(), 'écriture rétablie');
+    eq(MF.storage.getJSON(key).puzzles[0].name, 'A');
+    MF.storage.remove(key);
+  });
+  test('store : tout effacer vide aussi l\'historique', async () => {
+    const { s } = testStore();
+    rename(s, 'A1');
+    await s.wipe();
+    eq([s.get().puzzles, s.canUndo(), s.canRedo()], [[], false, false]);
+  });
+
+  /* ---------------- Actions (store isolé, interface simulée) ---------------- */
+  /** Actions branchées sur un store de test ; MF.ui et MF.assets simulés le temps du test. */
+  async function withActions(fn, { puzzle = {} } = {}) {
+    const saved = { store: MF.store, ui: MF.ui, fromDataUrl: MF.assets.fromDataUrl, raf: window.requestAnimationFrame };
+    const toasts = [];
+    MF.store = MF.createStore({ persist: false });
+    MF.store.load({ puzzles: [{ name: 'Test', options: { lang: 'fr' }, ...puzzle }] });
+    MF.ui = { toast: (msg, kind) => toasts.push({ msg, kind }), confirm: async () => true };
+    window.requestAnimationFrame = () => 0;
+    MF.dictionary.use('fr');
+    const app = { view: { draft: {}, page: 0 }, renderAll() {}, renderSide() {}, regenerate() {}, setMode() {} };
+    try { await fn(MF.createActions(app), MF.store, toasts); } finally {
+      MF.store = saved.store; MF.ui = saved.ui; MF.assets.fromDataUrl = saved.fromDataUrl; window.requestAnimationFrame = saved.raf;
+    }
+  }
+  test('actions : ajout de mots sans doublon ni mot trop court', () => withActions((actions, store) => {
+    const known = Object.keys(MF.cluesFr).find(w => w.length > 4);
+    const n = actions.addWords([{ text: 'Été' }, { text: 'ete' }, { text: 'a' }, { text: known.toLowerCase() }, { text: 'Zorglubix' }]);
+    eq(n, 3);
+    eq(store.active().words.map(w => MF.util.normalize(w.text)), ['ETE', known, 'ZORGLUBIX']);
+    eq(store.active().words[1].clue, MF.cluesFr[known], 'définition du dictionnaire');
+    eq(actions.addWords([{ text: 'ete' }], { silent: true }), 0, 'déjà présent');
+  }));
+  test('actions : limite du nombre de mots respectée', () => {
+    const words = Array.from({ length: MF.schema.LIMITS.words - 1 }, (_, i) => ({ text: `MOT${i}`.replace(/\d/g, d => 'ABCDEFGHIJ'[d]) }));
+    return withActions((actions, store) => {
+      eq(actions.addWords([{ text: 'XYLOPHONE' }, { text: 'ZEBRURE' }], { silent: true }), 1);
+      eq(store.active().words.length, MF.schema.LIMITS.words);
+    }, { puzzle: { words } });
+  });
+  test('actions : restauration d\'une sauvegarde (images renumérotées, grille remplacée)', () => withActions(async (actions, store, toasts) => {
+    const existing = store.active();
+    let n = 0;
+    MF.assets.fromDataUrl = async url => (url === 'data:good' ? { id: `restored${++n}` } : null);
+    const backup = {
+      app: 'mots-fleches-maker', v: 3,
+      puzzles: [
+        { ...existing, name: 'Remplacée', stickers: [{ kind: 'image', imageId: 'photoAA1' }, { kind: 'image', imageId: 'photoBB2' }] },
+        { name: 'Nouvelle', design: { background: { type: 'image', imageId: 'photoAA1' } } },
+      ],
+      assets: { photoAA1: 'data:good', photoBB2: 'data:bad' },
+    };
+    await actions.openFile(new File([JSON.stringify(backup)], 'sauvegarde.json', { type: 'application/json' }));
+    const list = store.get().puzzles;
+    eq(list.map(p => p.name), ['Remplacée', 'Nouvelle'], 'même identifiant remplacé, nouvelle ajoutée');
+    eq(list[0].stickers.map(s => s.imageId), ['restored1'], 'image illisible retirée');
+    eq(list[1].design.background.imageId, 'restored1');
+    assert(toasts.some(t => t.kind === 'ok'), 'confirmation');
+    assert(store.undo() && store.get().puzzles.length === 1, 'annulable');
+  }));
+  test('actions : décor, ordre et suppression', () => withActions((actions, store) => {
+    actions.addSticker({ kind: 'emoji', emoji: '⭐' });
+    actions.addSticker({ kind: 'emoji', emoji: '🌙' });
+    const [first, second] = store.active().stickers.map(s => s.id);
+    actions.moveSticker(second, -1);
+    eq(store.active().stickers.map(s => s.id), [second, first]);
+    actions.stickerAction('dup', first);
+    eq(store.active().stickers.length, 3);
+    actions.stickerAction('del', first);
+    assert(!store.active().stickers.some(s => s.id === first));
+  }));
 
   /* ---------------- Jeu ---------------- */
   test('progression : les parties périmées sont supprimées', () => {

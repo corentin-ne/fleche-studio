@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Sélecteur de forme de grille, partagé par le panneau Grille et l'assistant
    de création : familles en puces (Formes, Symboles, Lettres, Chiffres),

@@ -17,8 +17,9 @@ window.MF = window.MF || {};
  * Crée un store. L'application utilise MF.store ; les tests en créent un isolé.
  * @param {{ key?: string, persist?: boolean }} [o]  persist = false : rien n'est lu ni écrit dans le navigateur
  */
-MF.createStore = ({ key: KEY = 'mfm:v2', persist = true } = {}) => {
-  const LEGACY_KEY = 'mots-fleches-maker:v1';
+MF.createStore = ({ key: KEY = MF.storage.KEYS.state, persist = true } = {}) => {
+  const disk = MF.storage;
+  const LEGACY_KEY = `${disk.KEYS.legacy}v1`;
   const HISTORY_MAX = 60;
   const COALESCE_MS = 700;
   // Changements qui entrent dans l'historique (annuler / rétablir)
@@ -70,11 +71,9 @@ MF.createStore = ({ key: KEY = 'mfm:v2', persist = true } = {}) => {
   function load(initial) {
     revision++;
     if (initial !== undefined) { state = sanitizeState(initial); return state; }
-    try {
-      const raw = persist ? localStorage.getItem(KEY) : null;
-      if (raw) { state = sanitizeState(JSON.parse(raw)); return state; }
-    } catch { /* stockage indisponible ou corrompu : on repart de zéro */ }
-    state = defaults();
+    // Stockage indisponible ou corrompu : on repart de zéro
+    const saved = persist ? disk.getJSON(KEY) : null;
+    state = saved ? sanitizeState(saved) : defaults();
     return state;
   }
 
@@ -82,7 +81,7 @@ MF.createStore = ({ key: KEY = 'mfm:v2', persist = true } = {}) => {
   function writeNow() {
     if (!state || !persist) return true; // jamais chargé (ex. page de tests) : on ne touche pas aux données
     try {
-      localStorage.setItem(KEY, JSON.stringify(state));
+      disk.write(KEY, JSON.stringify(state));
       return true;
     } catch (e) {
       // Stockage plein : les abonnés libèrent de la place (progression de jeu…) puis réessaient via flush()
@@ -173,22 +172,15 @@ MF.createStore = ({ key: KEY = 'mfm:v2', persist = true } = {}) => {
   /** Grilles de l'ancienne version encore présentes dans ce navigateur (récupération possible). */
   function legacy() {
     if (!persist) return [];
-    try {
-      const s = JSON.parse(localStorage.getItem(LEGACY_KEY) || 'null');
-      return Array.isArray(s?.puzzles) ? s.puzzles.slice(0, MF.schema.LIMITS.puzzles).map(makePuzzle) : [];
-    } catch { return []; }
+    const s = disk.getJSON(LEGACY_KEY);
+    return Array.isArray(s?.puzzles) ? s.puzzles.slice(0, MF.schema.LIMITS.puzzles).map(makePuzzle) : [];
   }
-  function forgetLegacy() {
-    try {
-      localStorage.removeItem(LEGACY_KEY);
-      Object.keys(localStorage).filter(k => k.startsWith('mots-fleches-maker:')).forEach(k => localStorage.removeItem(k));
-    } catch { /* ignoré */ }
-  }
+  const forgetLegacy = () => { disk.removeAll(disk.KEYS.legacy); };
 
   /** Efface TOUTES les données locales de l'application (grilles, progression, images, versions). */
   async function wipe() {
     if (persist) {
-      try { Object.keys(localStorage).filter(k => k.startsWith('mfm:') || k.startsWith('mots-fleches-maker:')).forEach(k => localStorage.removeItem(k)); } catch { /* ignoré */ }
+      disk.removeAll(disk.OWN);
       await MF.assets.clear();
       await MF.versions?.clear();
     }
@@ -210,10 +202,7 @@ MF.createStore = ({ key: KEY = 'mfm:v2', persist = true } = {}) => {
   /** Images encore utilisées par au moins une grille (historique compris). */
   function usedAssets() {
     const ids = new Set();
-    const scan = list => list.forEach(p => {
-      if (p?.design?.background?.imageId) ids.add(p.design.background.imageId);
-      p?.stickers?.forEach(s => s.imageId && ids.add(s.imageId));
-    });
+    const scan = list => list.forEach(p => MF.schema.assetIds(p).forEach(id => ids.add(id)));
     scan(state.puzzles);
     [...past, ...future].forEach(s => scan(s.all || [s.puzzle]));
     return ids;
@@ -230,7 +219,7 @@ MF.createStore = ({ key: KEY = 'mfm:v2', persist = true } = {}) => {
   const isOwnKey = key => persist && key === KEY;
 
   /** Taille approximative des données texte enregistrées (octets). */
-  const bytes = () => { try { return persist ? (localStorage.getItem(KEY) || '').length * 2 : 0; } catch { return 0; } };
+  const bytes = () => (persist ? disk.bytes(KEY) : 0);
 
   return {
     load, reload, isOwnKey, get, active, puzzle, update, subscribe, undo, redo, canUndo, canRedo, rev,

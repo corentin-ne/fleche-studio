@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Rendus d'une scène (liste d'opérations de dessin, voir MF.scene) :
      - svg()    : écran et export vectoriel ;
@@ -80,7 +81,7 @@ MF.renderers = (() => {
         if (o.cls) a += ` class="${o.cls}"`;
         if (o.data) for (const [k, v] of Object.entries(o.data)) a += ` data-${k}="${xml(v)}"`;
       }
-      if (o.opacity !== undefined && o.opacity < 1) a += ` opacity="${f(o.opacity * 100) / 100}"`;
+      if (o.opacity !== undefined && o.opacity < 1) a += ` opacity="${Math.round(o.opacity * 100) / 100}"`;
       if (o.shadow) a += ` filter="url(#${shadowId()})"`;
       return a;
     }

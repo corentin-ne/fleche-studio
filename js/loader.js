@@ -23,7 +23,7 @@
   /** Fichiers de la page, par couche (l'ordre compte : chaque fichier n'utilise que les précédents). */
   const GROUPS = {
     core: [
-      'js/core/i18n.js', 'js/i18n/en.js', 'js/core/utils.js', 'js/core/idb.js', 'js/core/lexicon.js', 'js/core/text.js',
+      'js/core/storage.js', 'js/core/i18n.js', 'js/i18n/en.js', 'js/core/utils.js', 'js/core/idb.js', 'js/core/lexicon.js', 'js/core/text.js',
       'js/engine/design.js', 'js/engine/shapes.js', 'js/engine/backgrounds.js', 'js/engine/games.js', 'js/data/stickers.js',
       'js/core/schema.js', 'js/core/assets.js', 'js/core/store.js', 'js/core/versions.js', 'js/core/zip.js', 'js/core/qr.js', 'js/core/share.js',
     ],
@@ -37,9 +37,9 @@
       'js/ui/components.js', 'js/ui/phone-nav.js', 'js/ui/pinch-zoom.js', 'js/ui/brand.js', 'js/ui/grid-view.js',
       'js/ui/live-build.js', 'js/ui/sticker-editor.js', 'js/ui/previews.js', 'js/ui/shape-picker.js', 'js/ui/layout-controls.js',
       'js/ui/pickers.js', 'js/ui/panels/words.js', 'js/ui/panels/clues.js', 'js/ui/panels/design.js', 'js/ui/panels/decor.js',
-      'js/ui/panels/settings.js', 'js/ui/exporter.js', 'js/ui/welcome.js', 'js/ui/dashboard.js',
+      'js/ui/panels/settings.js', 'js/ui/exporter.js', 'js/ui/share-dialog.js', 'js/ui/welcome.js', 'js/ui/dashboard.js',
     ],
-    app: ['js/app/actions.js', 'js/app/play.js', 'js/app/help.js', 'js/app/shortcuts.js', 'js/app/updates.js', 'js/app.js'],
+    app: ['js/app/guard.js', 'js/app/actions.js', 'js/app/export-flow.js', 'js/app/play.js', 'js/app/help.js', 'js/app/shortcuts.js', 'js/app/updates.js', 'js/app.js'],
   };
 
   /** Dictionnaires (les plus gros fichiers) : chargés seulement pour la langue utilisée. */
@@ -54,7 +54,7 @@
   /** Ce que chaque point d'entrée charge. */
   const ENTRIES = {
     app: [...GROUPS.core, ...GROUPS.data, ...GROUPS.services, ...GROUPS.engine, ...GROUPS.ui, ...GROUPS.app],
-    tests: [...GROUPS.core, ...GROUPS.data, ...GROUPS.services, ...GROUPS.engine, ...LEXICONS.fr, ...LEXICONS.en, 'js/app/play.js', 'tests/run.js'],
+    tests: [...GROUPS.core, ...GROUPS.data, ...GROUPS.services, ...GROUPS.engine, ...LEXICONS.fr, ...LEXICONS.en, 'js/app/play.js', 'js/app/actions.js', 'tests/run.js'],
   };
 
   // Racine du site : déduite de l'adresse de ce fichier (page), ou fournie avant l'import (worker : MF.base)
@@ -98,10 +98,14 @@
   const lexicon = lang => load(LEXICONS[lang] || []);
   const hasLexicon = lang => (LEXICONS[lang] || []).every(p => loaded.has(p));
 
-  /** Tous les fichiers à garder pour le fonctionnement hors ligne. */
-  const all = () => [...new Set([...ENTRIES.app, ...Object.values(LEXICONS).flat(), ...WORKER, 'js/engine/worker.js', 'js/loader.js'])];
+  /** Application sans les dictionnaires : ce que le service worker met en cache dès l'installation. */
+  const essential = () => [...new Set([...ENTRIES.app, ...WORKER, 'js/engine/worker.js', 'js/loader.js'])];
+  /** Tous les fichiers utilisables hors ligne (les dictionnaires sont mis en cache à leur premier chargement). */
+  const all = () => [...new Set([...essential(), ...Object.values(LEXICONS).flat()])];
+  /** Dictionnaires déjà chargés dans cette page. */
+  const loadedLexicons = () => Object.values(LEXICONS).flat().filter(p => loaded.has(p));
 
-  MF.loader = { VERSION, GROUPS, LEXICONS, WORKER, ENTRIES, url, load, lexicon, hasLexicon, all };
+  MF.loader = { VERSION, GROUPS, LEXICONS, WORKER, ENTRIES, url, load, lexicon, hasLexicon, essential, all, loadedLexicons };
 
   // Page : point d'entrée indiqué par data-entry (« app » ou « tests »)
   const entry = script?.dataset.entry;

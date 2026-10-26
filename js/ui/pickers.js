@@ -328,19 +328,14 @@ MF.pickers = (() => {
    * @param onEach (index, clue) appelé dès qu'une définition est trouvée
    */
   async function autoDefine(words, onEach, { concurrency = 3, signal } = {}) {
-    let found = 0, i = 0;
-    const queue = words.map((w, idx) => ({ w, idx }));
-    const worker = async () => {
-      while (i < queue.length && !signal?.aborted) {
-        const { w, idx } = queue[i++];
-        let clue = D.clue(w);
-        if (!clue && MF.wiki.isOnline()) {
-          try { clue = (await MF.wiki.definitions(w, { signal }))[0]?.short || ''; } catch { /* suivant */ }
-        }
-        if (clue) { found++; onEach(idx, clue); }
+    let found = 0;
+    await MF.util.pool(words, concurrency, async (w, idx) => {
+      let clue = D.clue(w);
+      if (!clue && MF.wiki.isOnline()) {
+        try { clue = (await MF.wiki.definitions(w, { signal }))[0]?.short || ''; } catch { /* suivant */ }
       }
-    };
-    await Promise.all(Array.from({ length: concurrency }, worker));
+      if (clue) { found++; onEach(idx, clue); }
+    }, { signal });
     return found;
   }
 

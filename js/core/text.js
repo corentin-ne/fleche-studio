@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Mesure et mise en forme de texte (partagées par le modèle de grille,
    la mise en page des affiches et les rendus SVG / Canvas).
@@ -55,7 +56,13 @@ MF.text = (() => {
     return lines;
   }
 
-  /** Plus grande taille de police (entre min et max) pour laquelle le texte tient dans la boîte. */
+  /**
+   * Plus grande taille de police (entre min et max) pour laquelle le texte tient dans la boîte.
+   * @param {string} text
+   * @param {number} boxW
+   * @param {number} boxH
+   * @param {{ family?: string, weight?: number, lineH?: number, max?: number, min?: number }} [o]
+   */
   function fit(text, boxW, boxH, { family, weight = 600, lineH = 1.1, max = 17, min = 6.5 } = {}) {
     const clean = String(text || '').trim();
     if (!clean) return { size: max, lines: [] };

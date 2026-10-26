@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Formes de grille : rectangle, cercle, cœur, étoile… et lettres / chiffres.
    Une forme est une fonction (u, v) -> dedans ? sur le carré [-1, 1]²

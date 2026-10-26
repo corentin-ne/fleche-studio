@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Panneau « Définitions » : définitions des mots de remplissage, mots
    bannis, mots perso hors grille et points à vérifier.
@@ -13,7 +14,7 @@ MF.panels.clues = (() => {
   function render(root, { puzzle, derived, actions }) {
     const { layout, issues, fillers } = derived;
     const game = MF.games.get(puzzle.game);
-    const themes = (game.engine === 'meles' ? MF.wordsearch : MF.builder).prepare(puzzle.words);
+    const themes = MF.games.engineModule(game.engine).prepare(puzzle.words);
     const placed = derived.pageOf.size;
     const missing = fillers.filter(f => !f.clue);
     const total = layout?.words.length || 0;

@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Archive ZIP minimale (sans compression : PNG et SVG se téléchargent en un seul fichier).
    Format « stored » + noms UTF-8 : lu par Windows, macOS et tous les outils courants.
@@ -88,7 +89,7 @@ MF.zip = (() => {
     end.setUint32(12, cdSize, true);
     end.setUint32(16, offset, true);
 
-    return new Blob([...chunks, ...central, end], { type: 'application/zip' });
+    return new Blob(/** @type {BlobPart[]} */ ([...chunks, ...central, end]), { type: 'application/zip' });
   }
 
   return { create, crc32 };

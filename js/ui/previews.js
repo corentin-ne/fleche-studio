@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Aperçus réels des styles : un petit extrait de grille dessiné avec le vrai
    moteur de rendu. Ce que l'on voit dans les vignettes (thèmes, styles de

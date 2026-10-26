@@ -9,17 +9,18 @@
 window.MF = window.MF || {};
 
 MF.play = (() => {
-  const PREFIX = 'mfm:play:';
+  const PREFIX = MF.storage.KEYS.play;
   const COLORS = ['#ff4d7d', '#ffd23f', '#3dd68c', '#4d9bff', '#7b3fe4', '#ff8a3d'];
 
   /** Clé de progression d'une page de grille. */
   const keyOf = (pz, page) => `${pz.id}@${pz.layout?.at}#${page}`;
 
   function load(key) {
-    try { const v = JSON.parse(localStorage.getItem(PREFIX + key) || '{}'); return MF.schema.isObj(v) ? v : {}; } catch { return {}; }
+    const v = MF.storage.getJSON(PREFIX + key, {});
+    return MF.schema.isObj(v) ? v : {};
   }
   const save = MF.util.debounce((key, entries) => {
-    try { localStorage.setItem(PREFIX + key, JSON.stringify(entries)); } catch { /* stockage plein : la partie continue */ }
+    MF.storage.set(PREFIX + key, entries); // stockage plein : la partie continue
   }, 300);
 
   /**
@@ -29,16 +30,16 @@ MF.play = (() => {
    * @param {any[]} puzzles
    * @param {{ all?: boolean, keep?: string | null, storage?: Storage }} [o]  storage : remplaçable dans les tests
    */
-  function prune(puzzles, { all = false, keep = null, storage = localStorage } = {}) {
+  function prune(puzzles, { all = false, keep = null, storage = MF.storage.area() } = {}) {
     const valid = new Set(puzzles.filter(p => p.layout).map(p => `${p.id}@${p.layout.at}`));
     let removed = 0;
-    try {
-      Object.keys(storage).filter(k => k.startsWith(PREFIX)).forEach(k => {
-        const id = k.slice(PREFIX.length);
-        if (id === keep) return;
-        if (all || !valid.has(id.split('#')[0])) { storage.removeItem(k); removed++; }
-      });
-    } catch { /* stockage indisponible */ }
+    MF.storage.keys(PREFIX, storage).forEach(k => {
+      const id = k.slice(PREFIX.length);
+      if (id === keep) return;
+      if (all || !valid.has(id.split('#')[0])) {
+        try { storage.removeItem(k); removed++; } catch { /* stockage indisponible */ }
+      }
+    });
     return removed;
   }
 

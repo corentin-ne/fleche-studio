@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Panneau « Décor » : emojis, stickers, textes et photos posés sur l'affiche,
    calques, et réglages de l'élément sélectionné.
