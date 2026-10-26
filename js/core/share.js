@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Liens de partage, sans serveur : la grille est compressée puis placée
    dans le fragment de l'URL (#g=…). Le fragment n'est JAMAIS envoyé au
@@ -41,6 +42,12 @@ MF.share = (() => {
     };
   }
 
+  /** Ce que le lien ne contient pas : photos du décor, image de fond. */
+  const omitted = pz => ({
+    photos: pz.stickers.filter(s => s.kind === 'image').length,
+    background: pz.design.background.type === 'image' && !!pz.design.background.imageId,
+  });
+
   async function link(pz) {
     if (!supported) throw new Error(MF.i18n.t('Navigateur trop ancien pour créer un lien'));
     const json = new TextEncoder().encode(JSON.stringify(payload(pz)));
@@ -66,5 +73,5 @@ MF.share = (() => {
 
   const clearHash = () => history.replaceState(null, '', location.pathname + location.search);
 
-  return { link, read, clearHash, supported };
+  return { link, read, omitted, clearHash, supported };
 })();

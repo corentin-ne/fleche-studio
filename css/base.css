@@ -107,3 +107,6 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 1ms !important; transition-duration: 1ms !important; }
 }
+
+/* Échec du chargement des scripts (voir js/loader.js) */
+.boot-error { position: fixed; inset: auto 16px 16px; z-index: 9999; margin: 0; padding: 14px 16px; border-radius: 12px; background: #2a0f14; color: #ffd9de; font: 500 14px/1.4 system-ui, sans-serif; box-shadow: 0 10px 30px rgba(0, 0, 0, .4); }

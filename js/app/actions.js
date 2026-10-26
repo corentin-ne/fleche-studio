@@ -252,6 +252,7 @@ MF.createActions = app => {
       const res = await MF.welcome.wizard(defaults);
       if (!res) return;
       const pz = store.makePuzzle({ name: res.name || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang } });
+      await MF.lexicon.ensure(res.lang).catch(() => {}); // tirage au hasard : dictionnaire de la langue choisie
       MF.dictionary.use(res.lang);
       pz.design = MF.themes.apply(pz.design, res.theme);
       let words = [];
@@ -348,17 +349,32 @@ MF.createActions = app => {
       if (!pz?.layout) { MF.ui.toast(t('Calcule d\'abord la grille.'), 'warn'); return; }
       let url;
       try { url = await MF.share.link(pz); } catch (e) { MF.ui.toast(e.message || t('Lien impossible.'), 'err'); return; }
+      const ic = MF.icons.svg;
+      // Ce qui ne voyage pas dans le lien (trop lourd pour une adresse) : annoncé avant l'envoi
+      const { photos, background } = MF.share.omitted(pz);
+      const lost = [photos && plural(photos, 'photo'), background && t('l\'image de fond')].filter(Boolean);
+      // QR code : à scanner depuis un téléphone, ou à imprimer à côté de la grille
+      const qr = url.length <= MF.qr.capacity('L') ? MF.qr.encode(url) : null;
+      // Au moins 3 px par module : un QR dense (lien long) reste lisible par un téléphone
+      const qrPx = qr ? (qr.size + 8) * 3 : 0;
       await MF.ui.modal({
         title: t('Partager la grille à jouer'), icon: 'share',
         body: `<p class="muted small">${t('Envoie ce lien : on pourra jouer à ta grille directement dans le navigateur, sans compte. La grille est <b>dans le lien lui-même</b> (rien n\'est stocké sur un serveur).')}</p>
-          <div class="row share-row"><input class="input mono" id="share-url" readonly value="${MF.util.esc(url)}"><button class="btn btn-primary" id="share-copy">${MF.icons.svg('copy')}${t('Copier')}</button></div>
-          <p class="field-hint">${MF.icons.svg('info', 'ic-inline')} ${t('Le lien contient les réponses (pour vérifier) ; les photos importées ne sont pas incluses. {size} Ko.', { size: MF.i18n.num(+(url.length / 1024).toFixed(1)) })}</p>`,
+          <div class="row share-row"><input class="input mono" id="share-url" readonly value="${MF.util.esc(url)}" aria-label="${MF.util.esc(t('Lien de partage'))}"><button class="btn btn-primary" id="share-copy">${ic('copy')}${t('Copier')}</button></div>
+          <p class="field-hint">${ic('info', 'ic-inline')} ${t('Le lien contient les réponses (pour vérifier). {size} Ko.', { size: MF.i18n.num(+(url.length / 1024).toFixed(1)) })}</p>
+          ${lost.length ? `<p class="share-lost small">${ic('alert', 'ic-inline')} ${t('Non inclus dans le lien : {list}. Le reste du design voyage avec la grille.', { list: MF.util.esc(lost.join(', ')) })}</p>` : ''}
+          ${qr ? `<div class="share-qr ${qrPx > 200 ? 'big' : ''}"><div class="share-qr-code" style="width:min(100%, ${Math.max(168, qrPx)}px)">${MF.qr.svg(qr)}</div><div class="share-qr-side"><b>${t('QR code')}</b><p class="muted small">${t('À scanner avec un téléphone, ou à imprimer à côté de la grille.')}</p><button class="btn btn-sm" id="share-qr-png">${ic('download')}${t('Télécharger (PNG)')}</button></div></div>`
+    : `<p class="field-hint">${ic('info', 'ic-inline')} ${t('Grille trop grande pour un QR code : partage le lien.')}</p>`}`,
         onOpen: r => {
           const inp = r.querySelector('#share-url');
           inp.addEventListener('focus', () => inp.select());
           r.querySelector('#share-copy').onclick = async () => {
             try { await navigator.clipboard.writeText(url); MF.ui.toast(t('Lien copié !'), 'ok'); } catch { inp.select(); document.execCommand?.('copy'); }
           };
+          r.querySelector('#share-qr-png')?.addEventListener('click', async () => {
+            const blob = await MF.qr.png(qr, { px: 10 });
+            if (blob) MF.util.downloadBlob(`${MF.exporter.slug(pz.name)}-qr.png`, blob);
+          });
           if (navigator.share) {
             const b = MF.util.html(`<button class="btn">${MF.icons.svg('share')}${t('Envoyer…')}</button>`);
             b.onclick = () => navigator.share({ title: pz.name, url }).catch(() => {});

@@ -83,6 +83,8 @@ MF.gridView = (() => {
       inp.spellcheck = false;
       inp.setAttribute('autocapitalize', 'characters');
       inp.setAttribute('aria-label', MF.i18n.t('Case ligne {row}, colonne {col}', { row: r + 1, col: c + 1 }));
+      // Lecteur d'écran : la définition du mot en cours est lue avec la case
+      inp.setAttribute('aria-describedby', 'clue-text');
       inp.dataset.r = r; inp.dataset.c = c;
       const given = codes && ctx.model.givens.has(cell.ch);
       if (given) { inp.value = cell.ch; inp.readOnly = true; inp.classList.add('given'); } else inp.value = ctx.entries[key(r, c)] || '';
@@ -195,6 +197,10 @@ MF.gridView = (() => {
     const over = document.createElementNS(ns, 'svg');
     over.setAttribute('viewBox', `0 0 ${W} ${H}`);
     over.setAttribute('class', 'ws-layer');
+    // Jouable au clavier : flèches pour se déplacer, Entrée pour le début puis la fin d'un mot
+    over.setAttribute('tabindex', '0');
+    over.setAttribute('role', 'application');
+    over.setAttribute('aria-label', MF.i18n.t('Mots mêlés : flèches pour se déplacer, Entrée pour marquer le début puis la fin d\'un mot'));
     sheet.appendChild(over);
     ctx.found = new Set(Array.isArray(ctx.entries.found) ? ctx.entries.found.filter(k => ctx.model.slots.has(k)) : []);
     const C = MF.design.resolve(ctx.puzzle.design);
@@ -226,6 +232,25 @@ MF.gridView = (() => {
       const r = Math.floor(y / U), c = Math.floor(x / U);
       return ctx.model.cells[r]?.[c]?.type === 'letter' ? [r, c] : null;
     };
+    /** Sélection de a à b : marque le mot s'il est caché là (dans un sens ou dans l'autre). */
+    const select = (a, b) => {
+      const sel = `${a}|${b}`, rev = `${b}|${a}`;
+      for (const [k, s] of ctx.model.slots) {
+        const ends = `${s.cells[0]}|${s.cells[s.cells.length - 1]}`;
+        if ((ends === sel || ends === rev) && !ctx.found.has(k)) {
+          ctx.found.add(k);
+          ctx.entries.found = [...ctx.found];
+          ctx.o.onEntries?.(ctx.entries);
+          drawFound();
+          ctx.o.onFound?.(s, ctx.found.size, ctx.model.slots.size);
+          checkDone();
+          return true;
+        }
+      }
+      return false;
+    };
+    const aligned = (a, b) => { const dr = b[0] - a[0], dc = b[1] - a[1]; return !dr || !dc || Math.abs(dr) === Math.abs(dc); };
+
     let start = null, temp = null, end = null;
     sheet.addEventListener('pointerdown', e => {
       start = cellAt(e);
@@ -239,9 +264,8 @@ MF.gridView = (() => {
       if (!start) return;
       const c = cellAt(e);
       if (!c) return;
-      const dr = c[0] - start[0], dc = c[1] - start[1];
       // Seulement en ligne droite (horizontale, verticale ou diagonale)
-      if (dr && dc && Math.abs(dr) !== Math.abs(dc)) return;
+      if (!aligned(start, c)) return;
       end = c;
       temp.remove();
       temp = capsule(start, end, 'ws-temp');
@@ -249,23 +273,52 @@ MF.gridView = (() => {
     const finish = () => {
       if (!start) return;
       temp?.remove();
-      const sel = `${start}|${end}`, rev = `${end}|${start}`;
-      for (const [k, s] of ctx.model.slots) {
-        const ends = `${s.cells[0]}|${s.cells[s.cells.length - 1]}`;
-        if ((ends === sel || ends === rev) && !ctx.found.has(k)) {
-          ctx.found.add(k);
-          ctx.entries.found = [...ctx.found];
-          ctx.o.onEntries?.(ctx.entries);
-          drawFound();
-          ctx.o.onFound?.(s, ctx.found.size, ctx.model.slots.size);
-          checkDone();
-          break;
-        }
-      }
+      select(start, end);
       start = null;
     };
     sheet.addEventListener('pointerup', finish);
     sheet.addEventListener('pointercancel', () => { temp?.remove(); start = null; });
+
+    // Clavier : un curseur parcourt les lettres ; Entrée fixe le début, puis la fin
+    let cursor = null, kbStart = null, kbTemp = null;
+    const cursorRect = document.createElementNS(ns, 'rect');
+    cursorRect.setAttribute('class', 'ws-cursor');
+    cursorRect.setAttribute('width', U); cursorRect.setAttribute('height', U); cursorRect.setAttribute('rx', U * 0.18);
+    const firstLetter = () => { for (const [r, row] of ctx.model.cells.entries()) { const c = row.findIndex(x => x.type === 'letter'); if (c >= 0) return [r, c]; } return null; };
+    const showCursor = () => {
+      if (!cursor) return;
+      const { x, y } = cellBox(cursor[0], cursor[1]);
+      cursorRect.setAttribute('x', x); cursorRect.setAttribute('y', y);
+      over.appendChild(cursorRect);
+      kbTemp?.remove();
+      kbTemp = kbStart ? capsule(kbStart, aligned(kbStart, cursor) ? cursor : kbStart, 'ws-temp') : null;
+    };
+    over.addEventListener('focus', () => { cursor = cursor || firstLetter(); showCursor(); });
+    over.addEventListener('blur', () => { cursorRect.remove(); kbTemp?.remove(); kbStart = null; });
+    over.addEventListener('keydown', e => {
+      const moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+      if (moves[e.key] && cursor) {
+        e.preventDefault();
+        const [dr, dc] = moves[e.key];
+        // Saute les cases sans lettre (formes) jusqu'à la prochaine lettre dans ce sens
+        for (let r = cursor[0] + dr, c = cursor[1] + dc; ctx.model.cells[r]?.[c]; r += dr, c += dc) {
+          if (ctx.model.cells[r][c].type === 'letter') { cursor = [r, c]; break; }
+        }
+        showCursor();
+      } else if ((e.key === 'Enter' || e.key === ' ') && cursor) {
+        e.preventDefault();
+        if (!kbStart) { kbStart = cursor; showCursor(); return; }
+        const a = kbStart;
+        kbStart = null;
+        if (aligned(a, cursor) && !select(a, cursor)) ctx.o.onMiss?.();
+        showCursor();
+      } else if (e.key === 'Escape' && kbStart) {
+        e.preventDefault();
+        e.stopPropagation();
+        kbStart = null;
+        showCursor();
+      }
+    });
   }
 
   /* ---------- Vérification, aides ---------- */

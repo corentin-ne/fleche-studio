@@ -18,16 +18,20 @@
   const fontsReady = new Set();
 
   const engineOf = pz => MF.games.get(pz.game).engine;
-  const hashOf = pz => (engineOf(pz) === 'meles' ? MF.wordsearch : MF.builder).layoutHash(pz);
-  const prepared = pz => (engineOf(pz) === 'meles' ? MF.wordsearch : MF.builder).prepare(pz.words);
+  const engine = pz => MF.games.engine(pz.game);
+  const hashOf = pz => engine(pz).layoutHash(pz);
+  const prepared = pz => engine(pz).prepare(pz.words);
   /** La grille enregistrée correspond-elle au jeu choisi ? */
   const compatible = pz => !!pz.layout && pz.layout.engine === engineOf(pz);
   const isFresh = pz => compatible(pz) && pz.layout.hash === hashOf(pz);
+  /** Définitions encore vides de la page affichée (mots perso compris si `words`). */
+  const missingClues = (pz, d, words = true) => MF.diagnostics.missing(pz, d.fillers, { words });
 
   /* ---------------- Calcul dérivé (modèle de dessin, diagnostic) ---------------- */
+  // Recalculé seulement quand le contenu change (révision du store), pas à chaque réglage de couleur
   function derive(pz) {
     const d = pz.design;
-    const key = `${pz.id}|${pz.layout?.at}|${view.page}|${pz.game}|${MF.util.hash(JSON.stringify([pz.words, pz.fillerClues, pz.options.givens, d.font, d.cell, pz.game]))}`;
+    const key = `${pz.id}|${store.rev()}|${view.page}|${MF.lexicon.ready(pz.options.lang)}|${MF.util.hash(JSON.stringify([d.font, d.cell]))}`;
     if (derivedCache.key === key) return derivedCache.value;
     const pages = compatible(pz) ? pz.layout.pages : [];
     const page = Math.min(view.page, Math.max(0, pages.length - 1));
@@ -80,7 +84,7 @@
       if (job.cancelled || out.cancelled) return;
       if (out.error || !out.result) { error = out.error; break; }
       // L'animation se termine sur la grille retenue avant le rendu final
-      if (shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, (engine === 'meles' ? MF.wordsearch : MF.builder).prepare(group).length);
+      if (shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, MF.games.engineModule(engine).prepare(group).length);
       if (job.cancelled) return;
       out.result.words.forEach(w => exclude.add(w.word));
       pages.push(out.result);
@@ -172,9 +176,18 @@
     const fonts = MF.design.fontsOf(pz.design).filter(f => !fontsReady.has(f.css));
     if (fonts.length) {
       fonts.forEach(f => fontsReady.add(f.css));
-      Promise.all(fonts.flatMap(f => f.weights.map(w => document.fonts.load(`${w} 20px ${f.css}`).catch(() => null))))
-        .then(() => { MF.text.invalidate(); MF.previews.clear(); derivedCache.key = null; renderGrid(); });
+      MF.design.loadFonts(fonts).then(() => { fontsChanged(); renderGrid(); });
     }
+    // Dictionnaire de la langue de la grille : chargé à la demande (définitions des mots de remplissage)
+    const lang = pz.options.lang;
+    if (!MF.lexicon.ready(lang)) MF.lexicon.ensure(lang).then(() => { if (store.active()?.options.lang === lang) renderAll(); }).catch(() => {});
+  }
+
+  /** Polices chargées : mesures de texte et aperçus à refaire. */
+  function fontsChanged() {
+    MF.text.invalidate();
+    MF.previews.clear();
+    derivedCache.key = null;
   }
 
   function renderGrid() {
@@ -189,7 +202,7 @@
     $('#grid-game').innerHTML = `${ic(game.icon, 'ic-sm')}${esc(game.label)}${pz.options.shape !== 'rect' ? ` · ${esc(MF.shapes.SHAPES[pz.options.shape].label)}` : ''}`;
 
     const total = prepared(pz).length;
-    const missing = game.clues ? d.fillers.filter(f => !f.clue).length + pz.words.filter(w => !w.clue.trim()).length : 0;
+    const missing = missingClues(pz, d);
     $('#page-switch').hidden = d.pages.length < 2;
     $('#page-switch').innerHTML = d.pages.map((pg, i) => `<button data-page="${i}" class="${i === d.page ? 'active' : ''}">${t('Grille {n}', { n: i + 1 })}</button>`).join('');
     $('#grid-stats').innerHTML = d.layout
@@ -199,16 +212,16 @@
       : '';
     $('#stale-bar').hidden = busy || !compatible(pz) || isFresh(pz);
 
-    $$('#mode-switch button').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === s.ui.mode));
+    $$('#mode-switch button').forEach(btn => { const on = btn.dataset.mode === s.ui.mode; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on); });
     $('#play-bar').hidden = s.ui.mode !== 'play' || !d.model.cols;
     $('#play-clue').hidden = $('#play-bar').hidden || !game.clues;
     $('#btn-fit').classList.toggle('active', !!s.ui.fit);
     $('#btn-hint-word').hidden = pz.game === 'meles';
     $('#btn-hint').innerHTML = `${ic('bulb')}${t(pz.game === 'meles' ? 'Indice' : 'Lettre')}`;
 
-    const entriesFor = `${pz.id}@${pz.layout?.at}#${d.page}`;
+    const entriesFor = MF.play.keyOf(pz, d.page);
     if (view.entriesFor !== entriesFor) {
-      view.entries = loadEntries(entriesFor); view.entriesFor = entriesFor; view.playStart = Date.now();
+      view.entries = MF.play.load(entriesFor); view.entriesFor = entriesFor; view.playStart = Date.now();
       $('#clue-text').textContent = t('Touche une case pour voir sa définition');
     }
     const box = $('#grid-scroll');
@@ -233,11 +246,12 @@
     view.shownGrid = entriesFor;
     lastView = MF.gridView.render(box, d.model, pz, {
       mode: s.ui.mode, cell, entries: view.entries, photoMarks: !!s.ui.photoMarks, assetUrl: MF.assets.url, animate,
-      onEntries: e => { view.entries = e; saveEntries(entriesFor, e); },
+      onEntries: e => { view.entries = e; MF.play.save(entriesFor, e); },
       onMissing: key => editMissing(key),
       onComplete: () => celebrate(),
       onWord: wid => showClue(wid),
       onFound: (slot, n, tot) => MF.ui.toast(`${slot.label || slot.word} ✓ (${n}/${tot})`, 'ok', 1500),
+      onMiss: () => MF.ui.toast(t('Pas de mot caché ici.'), 'info', 1500),
     });
     $('#zoom').value = lastView?.cellPx || 64;
     view.selected = pz.stickers.some(x => x.id === view.selected) ? view.selected : null;
@@ -276,10 +290,9 @@
     const pz = store.active();
     if (!pz) return;
     const d = derive(pz);
-    const game = MF.games.get(pz.game);
-    $$('#side-tabs button').forEach(b => b.classList.toggle('active', b.dataset.tab === s.ui.tab));
+    $$('#side-tabs button').forEach(b => { const on = b.dataset.tab === s.ui.tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
     $('#count-words').textContent = pz.words.length;
-    const missing = game.clues ? d.fillers.filter(f => !f.clue).length : 0;
+    const missing = missingClues(pz, d, false);
     const errs = d.issues.filter(i => i.level === 'err').length;
     const badge = $('#count-diag');
     badge.textContent = errs || missing || '✓';
@@ -352,37 +365,17 @@
   }
 
   /* ---------------- Jeu ---------------- */
-  const entriesKey = k => `mfm:play:${k}`;
-  function loadEntries(k) {
-    try { const v = JSON.parse(localStorage.getItem(entriesKey(k)) || '{}'); return MF.schema.isObj(v) ? v : {}; } catch { return {}; }
-  }
-  const saveEntries = MF.util.debounce((k, e) => {
-    try { localStorage.setItem(entriesKey(k), JSON.stringify(e)); } catch { /* ignoré */ }
-  }, 300);
-
   function setMode(mode) {
     view.selected = null;
     if (mode === 'play') view.playStart = Date.now();
     store.update(s => { s.ui.mode = mode; }, 'ui');
   }
 
-  const timer = () => {
-    const s = Math.floor((Date.now() - view.playStart) / 1000);
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-  };
-  setInterval(() => { if (!$('#play-bar').hidden) $('#play-time').textContent = timer(); }, 1000);
+  setInterval(() => { if (!$('#play-bar').hidden) $('#play-time').textContent = MF.play.elapsed(view.playStart); }, 1000);
 
   function celebrate() {
-    MF.ui.toast(t('Bravo, grille terminée en {time} ! 🎉', { time: timer() }), 'ok', 6000);
-    const layer = MF.util.html('<div class="confetti" aria-hidden="true"></div>');
-    const colors = ['#ff4d7d', '#ffd23f', '#3dd68c', '#4d9bff', '#7b3fe4', '#ff8a3d'];
-    for (let i = 0; i < 90; i++) {
-      const p = document.createElement('i');
-      p.style.cssText = `--x:${Math.random() * 100}vw;--dx:${Math.round((Math.random() - 0.5) * 240)}px;--d:${1.6 + Math.random() * 1.8}s;--r:${Math.random() * 720 - 360}deg;--c:${colors[i % colors.length]};--delay:${Math.random() * 0.4}s`;
-      layer.appendChild(p);
-    }
-    document.body.appendChild(layer);
-    setTimeout(() => layer.remove(), 4000);
+    MF.ui.toast(t('Bravo, grille terminée en {time} ! 🎉', { time: MF.play.elapsed(view.playStart) }), 'ok', 6000);
+    MF.play.confetti();
   }
 
   /* ---------------- Export ---------------- */
@@ -399,8 +392,7 @@
     const pz = store.active();
     const d = derive(pz);
     if (!d.model.cols) return MF.ui.toast(t('Aucune grille à exporter.'), 'warn');
-    const game = MF.games.get(pz.game);
-    const missing = game.clues ? d.fillers.filter(f => !f.clue).length + pz.words.filter(w => !w.clue.trim()).length : 0;
+    const missing = missingClues(pz, d);
     if (missing) MF.ui.toast(t(missing > 1 ? 'Attention : {n} encore vides.' : 'Attention : {n} encore vide.', { n: plural(missing, 'définition') }), 'warn', 4500);
     const { puzzles } = store.get();
     const mine = exportPages(pz);
@@ -409,27 +401,6 @@
     if (puzzles.length > 1) scopes.push({ id: 'all', label: `${t('Toutes mes grilles')} · ${plural(everyone.length, 'page')}`, pages: everyone, zipName: `${t('toutes-mes-grilles')}.zip` });
     const getPage = () => { const p = store.active(); return exportPages(p)[derive(p).page]; };
     MF.exporter.open(getPage, scopes, (patch, live) => actions.setDesign(patch, { live: !!live }));
-  }
-
-  /* ---------------- Aide ---------------- */
-  function help() {
-    const k = (keys, label) => `<div class="kbd-row"><span>${keys.map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${label}</span></div>`;
-    MF.ui.modal({
-      title: t('Aide & raccourcis'), icon: 'help',
-      body: `<div class="help-grid">
-        <div><h4>${t('Pour démarrer')}</h4><ol class="small help-steps">
-          <li>${t('<b>Mots</b> : tape tes mots (autocomplétion, correction) ou pioche dans la bibliothèque, les thèmes, un fichier Excel…')}</li>
-          <li>${t('<b>Grille</b> : choisis le jeu (fléchés, croisés, mêlés, codés), la forme (cœur, étoile…) et la taille.')}</li>
-          <li>${t('<b>Design</b> : un thème en un clic, puis fond, cases, polices, titre…')}</li>
-          <li>${t('<b>Décor</b> : emojis, stickers, textes et photos à glisser sur l\'affiche.')}</li>
-          <li>${t('<b>Exporter</b> : PNG, SVG, PDF, choix du format de page et de la position de la grille.')}</li></ol></div>
-        <div><h4>${t('Raccourcis')}</h4>
-          ${k(['Ctrl', 'Z'], t('Annuler|undo'))}${k(['Ctrl', 'Y'], t('Rétablir'))}${k(['N'], t('Ajouter un mot'))}${k(['M'], t('Mélanger la grille'))}${k(['E'], t('Exporter'))}${k(['P'], t('Jouer / quitter le jeu'))}${k(['1', '…', '5'], t('Onglets du panneau'))}
-          ${k([t('Suppr')], t('Effacer le décor sélectionné'))}${k(['←', '↑', '→', '↓'], t('Déplacer le décor (Maj = plus vite)'))}${k(['Ctrl', t('molette')], t('Zoom'))}${k(['?'], t('Cette aide'))}</div>
-      </div>
-      <div class="privacy small">${ic('lock')}<p>${t('<b>Confidentialité :</b> pas de compte, pas de serveur, pas de traceur. Tout est enregistré dans ce navigateur. Pense à « Sauvegarder » de temps en temps (onglet Grille → Mes données).')}</p></div>`,
-      actions: [{ label: t('Compris'), kind: 'primary', value: null }],
-    });
   }
 
   /* ---------------- Événements globaux ---------------- */
@@ -496,75 +467,10 @@
     $('#btn-share').onclick = () => actions.share();
     $('#btn-save').onclick = () => actions.backup();
     $('#btn-open').onclick = () => $('#file-open').click();
-    $('#btn-help').onclick = help;
+    $('#btn-help').onclick = () => MF.help.open();
     $('#file-open').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) actions.openFile(f); });
 
-    // Glisser-déposer de fichiers n'importe où : images -> décor, listes -> mots, sauvegarde -> restauration
-    let dragDepth = 0;
-    addEventListener('dragenter', e => { if (e.dataTransfer?.types?.includes('Files')) { dragDepth++; document.body.classList.add('dropping'); } });
-    addEventListener('dragleave', () => { dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) document.body.classList.remove('dropping'); });
-    addEventListener('dragover', e => { if (e.dataTransfer?.types?.includes('Files')) e.preventDefault(); });
-    addEventListener('drop', async e => {
-      if (!e.dataTransfer?.files?.length) return;
-      e.preventDefault();
-      dragDepth = 0;
-      document.body.classList.remove('dropping');
-      const files = [...e.dataTransfer.files];
-      const images = files.filter(f => /^image\//.test(f.type));
-      if (images.length && store.active()) actions.addPhotos(images);
-      for (const f of files.filter(x => !/^image\//.test(x.type))) await actions.openFile(f);
-    });
-
-    // Coller une image (Ctrl+V) : ajoutée comme photo
-    addEventListener('paste', e => {
-      if (e.target.closest?.('input, textarea, [contenteditable]') || !store.active()) return;
-      const files = [...(e.clipboardData?.files || [])].filter(f => /^image\//.test(f.type));
-      if (files.length) { e.preventDefault(); actions.addPhotos(files); }
-    });
-
-    // Raccourcis clavier
-    document.addEventListener('keydown', e => {
-      const typing = e.target.closest?.('input, textarea, select, [contenteditable]');
-      if ((e.ctrlKey || e.metaKey) && !e.altKey && !typing) {
-        const k = e.key.toLowerCase();
-        if (k === 'z' && !e.shiftKey) { e.preventDefault(); store.undo(); }
-        else if (k === 'y' || (k === 'z' && e.shiftKey)) { e.preventDefault(); store.redo(); }
-        return;
-      }
-      if (typing || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.modal-scrim')) return;
-      const pz = store.active();
-      if (!pz) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } return; }
-      if (e.key === 'h') { showHome(!view.home); return; }
-      if (view.home) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } if (e.key === 'Escape') showHome(false); return; }
-      if (view.selected && store.get().ui.mode !== 'play') {
-        const step = e.shiftKey ? 0.02 : 0.004;
-        const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
-        if (moves[e.key]) { e.preventDefault(); actions.nudgeSticker(view.selected, ...moves[e.key]); return; }
-        if (e.key === 'Delete' || e.key === 'Backspace') { e.preventDefault(); actions.stickerAction('del', view.selected); return; }
-        if (e.key === 'Escape') { actions.selectSticker(null); return; }
-      }
-      if (e.key === 'n') { e.preventDefault(); store.update(s => { s.ui.tab = 'words'; }, 'ui'); requestAnimationFrame(() => $('#add-form [name=text]')?.focus()); }
-      if (e.key === 'm') $('#btn-shuffle').click();
-      if (e.key === 'e') openExport();
-      if (e.key === 'p') setMode(store.get().ui.mode === 'play' ? 'solution' : 'play');
-      if (e.key === '?') help();
-      const tabs = ['words', 'diag', 'design', 'decor', 'settings'];
-      if (/^[1-5]$/.test(e.key)) store.update(s => { s.ui.tab = tabs[+e.key - 1]; }, 'ui');
-    });
-
-    // Zoom à la molette + Ctrl dans la grille
-    $('#grid-scroll').addEventListener('wheel', e => {
-      if (!e.ctrlKey) return;
-      e.preventDefault();
-      const cur = lastView?.cellPx || +$('#zoom').value;
-      const next = Math.max(10, Math.min(140, cur + (e.deltaY < 0 ? 4 : -4)));
-      if (next !== cur) store.update(s => { s.ui.cell = next; s.ui.fit = false; }, 'zoom');
-    }, { passive: false });
-    // Zoom à deux doigts (téléphone, tablette)
-    MF.pinchZoom.attach($('#grid-scroll'), {
-      cell: () => lastView?.cellPx || +$('#zoom').value,
-      commit: cell => store.update(s => { s.ui.cell = cell; s.ui.fit = false; }, 'zoom'),
-    });
+    MF.shortcuts.bind({ view, actions, showHome, openExport, setMode, cellPx: () => lastView?.cellPx || +$('#zoom').value });
 
     // Jeu : définition du mot en cours, mot précédent / suivant, changement de sens
     $('#clue-prev').onclick = () => MF.gridView.stepWord(-1);
@@ -604,7 +510,7 @@
   /* ---------------- Démarrage ---------------- */
   function onChange(reason) {
     if (reason === 'theme') { applyTheme(); return; }
-    if (reason === 'quota') { MF.ui.toast(t('Stockage du navigateur plein : supprime des images ou des grilles, et fais une sauvegarde.'), 'err', 8000); return; }
+    if (reason === 'quota') { recoverQuota(); return; }
     if (reason === 'zoom') { renderGrid(); return; }
     renderToolbar();
     if (view.sideLocked) {
@@ -619,6 +525,20 @@
     if (!pz) return;
     // Pas encore de grille, ou forme / taille / jeu modifiés : on (re)construit automatiquement
     if (['options', 'active', 'puzzles', 'reset', 'history'].includes(reason) || (reason === 'words' && !compatible(pz))) autoRegen();
+  }
+
+  /**
+   * Stockage plein : on libère d'abord la progression des parties terminées ou périmées,
+   * puis toute la progression sauf celle de la grille affichée ; on ne prévient que si ça ne suffit pas.
+   */
+  let quotaWarnedAt = 0;
+  function recoverQuota() {
+    const { puzzles } = store.get();
+    if (MF.play.prune(puzzles) && store.flush()) return;
+    if (MF.play.prune(puzzles, { all: true, keep: view.entriesFor }) && store.flush()) return;
+    if (Date.now() - quotaWarnedAt < 60000) return;
+    quotaWarnedAt = Date.now();
+    MF.ui.toast(t('Stockage du navigateur plein : supprime des images ou des grilles, et fais une sauvegarde.'), 'err', 8000, { label: t('Sauvegarder'), run: () => actions.backup() });
   }
 
   /** Ouverture d'un lien de partage (#g=…). */
@@ -662,21 +582,26 @@
     applyTheme();
     bind();
     store.subscribe(onChange);
-    // Les mesures de texte dépendent des polices : on charge celles par défaut avant le premier rendu
-    try { await Promise.race([Promise.all(['600 16px Inter', '700 16px Inter'].map(f => document.fonts.load(f))), MF.util.sleep(1500)]); } catch { /* police de repli */ }
+    // Avant le premier rendu : polices par défaut (mesures de texte) et dictionnaire de la grille ouverte
+    const lang = store.active()?.options.lang || MF.lexicon.preferred();
+    await Promise.race([
+      Promise.all([MF.design.loadFonts([MF.design.font('inter')]), MF.lexicon.ensure(lang)]).catch(() => { /* repli : rendu sans attendre */ }),
+      MF.util.sleep(2500),
+    ]);
     renderAll();
     const pz = store.active();
     if (pz && !compatible(pz) && prepared(pz).length) regenerate(pz.id);
     if (location.hash.startsWith('#g=')) openShared();
     // Toutes les polices en arrière-plan : aperçus des thèmes et mesures de texte exacts
-    setTimeout(() => Promise.all(Object.values(MF.design.FONTS).flatMap(f => f.weights.map(w => document.fonts.load(`${w} 20px ${f.css}`).catch(() => null))))
-      .then(() => { MF.text.invalidate(); MF.previews.clear(); derivedCache.key = null; if (store.active()) renderAll(); }), 600);
-    // Hors ligne et installable : le service worker garde une copie de l'application
-    if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
-      navigator.serviceWorker.register('sw.js').catch(() => { /* navigation privée, etc. : l'appli marche quand même */ });
-    }
-    // Ménage : images qui ne servent plus à aucune grille
-    setTimeout(() => MF.assets.collect(store.usedAssets()).catch(() => {}), 4000);
+    setTimeout(() => MF.design.loadFonts().then(() => { fontsChanged(); if (store.active()) renderAll(); }), 600);
+    MF.updates.register();
+    MF.versions.watch(store);
+    // Ménage : images qui ne servent plus (ni aux grilles, ni à une version restaurable), progressions périmées
+    setTimeout(async () => {
+      MF.play.prune(store.get().puzzles);
+      const keep = new Set([...store.usedAssets(), ...await MF.versions.keepAssets()]);
+      MF.assets.collect(keep).catch(() => {});
+    }, 4000);
   }
 
   boot();

@@ -11,6 +11,10 @@ desktop.ini
 # Exports générés
 *.zip
 
+# Outils de développement (npm install)
+node_modules/
+test-results/
+
 # Données personnelles et autres projets : ne jamais publier (le dépôt est public)
 studio-a-adapter/
 mots a mettre en json.txt

@@ -84,5 +84,8 @@ MF.i18n = (() => {
     if (desc && dict[desc.content]) desc.content = dict[desc.content];
   }
 
-  return { LANGS, lang, locale, add, t, plural, num, compare, set, apply };
+  /** Le catalogue d'une langue contient-il ce texte ? (tests de couverture des traductions) */
+  const has = (l, key) => Object.prototype.hasOwnProperty.call(catalogs[l] || {}, key);
+
+  return { LANGS, lang, locale, add, has, t, plural, num, compare, set, apply };
 })();

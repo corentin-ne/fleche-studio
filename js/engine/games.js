@@ -26,5 +26,11 @@ MF.games = (() => {
     },
   };
   const get = id => GAMES[id] || GAMES.fleches;
-  return { GAMES, get, ids: Object.keys(GAMES) };
+  // Modules de calcul (chargés après ce fichier, d'où la résolution à l'appel)
+  const ENGINES = { builder: () => MF.builder, meles: () => MF.wordsearch };
+  /** Module de calcul d'un moteur ('builder' | 'meles') : generate, prepare, layoutHash. */
+  const engineModule = id => (ENGINES[id] || ENGINES.builder)();
+  /** Module de calcul d'un jeu. */
+  const engine = gameId => engineModule(get(gameId).engine);
+  return { GAMES, get, ids: Object.keys(GAMES), engine, engineModule };
 })();

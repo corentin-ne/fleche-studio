@@ -9,7 +9,7 @@ MF.design = (() => {
   const { tint, mix, onColor, luminance } = MF.util;
   const { t } = MF.i18n;
 
-  /** Polices proposées (chargées par Google Fonts dans index.html). */
+  /** Polices proposées (hébergées avec l'application : css/fonts.css). */
   const FONTS = {
     inter: { label: 'Inter', css: '"Inter", "Segoe UI", Arial, sans-serif', weights: [400, 500, 600, 700, 800] },
     nunito: { label: 'Nunito', css: '"Nunito", "Segoe UI", Arial, sans-serif', weights: [600, 700, 800] },
@@ -23,6 +23,9 @@ MF.design = (() => {
     mono: { label: 'JetBrains Mono', css: '"JetBrains Mono", Consolas, monospace', weights: [400, 500, 600, 700] },
   };
   const font = id => FONTS[id] || FONTS.inter;
+  /** Charge des polices dans toutes leurs graisses (résolu même si l'une échoue). */
+  const loadFonts = (list = Object.values(FONTS)) =>
+    Promise.all(list.flatMap(f => f.weights.map(w => document.fonts.load(`${w} 20px ${f.css}`).catch(() => null))));
   /** Graisse disponible la plus proche (évite le faux gras des polices à une seule graisse). */
   const weightFor = (id, w) => font(id).weights.reduce((best, x) => (Math.abs(x - w) < Math.abs(best - w) ? x : best));
 
@@ -195,5 +198,5 @@ MF.design = (() => {
     return [...ids].map(font);
   }
 
-  return { FONTS, font, weightFor, CELL_STYLES, ARROWS, VOIDS, FORMATS, FORMAT_GROUPS, formatRatio, formatMm, ANCHORS, DEFAULT, merge, resolve, readable, contrast, metrics, fontsOf, backgroundTone };
+  return { FONTS, font, loadFonts, weightFor, CELL_STYLES, ARROWS, VOIDS, FORMATS, FORMAT_GROUPS, formatRatio, formatMm, ANCHORS, DEFAULT, merge, resolve, readable, contrast, metrics, fontsOf, backgroundTone };
 })();

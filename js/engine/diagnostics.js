@@ -51,5 +51,11 @@ MF.diagnostics = (() => {
       .sort((a, b) => (a.clue ? 1 : 0) - (b.clue ? 1 : 0) || a.word.localeCompare(b.word));
   }
 
-  return { analyze, fillers };
+  /** Définitions encore à écrire : mots de remplissage, plus les mots perso si `words`. */
+  function missing(puzzle, fillerList, { words = true } = {}) {
+    if (!MF.games.get(puzzle.game).clues) return 0;
+    return fillerList.filter(f => !f.clue).length + (words ? puzzle.words.filter(w => !w.clue.trim()).length : 0);
+  }
+
+  return { analyze, fillers, missing };
 })();

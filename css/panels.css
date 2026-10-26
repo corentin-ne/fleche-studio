@@ -163,6 +163,15 @@
 .bulk-preview .chips { margin-top: 6px; }
 .share-row { flex-wrap: nowrap; }
 .share-row .input { flex: 1; }
+.share-lost { margin: 0; padding: 8px 10px; border-radius: var(--r-md); color: var(--text-2); background: color-mix(in srgb, var(--warn, #f5a524) 10%, transparent); border: 1px solid color-mix(in srgb, var(--warn, #f5a524) 30%, transparent); }
+.share-qr { display: flex; align-items: center; gap: var(--sp-4); margin-top: var(--sp-3); padding: var(--sp-3); border-radius: var(--r-md); border: 1px solid var(--line); background: var(--glass-bg-soft); }
+.share-qr-code { flex: none; padding: 6px; border-radius: 10px; background: #fff; }
+.share-qr.big { flex-direction: column-reverse; align-items: stretch; }
+.share-qr.big .share-qr-code { align-self: center; }
+.share-qr-code svg { display: block; width: 100%; height: auto; }
+.share-qr-side { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.share-qr-side p { margin: 0; }
+@media (max-width: 480px) { .share-qr { flex-direction: column; text-align: center; } .share-qr-side { align-items: center; } }
 
 /* ---------- Design ---------- */
 .theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
@@ -248,6 +257,14 @@
 .privacy p { margin: 0; }
 .privacy b { color: var(--text); }
 .storage-meter .progress { margin: 6px 0 4px; }
+.versions { display: flex; flex-direction: column; gap: 6px; }
+.versions .pgroup-title { display: flex; align-items: center; gap: 6px; }
+.versions .pgroup-title .ic { width: 14px; height: 14px; }
+.version-list { display: flex; flex-direction: column; gap: 4px; max-height: 260px; overflow: auto; }
+.version-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 6px 8px; border-radius: var(--r-sm, 8px); background: var(--glass-bg-soft); border: 1px solid var(--line); font-size: var(--fs-xs); }
+.version-row > div { display: flex; flex-direction: column; min-width: 0; }
+.version-row small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.version-row .btn { flex: none; }
 
 /* ---------- Export ---------- */
 .export-grid { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: var(--sp-5); align-items: start; }

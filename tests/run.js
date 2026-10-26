@@ -214,6 +214,144 @@
     assert(failed);
   });
 
+  /* ---------------- Chargeur ---------------- */
+  test('chargeur : chaque fichier listé une seule fois et présent', async () => {
+    const app = MF.loader.ENTRIES.app;
+    eq(app.length, new Set(app).size, 'doublons');
+    const missing = [];
+    await Promise.all(MF.loader.all().map(async p => { const r = await fetch(`../${p}`, { method: 'HEAD', cache: 'no-store' }); if (!r.ok) missing.push(p); }));
+    eq(missing, [], 'fichiers absents');
+  });
+  test('chargeur : le worker ne charge que le moteur, dans le même ordre que la page', () => {
+    const app = MF.loader.ENTRIES.app;
+    const order = MF.loader.WORKER.map(p => app.indexOf(p));
+    assert(order.every(i => i >= 0), 'fichier du worker absent de la page');
+    eq(order, [...order].sort((a, b) => a - b), 'ordre différent');
+    assert(!MF.loader.WORKER.some(p => /\/ui\/|\/app/.test(p)), 'interface chargée dans le worker');
+  });
+  test('dictionnaires : chargés à la demande, une seule fois', async () => {
+    await MF.lexicon.ensure('en');
+    assert(MF.lexicon.ready('en') && MF.loader.hasLexicon('en'));
+    eq(MF.lexicon.pick('xx'), 'fr');
+  });
+  test('jeux : registre des moteurs', () => {
+    assert(MF.games.engine('meles') === MF.wordsearch && MF.games.engine('croises') === MF.builder && MF.games.engine('inconnu') === MF.builder);
+  });
+
+  /* ---------------- Store (isolé : jamais les vraies données) ---------------- */
+  /** Store de test avec deux grilles, A (active) et B ; renvoie aussi leurs identifiants. */
+  const testStore = () => {
+    const s = MF.createStore({ key: 'mfm:test', persist: false });
+    s.load({ puzzles: [{ name: 'A' }, { name: 'B' }] });
+    const [a, b] = s.get().puzzles.map(p => p.id);
+    return { s, a, b };
+  };
+  const rename = (s, name, opts) => s.update(st => { st.puzzles.find(p => p.id === st.activeId).name = name; }, 'puzzle', opts);
+  test('store : annuler / rétablir une modification', () => {
+    const { s } = testStore();
+    rename(s, 'A1');
+    eq(s.active().name, 'A1');
+    assert(s.undo() && s.active().name === 'A', 'annuler');
+    assert(s.redo() && s.active().name === 'A1', 'rétablir');
+    assert(!s.redo(), 'rien à rétablir');
+  });
+  test('store : l\'annulation revient sur la grille modifiée', () => {
+    const { s, a, b } = testStore();
+    rename(s, 'A1');
+    s.update(st => { st.activeId = b; }, 'active');
+    rename(s, 'B1');
+    s.undo();
+    eq([s.active().id, s.active().name], [b, 'B']);
+    s.undo();
+    eq([s.active().id, s.active().name], [a, 'A'], 'retour sur la grille A');
+    eq(s.puzzle(b).name, 'B', 'B intacte');
+  });
+  test('store : suppression d\'une grille annulable', () => {
+    const { s, a, b } = testStore();
+    s.update(st => { st.puzzles = st.puzzles.filter(p => p.id !== a); st.activeId = b; }, 'puzzles');
+    eq(s.get().puzzles.map(p => p.id), [b]);
+    s.undo();
+    eq([s.get().puzzles.map(p => p.id), s.active().id], [[a, b], a]);
+  });
+  test('store : un curseur qu\'on fait glisser = une seule étape', () => {
+    const { s } = testStore();
+    for (let i = 0; i < 10; i++) rename(s, `A${i}`, { coalesce: 'slider' });
+    s.undo();
+    eq(s.active().name, 'A');
+    assert(!s.canUndo());
+  });
+  test('store : révision inchangée pour un réglage d\'affichage', () => {
+    const { s } = testStore();
+    const r0 = s.rev();
+    s.update(st => { st.ui.cell = 40; }, 'zoom');
+    s.update(st => { st.puzzles[0].design.accent = '#123456'; }, 'design');
+    eq(s.rev(), r0, 'réglages cosmétiques');
+    rename(s, 'A1');
+    assert(s.rev() > r0, 'contenu modifié');
+  });
+  test('store : état illisible assaini', () => {
+    const s = MF.createStore({ persist: false });
+    const st = s.load({ theme: 'rose', ui: { cell: 9999, tab: '<script>' }, puzzles: 'nope', activeId: 'x' });
+    eq([st.theme === 'rose', st.ui.cell, st.ui.tab, st.puzzles, st.activeId], [false, 140, 'words', [], null]);
+  });
+
+  /* ---------------- Jeu ---------------- */
+  test('progression : les parties périmées sont supprimées', () => {
+    const P = 'mfm:play:';
+    const fake = { [`${P}a@1#0`]: '{}', [`${P}a@0#0`]: '{}', [`${P}z@5#0`]: '{}', other: 'x', removeItem(k) { delete this[k]; } };
+    const removed = MF.play.prune([{ id: 'a', layout: { at: 1 } }], { storage: fake });
+    eq([removed, Object.keys(fake).filter(k => k.startsWith(P))], [2, [`${P}a@1#0`]]);
+    eq(MF.play.prune([], { all: true, keep: 'a@1#0', storage: fake }), 0, 'partie en cours gardée');
+  });
+  test('progression : chronomètre', () => eq(MF.play.elapsed(Date.now() - 125000), '2:05'));
+  test('diagnostic : définitions manquantes', () => {
+    const pz = MF.schema.puzzle({ game: 'fleches', words: [{ text: 'chat', clue: '' }, { text: 'chien', clue: 'Aboie' }] });
+    const fillers = [{ word: 'ROI', clue: '' }, { word: 'ART', clue: 'Beau' }];
+    eq(MF.diagnostics.missing(pz, fillers), 2);
+    eq(MF.diagnostics.missing(pz, fillers, { words: false }), 1);
+    eq(MF.diagnostics.missing({ ...pz, game: 'meles' }, fillers), 0, 'mots mêlés : pas de définitions');
+  });
+
+  /* ---------------- QR codes ---------------- */
+  test('QR code : taille, motifs de repérage, capacité', () => {
+    const qr = MF.qr.encode('https://exemple.fr/#g=abc');
+    eq([qr.version, qr.size], [2, 25]);
+    const finder = (x0, y0) => [0, 6].every(d => qr.modules[y0][x0 + d] && qr.modules[y0 + d][x0]) && !qr.modules[y0 + 1][x0 + 1] && qr.modules[y0 + 3][x0 + 3];
+    assert(finder(0, 0) && finder(qr.size - 7, 0) && finder(0, qr.size - 7), 'motifs de repérage');
+    eq(MF.qr.encode('x'.repeat(MF.qr.capacity('L') + 1)), null, 'trop long');
+    eq(MF.qr.encode('x'.repeat(MF.qr.capacity('L'))).version, 40);
+    assert(/^<svg[^>]+viewBox="0 0 33 33"/.test(MF.qr.svg(qr)), 'SVG');
+  });
+
+  /* ---------------- Partage ---------------- */
+  test('lien de partage : photos et image de fond annoncées, jamais incluses', async () => {
+    const words = randomWords(6, 31);
+    const page = await MF.builder.generate(words, MF.schema.options({ effort: 'fast' }), { seed: 4 });
+    const pz = MF.schema.puzzle({
+      words, layout: { engine: 'builder', pages: [page], hash: 'x', at: 1 },
+      design: { background: { type: 'image', imageId: 'img1' } },
+      stickers: [{ kind: 'image', imageId: 'img2' }, { kind: 'emoji', emoji: '⭐' }],
+    });
+    eq(MF.share.omitted(pz), { photos: 1, background: true });
+    const back = await MF.share.read((await MF.share.link(pz)).replace(/^[^#]*/, ''));
+    eq([back.stickers.map(s => s.kind), back.design.background.type], [['emoji'], 'solid']);
+  });
+
+  /* ---------------- Traductions ---------------- */
+  test('traductions : chaque texte de l\'interface existe en anglais', async () => {
+    const lit = String.raw`'((?:[^'\\]|\\.)*)'`;
+    const keys = new Set();
+    const files = MF.loader.ENTRIES.app.filter(p => !/i18n/.test(p));
+    for (const p of files) {
+      const src = await (await fetch(`../${p}`)).text();
+      for (const m of src.matchAll(new RegExp(String.raw`\bt\(\s*` + lit, 'g'))) keys.add(m[1]);
+      for (const m of src.matchAll(new RegExp(String.raw`plural\([^,]+,\s*` + lit + String.raw`(?:\s*,\s*` + lit + ')?', 'g'))) { keys.add(m[1]); keys.add(m[2] ?? `${m[1]}s`); }
+    }
+    const missing = [...keys].map(k => k.replace(/\\'/g, "'")).filter(k => !MF.i18n.has('en', k));
+    assert(keys.size > 500, `${keys.size} textes trouvés seulement`);
+    eq(missing, [], 'textes sans traduction anglaise');
+  });
+
   /* ---------------- Exécution ---------------- */
   const table = document.getElementById('results');
   for (const t of tests) {

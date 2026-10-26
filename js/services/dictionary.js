@@ -22,7 +22,8 @@ MF.dictionary = (() => {
   const current = () => lang;
 
   function index() {
-    if (words) return;
+    // Dictionnaire pas encore chargé : index vide, reconstruit dès qu'il arrive
+    if (words && (words.length || !MF.lexicon.ready(lang))) return;
     dict = MF.lexicon.get(lang);
     words = Object.keys(dict).sort();
     byFirst = new Map();

@@ -185,7 +185,6 @@ MF.exporter = (() => {
     /** Changement de format : on cale la résolution sur la première proposition adaptée. */
     const snapResolution = root => {
       const page = getPage();
-      const scene = sceneOf(page, st, MF.assets.url);
       const res = resolutions(page.puzzle.design);
       if (!res.some(r => r.width === st.width)) st.width = res[1]?.width || res[0].width;
       refresh(root);

@@ -64,6 +64,11 @@ MF.panels.settings = (() => {
           <button type="button" class="btn btn-sm" id="set-restore">${ic('upload')}${t('Restaurer')}</button>
           <button type="button" class="btn btn-sm" id="set-persist">${ic('shield')}${t('Protéger le stockage')}</button>
         </div>
+        <div class="versions" id="versions">
+          <div class="pgroup-title">${ic('clock')}${t('Versions automatiques')}</div>
+          <p class="field-hint">${t('Toutes tes grilles sont copiées dans ce navigateur toutes les 10 minutes quand elles changent. En cas d\'erreur, reviens à une version précédente.')}</p>
+          <div class="version-list" id="version-list"><span class="muted small">${t('Chargement…')}</span></div>
+        </div>
         <button type="button" class="btn btn-sm btn-ghost btn-danger" id="set-wipe">${ic('trash')}${t('Effacer toutes mes données de ce navigateur')}</button>`)}
 
       ${tab === 'game' ? `<div class="row danger-row">
@@ -75,6 +80,31 @@ MF.panels.settings = (() => {
     bind(root, puzzle, actions, view);
     MF.shapePicker.bind(root);
     storage(root.querySelector('#storage-meter'), state);
+    versions(root.querySelector('#version-list'));
+  }
+
+  /** Liste des versions automatiques, chacune restaurable. */
+  async function versions(el) {
+    if (!el) return;
+    const list = await MF.versions.list();
+    if (!el.isConnected) return;
+    const date = new Intl.DateTimeFormat(MF.i18n.locale, { weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+    el.innerHTML = list.length
+      ? list.map(v => `<div class="version-row">
+          <div><b>${esc(date.format(v.at))}</b><small class="muted">${plural(v.count, 'grille')} · ${esc(v.names.join(', '))}${v.count > v.names.length ? '…' : ''}</small></div>
+          <button type="button" class="btn btn-sm" data-version="${esc(v.id)}">${ic('refresh')}${t('Restaurer')}</button></div>`).join('')
+      : `<p class="muted small">${t('Aucune version pour l\'instant : la première sera créée dans quelques minutes.')}</p>`;
+  }
+
+  async function restoreVersion(id, actions) {
+    const ok = await MF.ui.confirm(t('Revenir à cette version ?'), t('Toutes tes grilles seront remplacées par celles de cette version. L\'état actuel est d\'abord copié dans les versions, et Ctrl+Z annule le retour.'), t('Restaurer'), 'primary');
+    if (!ok) return;
+    const data = await MF.versions.get(id);
+    if (!data) { MF.ui.toast(t('Version illisible.'), 'err'); return; }
+    await MF.versions.save(MF.store.get());
+    MF.store.replacePuzzles(data.puzzles, data.activeId);
+    MF.ui.toast(t('Version restaurée.'), 'ok', 5000, { label: t('Annuler|undo'), run: () => MF.store.undo() });
+    actions.refreshSide();
   }
 
   async function storage(el, state) {
@@ -103,6 +133,7 @@ MF.panels.settings = (() => {
       else if (btn.id === 'set-backup') actions.backup();
       else if (btn.id === 'set-restore') actions.restore();
       else if (btn.id === 'set-wipe') actions.wipeAll();
+      else if (btn.dataset.version) restoreVersion(btn.dataset.version, actions);
       else if (btn.id === 'set-dup') actions.duplicatePuzzle();
       else if (btn.id === 'set-del') actions.deletePuzzle();
       else if (btn.id === 'set-persist') {

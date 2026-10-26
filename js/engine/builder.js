@@ -209,7 +209,7 @@ MF.builder = (() => {
         index.get(w[i]).push([w, i]);
       }
     }
-    fillerIndexes.set(lang, index);
+    if (MF.lexicon.ready(lang)) fillerIndexes.set(lang, index); // jamais d'index vide gardé en cache
     return index;
   }
 
@@ -380,7 +380,7 @@ MF.builder = (() => {
       const fits = all.filter(it => it.norm.length <= Math.max(frame.w, frame.h - (frame.top || 0)));
       const top = [];
       const tStart = performance.now();
-      let trial = null; // dernier essai, montré en filigrane derrière le meilleur
+      let trial; // dernier essai, montré en filigrane derrière le meilleur
       while (performance.now() - tStart < ms || !top.length) {
         const sliceEnd = performance.now() + 30;
         do {
