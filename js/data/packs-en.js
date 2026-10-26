@@ -11,7 +11,7 @@ MF.packsEn = {
   },
   cuisine: {
     label: 'Food', emoji: '🍳',
-    words: [['Pancake', 'Flipped on Shrove Tuesday'], ['Burger', 'Patty in a bun'], ['Pizza', 'Sliced Italian favorite'], ['Lasagna', 'Layered pasta bake'], ['Sushi', 'Japanese rice rolls'], ['Omelette', 'You must break eggs to make it'], ['Pie', 'Apple or pumpkin, under a crust'], ['Croissant', 'Flaky breakfast crescent'], ['Curry', 'Spicy dish served with rice'], ['Waffle', 'Grid-patterned breakfast treat'], ['Cheese', 'Cheddar or brie'], ['Chocolate', 'Dark, milk or white'], ['Soup', 'Warm bowl on a cold night'], ['Pasta', 'Spaghetti or penne'], ['Muffin', 'Blueberry bake in a paper cup'], ['Salad', 'Bowl of greens']],
+    words: [['Pancake', 'Flipped on Shrove Tuesday'], ['Burger', 'Patty in a bun'], ['Pizza', 'Sliced Italian favourite'], ['Lasagne', 'Layered pasta bake'], ['Sushi', 'Japanese rice rolls'], ['Omelette', 'You must break eggs to make it'], ['Pie', 'Apple or pumpkin, under a crust'], ['Croissant', 'Flaky breakfast crescent'], ['Curry', 'Spicy dish served with rice'], ['Waffle', 'Grid-patterned breakfast treat'], ['Cheese', 'Cheddar or brie'], ['Chocolate', 'Dark, milk or white'], ['Soup', 'Warm bowl on a cold night'], ['Pasta', 'Spaghetti or penne'], ['Muffin', 'Blueberry bake in a paper cup'], ['Salad', 'Bowl of greens']],
   },
   voyage: {
     label: 'Travel', emoji: '✈️',
@@ -19,10 +19,10 @@ MF.packsEn = {
   },
   nature: {
     label: 'Nature', emoji: '🌿',
-    words: [['Forest', 'Home of a thousand trees'], ['River', 'Flows to the sea'], ['Waterfall', 'Water taking a leap'], ['Cloud', 'Fluffy shape in the sky'], ['Rainbow', 'Seven colors after the rain'], ['Volcano', 'Mountain that erupts'], ['Meadow', 'Field full of wildflowers'], ['Oak', 'Grows from an acorn'], ['Rose', 'Thorny flower of love'], ['Storm', 'Thunder and lightning'], ['Ocean', 'Vast body of salt water'], ['Desert', 'Dunes and cacti'], ['Moon', 'Shines at night'], ['Star', 'Twinkles up above'], ['Season', 'Spring, summer, autumn or winter'], ['Snow', 'White winter blanket']],
+    words: [['Forest', 'Home of a thousand trees'], ['River', 'Flows to the sea'], ['Waterfall', 'Water taking a leap'], ['Cloud', 'Fluffy shape in the sky'], ['Rainbow', 'Seven colours after the rain'], ['Volcano', 'Mountain that erupts'], ['Meadow', 'Field full of wildflowers'], ['Oak', 'Grows from an acorn'], ['Rose', 'Thorny flower of love'], ['Storm', 'Thunder and lightning'], ['Ocean', 'Vast body of salt water'], ['Desert', 'Dunes and cacti'], ['Moon', 'Shines at night'], ['Star', 'Twinkles up above'], ['Season', 'Spring, summer, autumn or winter'], ['Snow', 'White winter blanket']],
   },
   sport: {
-    label: 'Sports', emoji: '⚽',
+    label: 'Sport', emoji: '⚽',
     words: [['Football', 'The beautiful game'], ['Tennis', 'Played at Wimbledon'], ['Rugby', 'Oval ball and scrums'], ['Swimming', 'Lengths of the pool'], ['Cycling', 'Pedal power on two wheels'], ['Judo', 'The gentle way, on a mat'], ['Skiing', 'Downhill on the snow'], ['Marathon', 'Just over 26 miles'], ['Referee', 'Blows the whistle'], ['Medal', 'Gold, silver or bronze'], ['Stadium', 'Where the crowd roars'], ['Team', 'Players on the same side'], ['Baseball', 'Bats, bases and home runs'], ['Golf', 'Eighteen holes'], ['Climbing', 'Up the wall or the rock face'], ['Yoga', 'Downward dog and deep breaths']],
   },
   musique: {
@@ -35,7 +35,7 @@ MF.packsEn = {
   },
   ecole: {
     label: 'School', emoji: '🎒',
-    words: [['Backpack', 'Carried to class'], ['Pencil', 'Needs sharpening'], ['Notebook', 'Lined pages for notes'], ['Eraser', 'Rubs out mistakes'], ['Ruler', 'Draws straight lines'], ['Teacher', 'Leads the class'], ['Recess', 'Playtime between lessons'], ['Board', 'Written on with chalk'], ['Lesson', 'What we learn in class'], ['Homework', 'Done after school'], ['Spelling', 'Bee or test of words'], ['Math', 'Sums and numbers'], ['Lunch', 'Midday meal in the canteen'], ['Class', 'Pupils taught together'], ['Pen', 'Writes in ink'], ['Book', 'Read cover to cover']],
+    words: [['Rucksack', 'Carried to class'], ['Pencil', 'Needs sharpening'], ['Notebook', 'Lined pages for notes'], ['Rubber', 'Rubs out mistakes'], ['Ruler', 'Draws straight lines'], ['Teacher', 'Leads the class'], ['Break', 'Playtime between lessons'], ['Board', 'Written on with chalk'], ['Lesson', 'What we learn in class'], ['Homework', 'Done after school'], ['Spelling', 'Bee or test of words'], ['Maths', 'Sums and numbers'], ['Lunch', 'Midday meal in the canteen'], ['Class', 'Pupils taught together'], ['Pen', 'Writes in ink'], ['Book', 'Read cover to cover']],
   },
   noel: {
     label: 'Christmas', emoji: '🎄',
@@ -43,14 +43,14 @@ MF.packsEn = {
   },
   mer: {
     label: 'Sea & beach', emoji: '🏖️',
-    words: [['Wave', 'Rolls onto the shore'], ['Sand', 'For building castles'], ['Seashell', 'Hold it to hear the sea'], ['Lighthouse', 'Guides ships at night'], ['Seagull', 'Steals your chips'], ['Tide', 'In and out twice a day'], ['Crab', 'Walks sideways'], ['Boat', 'Floats on the water'], ['Parasol', 'Shade on the beach'], ['Surfing', 'Riding the waves'], ['Coral', 'Builds the reef'], ['Shark', 'Fin above the water'], ['Island', 'Land with sea all around'], ['Harbor', 'Where boats dock'], ['Seaweed', 'Slimy green underfoot'], ['Diving', 'Exploring underwater']],
+    words: [['Wave', 'Rolls onto the shore'], ['Sand', 'For building castles'], ['Seashell', 'Hold it to hear the sea'], ['Lighthouse', 'Guides ships at night'], ['Seagull', 'Steals your chips'], ['Tide', 'In and out twice a day'], ['Crab', 'Walks sideways'], ['Boat', 'Floats on the water'], ['Parasol', 'Shade on the beach'], ['Surfing', 'Riding the waves'], ['Coral', 'Builds the reef'], ['Shark', 'Fin above the water'], ['Island', 'Land with sea all around'], ['Harbour', 'Where boats dock'], ['Seaweed', 'Slimy green underfoot'], ['Diving', 'Exploring underwater']],
   },
   metiers: {
     label: 'Jobs', emoji: '👩‍🔧',
     words: [['Baker', 'Up before dawn for bread'], ['Doctor', 'Says "open wide"'], ['Vet', 'Treats sick pets'], ['Postman', 'Delivers the letters'], ['Pilot', 'Flies the plane'], ['Chef', 'Boss of the kitchen'], ['Gardener', 'Has green fingers'], ['Painter', 'Works with a brush'], ['Lawyer', 'Argues in court'], ['Architect', 'Draws the plans'], ['Florist', 'Makes bouquets'], ['Barber', 'Trims your hair'], ['Police', 'Keeps law and order'], ['Nurse', 'Cares for patients'], ['Actor', 'Plays a role'], ['Plumber', 'Fixes leaky pipes']],
   },
   couleurs: {
-    label: 'Colors', emoji: '🎨',
-    words: [['Red', 'Like a ripe tomato'], ['Blue', 'Like a clear sky'], ['Green', 'Shade of grass'], ['Yellow', 'Like a banana'], ['Purple', 'Royal shade'], ['Orange', 'Also a fruit'], ['Pink', 'Like candy floss'], ['Black', 'Shade of night'], ['White', 'Like fresh snow'], ['Gray', 'Rainy-day shade'], ['Turquoise', 'Blue-green gemstone'], ['Brown', 'Like chocolate'], ['Gold', 'Shiny like a medal'], ['Beige', 'Sandy neutral'], ['Indigo', 'Between blue and violet'], ['Pastel', 'Soft, pale shade']],
+    label: 'Colours', emoji: '🎨',
+    words: [['Red', 'Like a ripe tomato'], ['Blue', 'Like a clear sky'], ['Green', 'Shade of grass'], ['Yellow', 'Like a banana'], ['Purple', 'Royal shade'], ['Orange', 'Also a fruit'], ['Pink', 'Like candy floss'], ['Black', 'Shade of night'], ['White', 'Like fresh snow'], ['Grey', 'Rainy-day shade'], ['Turquoise', 'Blue-green gemstone'], ['Brown', 'Like chocolate'], ['Gold', 'Shiny like a medal'], ['Beige', 'Sandy neutral'], ['Indigo', 'Between blue and violet'], ['Pastel', 'Soft, pale shade']],
   },
 };

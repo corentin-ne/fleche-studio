@@ -13,7 +13,7 @@ window.MF = window.MF || {};
 MF.i18n = (() => {
   const LANGS = {
     fr: { label: 'Français', short: 'FR', locale: 'fr-FR' },
-    en: { label: 'English', short: 'EN', locale: 'en-US' },
+    en: { label: 'English', short: 'EN', locale: 'en-GB' },
   };
   const KEY = 'fleche-studio-lang';
   const catalogs = {};
