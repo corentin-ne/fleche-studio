@@ -24,8 +24,8 @@ export default [
   // Le service worker a sa propre portée globale (pas de page partagée)
   { files: ['sw.js'], rules: { 'no-implicit-globals': 'off' } },
   {
-    files: ['eslint.config.mjs', 'tests/ci.mjs'],
-    // ci.mjs : Node, plus les fonctions qu'il fait exécuter dans la page (page.evaluate)
-    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.node, ...globals.browser } },
+    files: ['eslint.config.mjs', 'tests/ci.mjs', 'tools/*.mjs'],
+    // Node, plus les fonctions exécutées dans la page (page.evaluate) et l'espace MF de l'application
+    languageOptions: { ecmaVersion: 2023, sourceType: 'module', globals: { ...globals.node, ...globals.browser, MF: 'readonly' } },
   },
 ];

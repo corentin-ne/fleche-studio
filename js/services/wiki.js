@@ -1,9 +1,10 @@
+// @ts-check
 /* =========================================================================
    Client Wiktionnaire / Wikipédia (API publiques, sans clé, CORS anonyme).
      - autocomplétion et correction orthographique (recherche floue) ;
      - définitions d'un mot (extraites du wikicode, raccourcies) ;
      - listes de mots par thème (catégories du Wiktionnaire) ;
-     - résumé Wikipédia (noms propres).
+     - résumé Wikipédia (noms propres) et sa description courte Wikidata.
    Travaille dans la langue des mots de la grille ouverte
    (MF.dictionary.current()), résolue à chaque appel : fr.wiktionary.org pour
    une grille française, en.wiktionary.org pour une grille anglaise.
@@ -111,14 +112,14 @@ MF.wiki = (() => {
   const isPlainWord = s => /^[a-zàâäéèêëîïôöùûüÿçœæ'-]{2,24}$/i.test(s) && MF.util.normalize(s).length >= 2;
 
   /** Autocomplétion (préfixe). */
-  async function complete(prefix, { signal } = {}) {
+  async function complete(prefix, { signal } = /** @type {any} */ ({})) {
     if (!online || prefix.trim().length < 2) return [];
     const r = await api({ action: 'opensearch', search: prefix.trim(), limit: '10', namespace: '0', profile: 'normal' }, { signal, timeout: 5000 });
     return (Array.isArray(r?.[1]) ? r[1] : []).filter(isPlainWord).slice(0, 8);
   }
 
   /** Correction : mots proches orthographiquement (recherche floue). */
-  async function suggest(word, { signal } = {}) {
+  async function suggest(word, { signal } = /** @type {any} */ ({})) {
     if (!online || word.trim().length < 3) return { exists: false, suggestions: [] };
     const q = word.trim().toLowerCase();
     const r = await api({ action: 'opensearch', search: q, limit: '8', namespace: '0', profile: 'fuzzy' }, { signal, timeout: 5000 });
@@ -194,7 +195,7 @@ MF.wiki = (() => {
   }
 
   /** Définitions d'un mot dans la langue de la grille : [{ pos, text, short }]. */
-  async function definitions(word, { signal } = {}) {
+  async function definitions(word, { signal } = /** @type {any} */ ({})) {
     if (!online) throw offline();
     const lang = current();
     const titles = [...new Set([word.trim().toLowerCase(), word.trim()])];
@@ -207,15 +208,17 @@ MF.wiki = (() => {
     return [];
   }
 
-  /** Premier paragraphe Wikipédia (noms propres, lieux, personnes). */
-  async function wikipedia(title, { signal } = {}) {
+  /** Premier paragraphe Wikipédia (noms propres, lieux, personnes) et description courte Wikidata. */
+  async function wikipedia(title, { signal } = /** @type {any} */ ({})) {
     if (!online) throw offline();
     const lang = current();
     const r = await fetchJson(`https://${lang.code}.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title.trim().replace(/\s+/g, '_'))}`, { signal });
     if (r?.type === 'disambiguation' || typeof r?.extract !== 'string') return null;
     const text = cleanText(r.extract, 600);
     const lead = new RegExp(`^${title.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${lang.lead.source}`, 'i');
-    return { title: cleanText(r.title, 120), text, short: shorten(text.replace(lead, ''), 60) };
+    // Description courte de Wikidata (« capitale de la France ») : souvent une définition toute prête
+    const desc = typeof r.description === 'string' ? shorten(cleanText(r.description, 120), 60) : '';
+    return { title: cleanText(r.title, 120), text, short: shorten(text.replace(lead, ''), 60), description: desc };
   }
 
   /* ---------------- Thèmes (catégories) ---------------- */
@@ -224,7 +227,7 @@ MF.wiki = (() => {
    * « birds » -> « en:Birds »). Les noms rendus se passent tels quels à members() ;
    * categoryLabel() en donne le libellé à afficher.
    */
-  async function categories(theme, { signal } = {}) {
+  async function categories(theme, { signal } = /** @type {any} */ ({})) {
     if (!online) throw offline();
     const lang = current();
     const q = cleanText(theme, 60).replace(/[^\p{L}\p{N}\s'-]/gu, '').trim();
@@ -237,7 +240,7 @@ MF.wiki = (() => {
   const categoryLabel = c => current().catLabel(String(c));
 
   /** Mots simples d'une catégorie. */
-  async function members(category, { signal, limit = 500 } = {}) {
+  async function members(category, { signal, limit = 500 } = /** @type {any} */ ({})) {
     if (!online) throw offline();
     const r = await api({ action: 'query', list: 'categorymembers', cmtitle: `${current().catNs}:${category}`, cmnamespace: '0', cmlimit: String(limit), cmtype: 'page' }, { signal });
     return (r?.query?.categorymembers || []).map(x => String(x.title || '')).filter(isPlainWord);

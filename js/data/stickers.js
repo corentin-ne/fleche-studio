@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Bibliothèque de décors : stickers vectoriels (recolorables) et emojis.
    Un sticker = des chemins dans une boîte 100 × 100. Les couleurs « main » et
@@ -43,7 +44,7 @@ MF.stickers = (() => {
     leaf: { label: t('Feuille'), cat: 'Nature', main: '#3dbb6b', second: '#1f7a43', paths: [P('M90 8C40 8 10 38 10 76c0 5 1 10 3 15C40 96 92 80 90 8Z'), S('M18 88C34 60 54 40 80 20', 'second', 3)] },
     rainbow: {
       label: t('Arc-en-ciel'), cat: 'Nature', main: '#ff4d4d',
-      paths: [['main', 44], ['#ff9f1c', 36], ['#ffd23f', 28], ['#3dd68c', 20], ['#4d9bff', 12]].map(([c, r]) => S(`M${50 - r} 80a${r} ${r} 0 0 1 ${r * 2} 0`, c, 7, { cap: 'butt' })),
+      paths: /** @type {[string, number][]} */ ([['main', 44], ['#ff9f1c', 36], ['#ffd23f', 28], ['#3dd68c', 20], ['#4d9bff', 12]]).map(([c, r]) => S(`M${50 - r} 80a${r} ${r} 0 0 1 ${r * 2} 0`, c, 7, { cap: 'butt' })),
     },
     lightning: { label: t('Éclair'), cat: 'Formes', main: '#ffd23f', second: '#231f20', paths: [P('M60 4 16 58h28l-8 38 48-58H56Z', 'main', { stroke: 'second', sw: 3, join: 'round' })] },
     balloon: { label: t('Ballon'), cat: 'Fête', main: '#ff4d7d', paths: [S('M50 72c-4 8 4 12 0 26', '#8a8a8a', 2), P('M50 72C28 72 16 52 16 36 16 18 31 6 50 6s34 12 34 30c0 16-12 36-34 36Z'), P('M45 72h10l-5 7Z'), P('M32 24c3-6 9-9 14-9', 'none', { stroke: '#ffffff', sw: 4, cap: 'round', opacity: 0.6 })] },

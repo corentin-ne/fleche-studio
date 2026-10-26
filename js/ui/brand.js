@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Logo Flèche Studio, dessiné à la couleur d'accent de la grille active :
    un « F » géométrique fait de cases de grille, dont la barre du haut se
@@ -39,7 +40,7 @@ MF.brand = (() => {
     last = accent;
     const markup = svg(accent);
     document.querySelectorAll('[data-brand]').forEach(el => { el.innerHTML = markup; });
-    const link = document.querySelector('link[rel="icon"]');
+    const link = /** @type {HTMLLinkElement} */ (document.querySelector('link[rel="icon"]'));
     if (link) link.href = `data:image/svg+xml,${encodeURIComponent(markup)}`;
   }
 

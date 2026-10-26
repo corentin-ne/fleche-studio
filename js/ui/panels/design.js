@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Panneau « Design » en six onglets : Style, Couleurs, Fond, Cases, Texte, Page.
    « Style » suffit au parcours de base (un thème + une couleur) ; les autres

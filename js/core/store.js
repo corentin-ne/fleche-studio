@@ -229,12 +229,45 @@ MF.createStore = ({ key: KEY = 'mfm:v2', persist = true } = {}) => {
   /** Les données ont-elles été modifiées par un autre onglet ? */
   const isOwnKey = key => persist && key === KEY;
 
+  /* ---------------- Sauvegarde et stockage durable ---------------- */
+  const BACKUP_KEY = `${KEY}:backup`;
+  /** Date de la dernière sauvegarde téléchargée (0 : jamais). */
+  const backupAt = () => { try { return persist ? Number(localStorage.getItem(BACKUP_KEY)) || 0 : 0; } catch { return 0; } };
+  const markBackup = (at = Date.now()) => { try { if (persist) localStorage.setItem(BACKUP_KEY, String(at)); } catch { /* rappel affiché à nouveau */ } };
+
+  /**
+   * Faut-il rappeler de sauvegarder ? Des mots modifiés depuis la dernière sauvegarde,
+   * et plus de `days` jours sans sauvegarde (ou jamais, une fois la première grille vieille d'un jour).
+   */
+  function backupDue(days = 7, now = Date.now()) {
+    const list = state?.puzzles.filter(p => p.words.length) || [];
+    if (!list.length) return false;
+    const last = backupAt();
+    const changed = Math.max(...list.map(p => p.updatedAt));
+    if (last && changed <= last) return false;
+    const since = last || Math.min(...list.map(p => p.createdAt));
+    return now - since > (last ? days : 1) * 86400000;
+  }
+
+  /**
+   * Stockage durable : sans cette demande, le navigateur peut effacer les données d'un site
+   * peu visité quand le disque se remplit (Safari les efface après 7 jours sans visite).
+   * Demandé une seule fois, dès qu'il y a une grille à protéger.
+   */
+  let persistAsked = false;
+  async function keepData() {
+    if (persistAsked || !persist || !state?.puzzles.length) return false;
+    persistAsked = true;
+    try { return (await navigator.storage?.persisted?.()) || (await navigator.storage?.persist?.()) || false; } catch { return false; }
+  }
+
   /** Taille approximative des données texte enregistrées (octets). */
   const bytes = () => { try { return persist ? (localStorage.getItem(KEY) || '').length * 2 : 0; } catch { return 0; } };
 
   return {
     load, reload, isOwnKey, get, active, puzzle, update, subscribe, undo, redo, canUndo, canRedo, rev,
     makePuzzle, legacy, forgetLegacy, wipe, replacePuzzles, usedAssets, bytes, flush: writeNow,
+    backupAt, markBackup, backupDue, keepData,
   };
 };
 

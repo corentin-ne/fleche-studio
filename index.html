@@ -11,8 +11,23 @@
   <meta name="theme-color" content="#07090d">
   <meta name="description" content="Flèche Studio : créateur de grilles de mots fléchés, croisés, mêlés et codés : vos mots, vos définitions, votre style. Export PNG, SVG, PDF. Tout reste dans votre navigateur.">
   <link rel="icon" href="icon.svg?v=5" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg?v=5">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Flèche Studio">
+  <!-- Aperçu des liens partagés (WhatsApp, Facebook, LinkedIn…) : __SITE__ = adresse du site, inscrite au déploiement -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Flèche Studio">
+  <meta property="og:title" content="Flèche Studio : crée tes grilles de mots fléchés, croisés, mêlés et codés">
+  <meta property="og:description" content="Tes mots, tes définitions, ton style. Prête à imprimer ou à partager, gratuit et sans compte.">
+  <meta property="og:url" content="__SITE__">
+  <meta property="og:image" content="__SITE__icons/social.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Logo de Flèche Studio et les quatre jeux : fléchés, croisés, mêlés, codés">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:locale:alternate" content="en_GB">
+  <meta name="twitter:card" content="summary_large_image">
   <!-- Polices hébergées avec l'application (css/fonts.css) : la principale est demandée tout de suite -->
   <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 
@@ -29,6 +44,7 @@
   <link rel="stylesheet" href="css/print.css?v=__BUILD__">
 </head>
 <body>
+  <noscript><p class="boot-error" role="alert">Flèche Studio a besoin de JavaScript pour fonctionner : active-le dans ton navigateur, puis recharge la page. · Flèche Studio needs JavaScript: please enable it in your browser and reload the page.</p></noscript>
   <div class="bg-ambient" aria-hidden="true"></div>
 
   <div class="app">

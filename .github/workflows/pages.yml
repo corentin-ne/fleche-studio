@@ -59,22 +59,29 @@ jobs:
         with:
           persist-credentials: false
 
+      - id: pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
       - name: Assembler le site (liste blanche)
+        env:
+          SITE: ${{ steps.pages.outputs.base_url }}
         run: |
           set -eu
-          mkdir -p _site/fonts
-          cp -r index.html sw.js manifest.webmanifest icon.svg css js _site/
+          mkdir -p _site/fonts _site/icons
+          cp -r index.html sw.js manifest.webmanifest manifest.en.webmanifest icon.svg css js _site/
+          cp icons/*.png _site/icons/
           cp fonts/*.woff2 fonts/LICENSES.txt _site/fonts/
           # Version de déploiement : caches du navigateur et du service worker renouvelés à chaque mise en ligne
           build="${GITHUB_SHA::10}"
           sed -i "s/__BUILD__/${build}/g" _site/index.html _site/sw.js _site/js/loader.js
           if grep -rl "__BUILD__" _site; then echo "Version non inscrite"; exit 1; fi
+          # Adresse du site (aperçus des liens partagés : og:url, og:image)
+          sed -i "s|__SITE__|${SITE%/}/|g" _site/index.html
+          if grep -l "__SITE__" _site/index.html; then echo "Adresse du site non inscrite"; exit 1; fi
           # Garde-fou : aucun fichier inattendu ne doit partir en ligne
-          unexpected=$(find _site -type f ! -name '*.html' ! -name '*.js' ! -name '*.css' ! -name '*.svg' ! -name '*.webmanifest' ! -name '*.woff2' ! -path '_site/fonts/LICENSES.txt')
+          unexpected=$(find _site -type f ! -name '*.html' ! -name '*.js' ! -name '*.css' ! -name '*.svg' ! -name '*.webmanifest' ! -name '*.woff2' ! -path '_site/icons/*.png' ! -path '_site/fonts/LICENSES.txt')
           if [ -n "$unexpected" ]; then echo "Fichiers inattendus : $unexpected"; exit 1; fi
           find _site -type f | sort
-
-      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
 
       - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:

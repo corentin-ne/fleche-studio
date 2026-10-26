@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Schéma et assainissement des données.
    TOUTE donnée qui entre dans l'application (stockage local, fichier importé,

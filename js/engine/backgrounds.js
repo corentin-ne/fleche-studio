@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Fonds d'affiche : uni, dégradés, halos, motifs, image.
    Produit des opérations de dessin (voir MF.renderers) : le même fond est
@@ -86,7 +87,7 @@ MF.backgrounds = (() => {
    * Opérations de dessin du fond d'un rectangle (x, y, w, h).
    * @param assetUrl  id d'image -> URL utilisable (objet URL à l'écran, data URL à l'export)
    */
-  function ops(bg, x, y, w, h, { assetUrl, radius = 0 } = {}) {
+  function ops(bg, x, y, w, h, { assetUrl, radius = 0 } = /** @type {any} */ ({})) {
     const rect = fill => ({ op: 'rect', x, y, w, h, r: radius, fill });
     switch (bg.type) {
       case 'none': return [];
@@ -100,6 +101,7 @@ MF.backgrounds = (() => {
       case 'pattern': return [rect(bg.c1), rect({ type: 'pattern', pattern: bg.pattern, a: bg.c2, b: bg.c3, scale: bg.scale })];
       case 'image': {
         const src = bg.imageId && assetUrl?.(bg.imageId);
+        /** @type {any[]} */
         const out = [rect(bg.c1)];
         if (src) out.push({ op: 'image', x, y, w, h, src, fit: bg.fit, opacity: bg.imageOpacity, r: radius });
         if (bg.overlayOpacity > 0) out.push({ ...rect(bg.overlay), opacity: bg.overlayOpacity });
@@ -114,7 +116,7 @@ MF.backgrounds = (() => {
    * @param none      rendu du fond transparent
    * @param tile      taille d'affichage d'une tuile de motif (px)
    */
-  function css(bg, { none = 'transparent', tile: size = 24, assetUrl } = {}) {
+  function css(bg, { none = 'transparent', tile: size = 24, assetUrl } = /** @type {any} */ ({})) {
     switch (bg.type) {
       case 'none': return none;
       case 'pattern': return `${thumb(bg.pattern, bg.c1, bg.c2, bg.c3)} 0 0 / ${Math.round(size * bg.scale)}px auto, ${bg.c1}`;

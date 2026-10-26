@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Dictionnaire local (MF.lexicon) : recherche, autocomplétion, correction,
    tirages au hasard. Fonctionne hors ligne, instantanément.
@@ -65,10 +66,11 @@ MF.dictionary = (() => {
 
   /**
    * Recherche filtrée pour la bibliothèque de mots.
-   * @param o.q        texte cherché (dans le mot ou sa définition)
-   * @param o.min/max  longueur
-   * @param o.start    première lettre
-   * @param o.pattern  motif « CH?VAL » (? = n'importe quelle lettre)
+   * @param {any} [o]  options :
+   *   o.q        texte cherché (dans le mot ou sa définition)
+   *   o.min/max  longueur
+   *   o.start    première lettre
+   *   o.pattern  motif « CH?VAL » (? = n'importe quelle lettre)
    */
   function search({ q = '', min = 2, max = 30, start = '', pattern = '' } = {}) {
     index();

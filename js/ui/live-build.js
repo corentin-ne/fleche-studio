@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Construction en direct : pendant le calcul, la grille se dessine sous les
    yeux de l'utilisateur à partir des instantanés envoyés par le moteur
@@ -302,8 +303,8 @@ MF.liveBuild = (() => {
   /**
    * Affiche (ou met à jour) la construction en direct dans `box`. À appeler pour chaque
    * instantané reçu : ils sont mis en file et rejoués à l'image.
-   * @param live { snapshot?, progress, page, pages, engine }
-   * @param o { onCancel, design } : design de la grille, appliqué dès la grille fantôme
+   * @param live  objet { snapshot?, progress, page, pages, engine }
+   * @param o     objet { onCancel, design } : design de la grille, appliqué dès la grille fantôme
    */
   function update(box, live = {}, o = {}) {
     if (!active(box)) { mount(box, o); skin(o.design); show(null); }

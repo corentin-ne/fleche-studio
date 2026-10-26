@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Tableau de bord « Mes grilles » (clic sur le logo) : toutes les grilles en
    vignettes réelles, recherche, tri, statistiques, création rapide.
@@ -45,7 +46,7 @@ MF.dashboard = (() => {
   };
 
   /**
-   * @param o { puzzles, activeId, view, onOpen(id), onNew(), onQuick(game), onDuplicate(id), onDelete(id), onImport(), onBackup() }
+   * @param {any} o  options : { puzzles, activeId, view, backup: { at, due }, onOpen(id), onNew(), onQuick(game), onDuplicate(id), onDelete(id), onImport(), onBackup() }
    */
   function render(root, o) {
     const v = o.view;
@@ -67,6 +68,8 @@ MF.dashboard = (() => {
           <button class="btn btn-primary" id="dash-new">${ic('plus')}${t('Nouvelle grille')}</button>
         </div>
       </header>
+
+      ${o.backup?.due ? `<div class="dash-backup" role="status">${ic('alert')}<span><b>${o.backup.at ? t('Dernière sauvegarde : {when}', { when: ago(o.backup.at) }) : t('Aucune sauvegarde pour l\'instant')}</b> ${t('Si le navigateur efface ses données, tes grilles seront perdues. Garde une copie sur ton appareil.')}</span><button class="btn btn-sm btn-primary" id="dash-backup-now">${ic('download')}${t('Sauvegarder')}</button></div>` : ''}
 
       <div class="dash-quick">${Object.entries(MF.games.GAMES).map(([id, g]) => `<button class="quick-chip" data-quick="${id}">${ic(g.icon)}<span><b>${esc(g.short)}</b><small>${t('Créer')}</small></span></button>`).join('')}</div>
 
@@ -96,6 +99,7 @@ MF.dashboard = (() => {
     root.querySelector('#dash-new-card').onclick = o.onNew;
     root.querySelector('#dash-import').onclick = o.onImport;
     root.querySelector('#dash-backup').onclick = o.onBackup;
+    root.querySelector('#dash-backup-now')?.addEventListener('click', o.onBackup);
     root.querySelectorAll('[data-quick]').forEach(b => (b.onclick = () => o.onQuick(b.dataset.quick)));
     const qi = root.querySelector('#dash-q');
     qi.addEventListener('input', MF.util.debounce(() => {

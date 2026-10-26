@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Archive ZIP minimale (sans compression : PNG et SVG se téléchargent en un seul fichier).
    Format « stored » + noms UTF-8 : lu par Windows, macOS et tous les outils courants.
@@ -39,7 +40,9 @@ MF.zip = (() => {
   async function create(files) {
     const enc = new TextEncoder();
     const { time, date } = dosDateTime();
+    /** @type {any[]} */
     const chunks = [];
+    /** @type {any[]} */
     const central = [];
     let offset = 0;
 

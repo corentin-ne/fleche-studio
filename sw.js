@@ -22,7 +22,7 @@ const keyOf = url => { const u = new URL(url, self.location.href); return u.orig
 async function shell() {
   const html = await (await fetch('./index.html', { cache: 'no-cache' })).text();
   const styles = [...html.matchAll(/href="(css\/[^"?]+)/g)].map(m => m[1]);
-  return ['./', './index.html', './manifest.webmanifest', './icon.svg', ...styles, ...MF.loader.all()];
+  return ['./', './index.html', './manifest.webmanifest', './manifest.en.webmanifest', './icon.svg', './icons/icon-192.png', './icons/apple-touch-icon.png', ...styles, ...MF.loader.all()];
 }
 
 self.addEventListener('install', event => {

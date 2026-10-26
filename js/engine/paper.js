@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Proportions du cadre de la grille, déduites du format de page choisi
    (Design → Page) : un seul réglage pour la page ET la grille.
@@ -15,6 +16,7 @@ MF.paper = (() => {
   const MIN_ROWS_LARGE = 25;         // une grille A3 auto n'est pas une A4 agrandie
 
   // Tailles fixes proposées : nombre de cases du grand côté (le petit suit les proportions de la page)
+  /** @type {Record<string, [number, string][]>} */
   const SIZES = {
     normal: [[17, 'Compact'], [21, 'Standard'], [24, 'Grand'], [15, 'Carré']],
     large: [[25, 'Compact'], [30, 'Standard'], [34, 'Géant'], [21, 'Carré']],

@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Panneau « Grille » : type de jeu, forme, feuille, taille, remplissage,
    et gestion des données locales (sauvegarde, stockage, effacement).

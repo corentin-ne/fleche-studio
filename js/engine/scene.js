@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Composition de l'affiche : fond, titre, grille, listes (croisés, mêlés,
    codés), stickers. Produit une scène = { W, H, ops, grid } que MF.renderers
@@ -317,10 +318,11 @@ MF.scene = (() => {
 
   /* ---------------- Affiche complète ---------------- */
   /**
-   * @param opts.letters     afficher la solution
-   * @param opts.forExport   pas d'éléments d'interface (repères, zones cliquables)
-   * @param opts.assetUrl    id d'image -> URL
-   * @param opts.stickers    false pour ne pas dessiner les stickers
+   * @param {any} [opts]  options :
+   *   opts.letters     afficher la solution
+   *   opts.forExport   pas d'éléments d'interface (repères, zones cliquables)
+   *   opts.assetUrl    id d'image -> URL
+   *   opts.stickers    false pour ne pas dessiner les stickers
    */
   function compose(model, puzzle, opts = {}) {
     const d = puzzle.design;

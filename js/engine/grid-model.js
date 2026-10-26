@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Modèle de dessin d'une grille, partagé par l'écran et les exports.
    Toutes les cotes sont exprimées en « unités case » : une case = 100 unités.

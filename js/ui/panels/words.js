@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Panneau « Mots » : saisie avec autocomplétion et correction, aide à la
    définition, imports (bibliothèque, thèmes, collage, fichier), liste.
