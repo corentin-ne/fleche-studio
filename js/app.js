@@ -9,7 +9,7 @@
   const store = MF.store;
   const ic = MF.icons.svg;
 
-  const view = { filter: '', sort: 'added', draft: {}, page: 0, selected: null, sections: {}, emojiCat: null, sideLocked: false, entries: {}, entriesFor: null, playStart: 0 };
+  const view = { home: false, filter: '', sort: 'added', draft: {}, page: 0, selected: null, sections: {}, emojiCat: null, sideLocked: false, entries: {}, entriesFor: null, playStart: 0 };
   const jobs = new Map();
   let derivedCache = { key: null, value: null };
   let lastView = null;
@@ -294,7 +294,8 @@
 
   function renderAll() {
     const pz = store.active();
-    const home = !pz || view.home;
+    // Booléen strict : classList.toggle(x, undefined) inverserait la classe au lieu de la fixer
+    const home = !pz || !!view.home;
     document.body.classList.toggle('no-puzzle', !pz);
     document.body.classList.toggle('show-home', home);
     applyAccent(pz);
