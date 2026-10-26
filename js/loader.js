@@ -7,7 +7,8 @@
    et la page de tests : aucune autre liste à maintenir à la main.
 
    Version : « __BUILD__ » est remplacé par l'empreinte du commit lors du
-   déploiement (.github/workflows/pages.yml). En local, chaque chargement
+   déploiement (.github/workflows/pages.yml), comme « __RELEASE__ » (numéro
+   de version de package.json) et « __DEPLOYED__ » (date de mise en ligne). En local, chaque chargement
    de page prend une version unique (jamais de fichier périmé en cache).
 
    Scripts classiques (pas de modules ES) : l'application reste utilisable
@@ -19,6 +20,11 @@
   const MF = (root.MF = root.MF || {});
   const BUILD = '__BUILD__';
   const VERSION = /^__/.test(BUILD) ? `dev-${Date.now().toString(36)}` : BUILD;
+  // Numéro de version (package.json) et date de mise en ligne, inscrits au déploiement (affichés dans « Plus »)
+  const RELEASE = '__RELEASE__';
+  const DEPLOYED = '__DEPLOYED__';
+  const dev = /^__/.test(BUILD);
+  const about = { release: /^__/.test(RELEASE) ? 'dev' : RELEASE, build: dev ? 'local' : BUILD.slice(0, 7), deployed: /^__/.test(DEPLOYED) ? '' : DEPLOYED };
 
   /** Fichiers de la page, par couche (l'ordre compte : chaque fichier n'utilise que les précédents). */
   const GROUPS = {
@@ -101,7 +107,7 @@
   /** Tous les fichiers à garder pour le fonctionnement hors ligne. */
   const all = () => [...new Set([...ENTRIES.app, ...Object.values(LEXICONS).flat(), ...WORKER, 'js/engine/worker.js', 'js/loader.js'])];
 
-  MF.loader = { VERSION, GROUPS, LEXICONS, WORKER, ENTRIES, url, load, lexicon, hasLexicon, all };
+  MF.loader = { VERSION, about, GROUPS, LEXICONS, WORKER, ENTRIES, url, load, lexicon, hasLexicon, all };
 
   // Page : point d'entrée indiqué par data-entry (« app » ou « tests »)
   const entry = script?.dataset.entry;

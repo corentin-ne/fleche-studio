@@ -477,6 +477,7 @@
     $('#btn-save').onclick = () => actions.backup();
     $('#btn-open').onclick = () => $('#file-open').click();
     $('#btn-help').onclick = () => MF.help.open();
+    $('#btn-about').onclick = () => MF.updates.about();
     $('#file-open').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) actions.openFile(f); });
 
     MF.shortcuts.bind({ view, actions, showHome, openExport, setMode, cellPx: () => lastView?.cellPx || +$('#zoom').value });
@@ -498,6 +499,7 @@
         { id: 'btn-save', icon: 'download', label: t('Sauvegarder toutes mes grilles') },
         ...(phone ? [{ id: 'btn-theme', icon: 'contrast', label: t('Thème clair / sombre') }] : []),
         { id: 'btn-help', icon: 'help', label: t('Aide & raccourcis'), hint: '?' },
+        { id: 'btn-about', icon: 'info', label: t('Version {version}', { version: MF.updates.label() }) },
       ];
       if (phone) { MF.phoneNav.menu(items); return; }
       const noPuzzle = document.body.classList.contains('no-puzzle');

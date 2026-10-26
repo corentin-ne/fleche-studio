@@ -21,6 +21,49 @@ MF.updates = (() => {
     });
   }
 
+  /** Nouveautés de la version en cours (affichées dans « À propos »). */
+  const NOTES = [
+    'Version de l\'application affichée dans le menu « Plus », avec vérification des mises à jour',
+    '18 packs à thème de 25 mots, tous proposés à la création (6 nouveaux : fruits, espace, transports…)',
+    'Rappel de sauvegarde et stockage durable : tes grilles sont mieux protégées',
+    'Mode jeu : meilleur temps enregistré, écran gardé allumé sur téléphone',
+    'Export : PDF de tout un lot, envoi de l\'image depuis le téléphone',
+    'Définitions : description Wikidata pour les noms propres',
+  ];
+
+  /** Version installée : « 4.4.0 · 1a2b3c4 ». */
+  const label = () => { const a = MF.loader.about; return `${a.release} · ${a.build}`; };
+
+  /** Demande au serveur s'il existe une version plus récente : true (elle arrive), false (à jour), null (vérification impossible). */
+  async function check() {
+    const reg = await navigator.serviceWorker?.getRegistration().catch(() => null);
+    if (!reg) return null;
+    await reg.update().catch(() => {});
+    return !!(reg.installing || reg.waiting);
+  }
+
+  /** Fenêtre « À propos » : version, date de mise en ligne, nouveautés, vérification des mises à jour. */
+  function about() {
+    const a = MF.loader.about;
+    const { esc } = MF.util;
+    const date = a.deployed ? new Date(a.deployed).toLocaleString(MF.i18n.locale, { dateStyle: 'long', timeStyle: 'short' }) : t('version locale (non publiée)');
+    MF.ui.modal({
+      title: t('À propos de Flèche Studio'), icon: 'info', size: 'small',
+      body: `<dl class="about-list"><dt>${t('Version')}</dt><dd class="mono">${esc(a.release)}</dd><dt>${t('Build')}</dt><dd class="mono">${esc(a.build)}</dd><dt>${t('Mise en ligne')}</dt><dd>${esc(date)}</dd></dl>
+        <p class="small"><b>${t('Nouveautés')}</b></p><ul class="about-notes small">${NOTES.map(n => `<li>${esc(t(n))}</li>`).join('')}</ul>
+        <p class="muted small" id="about-status" aria-live="polite"></p>`,
+      actions: [{ label: t('Fermer'), value: null }, { label: t('Vérifier les mises à jour'), icon: 'refresh', kind: 'primary', value: null, validate: root => {
+        const st = root.querySelector('#about-status');
+        st.textContent = t('Vérification…');
+        check().then(found => {
+          st.textContent = found === null ? t('Vérification impossible ici (hors ligne ou navigation privée) : recharge la page pour obtenir la dernière version.')
+            : found ? t('Nouvelle version en cours de téléchargement : recharge quand on te le propose.') : t('Tu as la dernière version.');
+        });
+        return false; // la fenêtre reste ouverte pour afficher le résultat
+      } }],
+    });
+  }
+
   /** Enregistre le service worker (sites http/https uniquement). */
   async function register() {
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
@@ -39,5 +82,5 @@ MF.updates = (() => {
     document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
   }
 
-  return { register };
+  return { register, check, about, label };
 })();

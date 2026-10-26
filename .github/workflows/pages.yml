@@ -75,7 +75,10 @@ jobs:
           # Version de déploiement : caches du navigateur et du service worker renouvelés à chaque mise en ligne
           build="${GITHUB_SHA::10}"
           sed -i "s/__BUILD__/${build}/g" _site/index.html _site/sw.js _site/js/loader.js
-          if grep -rl "__BUILD__" _site; then echo "Version non inscrite"; exit 1; fi
+          # Numéro de version et date de mise en ligne, affichés dans le menu « Plus »
+          release=$(node -p "require('./package.json').version")
+          sed -i "s/__RELEASE__/${release}/; s/__DEPLOYED__/$(date -u +%Y-%m-%dT%H:%M:%SZ)/" _site/js/loader.js
+          if grep -rlE "__(BUILD|RELEASE|DEPLOYED)__" _site; then echo "Version non inscrite"; exit 1; fi
           # Adresse du site (aperçus des liens partagés : og:url, og:image)
           sed -i "s|__SITE__|${SITE%/}/|g" _site/index.html
           if grep -l "__SITE__" _site/index.html; then echo "Adresse du site non inscrite"; exit 1; fi
