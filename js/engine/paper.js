@@ -1,82 +1,70 @@
 /* =========================================================================
-   Formats papier (A4 / A3) et orientation (portrait / paysage).
-   Source unique pour le moteur (proportions du cadre), les réglages (tailles
-   proposées), l'export (dpi réels) et l'impression (@page).
+   Proportions du cadre de la grille, déduites du format de page choisi
+   (Design → Page) : un seul réglage pour la page ET la grille.
+     - page à format fixe (A4, story, carré…) : la grille en prend les proportions ;
+     - page « Ajustée » : la page épouse la grille, dont le sens suit l'orientation choisie ;
+     - page A3 ou plus grande : vraie grande grille (taille minimale plus haute).
+   Le moteur (worker) reçoit ces valeurs dans les options : { aspect, large }.
    ========================================================================= */
 window.MF = window.MF || {};
 
 MF.paper = (() => {
-  const SHEETS = { A4: { w: 210, h: 297 }, A3: { w: 297, h: 420 } };
-  const MARGIN = 12;       // marge d'impression (mm)
-  const TITLE = 18;        // place du titre imprimé au-dessus de la grille (mm)
-  const RATIO = 0.72;      // colonnes / lignes d'un cadre portrait (feuille moins marges et titre)
-  const MM_PER_IN = 25.4;
+  const RATIO = 0.72;                // colonnes / lignes d'une grille sur une page A4 portrait (titre compris)
+  const TITLE_ROOM = 1.02;           // le titre au-dessus prend un peu de hauteur à la grille
+  const LARGE_MM2 = 297 * 420 * 0.9; // à partir de l'A3
+  const MIN_ROWS_LARGE = 25;         // une grille A3 auto n'est pas une A4 agrandie
 
-  // Tailles fixes proposées, en portrait (colonnes × lignes) ; inversées en paysage
-  const PRESETS = {
-    A4: [[13, 17, 'Compact'], [15, 21, 'Standard'], [17, 24, 'Grand'], [15, 15, 'Carré']],
-    A3: [[18, 25, 'Compact'], [21, 30, 'Standard'], [24, 34, 'Géant'], [21, 21, 'Carré']],
+  // Tailles fixes proposées : nombre de cases du grand côté (le petit suit les proportions de la page)
+  const SIZES = {
+    normal: [[17, 'Compact'], [21, 'Standard'], [24, 'Grand'], [15, 'Carré']],
+    large: [[25, 'Compact'], [30, 'Standard'], [34, 'Géant'], [21, 'Carré']],
   };
-  // Taille minimale d'une grille auto en A3 (lignes, portrait) : une vraie grande grille, pas une A4 agrandie
-  const MIN_ROWS = { A4: 0, A3: 25 };
 
-  /** Réglages papier, avec valeurs par défaut. Accepte les options d'une grille ({ paper }) ou un résultat de `of` ({ format }). */
-  const of = (o = {}) => ({
-    format: SHEETS[o.paper ?? o.format] ? (o.paper ?? o.format) : 'A4',
-    orientation: o.orientation === 'landscape' ? 'landscape' : 'portrait',
-  });
-  const isLandscape = o => of(o).orientation === 'landscape';
+  const round2 = n => Math.round(n * 100) / 100;
 
-  /** Dimensions de la feuille (mm) dans son orientation. */
-  function sheet(o) {
-    const { format, orientation } = of(o);
-    const s = SHEETS[format];
-    return orientation === 'landscape' ? { w: s.h, h: s.w } : { ...s };
+  /** Cadre déduit de la page : { aspect: colonnes / lignes, large }. */
+  function frame(poster = {}) {
+    const R = MF.design?.formatRatio(poster);
+    if (!R) return { aspect: poster.orientation === 'landscape' ? round2(1 / RATIO) : RATIO, large: false };
+    const mm = MF.design.formatMm(poster);
+    const aspect = MF.util.clamp(R <= 1 ? R * TITLE_ROOM : R / TITLE_ROOM, 0.3, 3.5);
+    return { aspect: round2(aspect), large: !!mm && mm[0] * mm[1] >= LARGE_MM2 };
   }
 
-  /** Cadre (en cases) de `rows` lignes aux proportions de la feuille. */
-  const colsFor = (rows, o) => Math.max(7, Math.round(rows * (isLandscape(o) ? 1 / RATIO : RATIO)));
+  /** Options de calcul d'une grille : les siennes, plus le cadre donné par sa page. */
+  const gridOptions = pz => ({ ...pz.options, ...frame(pz.design?.poster) });
+
+  const aspectOf = o => o.aspect || RATIO;
+  const isLandscape = o => aspectOf(o) > 1;
+
+  /** Colonnes d'un cadre de `rows` lignes. */
+  const colsFor = (rows, o) => Math.max(7, Math.round(rows * aspectOf(o)));
 
   /** Nombre minimal de lignes d'une grille auto. */
-  const minRows = o => {
-    const m = MIN_ROWS[of(o).format];
-    return isLandscape(o) ? Math.round(m * RATIO) : m;
-  };
+  const minRows = o => (o.large ? (isLandscape(o) ? Math.round(MIN_ROWS_LARGE * RATIO) : MIN_ROWS_LARGE) : 0);
 
-  /** Tailles fixes proposées : [{ cols, rows, label }]. */
+  /** Tailles fixes proposées pour cette page : [{ cols, rows, label }]. */
   function presets(o) {
-    const land = isLandscape(o);
-    return PRESETS[of(o).format].map(([c, r, label]) => (land ? { cols: r, rows: c, label: MF.i18n.t(label) } : { cols: c, rows: r, label: MF.i18n.t(label) }));
-  }
-
-  /** Libellé court, ex. « A3 paysage ». */
-  const label = o => `${of(o).format} ${isLandscape(o) ? 'paysage' : 'portrait'}`;
-
-  /** Résolution d'impression d'une image de pxW × pxH mise à la taille de la feuille (marges comprises). */
-  function dpi(pxW, pxH, o) {
-    const s = sheet(o);
-    const inW = (s.w - MARGIN * 2) / MM_PER_IN, inH = (s.h - MARGIN * 2 - TITLE) / MM_PER_IN;
-    return Math.round(Math.min(pxW / inW, pxH / inH));
-  }
-
-  /** Feuille de style @page pour imprimer dans ce format. */
-  function printCss(o) {
-    const s = sheet(o);
-    const { format, orientation } = of(o);
-    return `@media print { @page { size: ${format} ${orientation}; margin: ${MARGIN}mm; }
-      #print-area svg { max-height: ${s.h - MARGIN * 2 - TITLE}mm; } }`;
+    const a = aspectOf(o);
+    return SIZES[o.large ? 'large' : 'normal'].map(([n, label]) => {
+      const square = label === 'Carré';
+      const [cols, rows] = square ? [n, n] : a <= 1 ? [Math.max(5, Math.round(n * a)), n] : [n, Math.max(5, Math.round(n / a))];
+      return { cols: Math.min(50, cols), rows: Math.min(50, rows), label: MF.i18n.t(label) };
+    });
   }
 
   /**
-   * Taille fixe équivalente après un changement de format ou d'orientation :
-   * paysage <-> portrait échange colonnes et lignes ; A4 <-> A3 multiplie les côtés par √2.
+   * Partie de l'empreinte d'une grille qui dépend de la page. Seul ce qui change vraiment
+   * le calcul compte (une grille de taille fixe ne dépend pas de la page) ; les libellés
+   * historiques (« A4 portrait »…) sont gardés : les grilles déjà calculées restent à jour.
    */
-  function convert(cols, rows, from, to) {
-    let c = cols, r = rows;
-    if (isLandscape(from) !== isLandscape(to)) [c, r] = [r, c];
-    const k = Math.sqrt(SHEETS[of(to).format].w / SHEETS[of(from).format].w * (SHEETS[of(to).format].h / SHEETS[of(from).format].h));
-    return { cols: Math.round(c * k), rows: Math.round(r * k) };
+  function key(o) {
+    if (o.size === 'fixed') return 'A4 portrait';
+    const fmt = o.large ? 'A3' : 'A4';
+    const orient = isLandscape(o) ? 'paysage' : 'portrait';
+    if ((o.shape && o.shape !== 'rect') || [RATIO, round2(1 / RATIO)].includes(aspectOf(o))) return `${fmt} ${o.shape && o.shape !== 'rect' && !o.large ? 'portrait' : orient}`;
+    return `${fmt} r${aspectOf(o)}`;
   }
 
-  return { of, sheet, colsFor, minRows, presets, label, dpi, printCss, convert, isLandscape };
+  return { frame, gridOptions, colsFor, minRows, presets, key, isLandscape };
 })();

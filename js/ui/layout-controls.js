@@ -1,6 +1,7 @@
 /* =========================================================================
    Réglages de mise en page de l'affiche (format, orientation, position,
-   taille de la grille, marge), partagés par le panneau Design et l'export.
+   taille de la grille, marge) : panneau Design → Page, seul endroit où le
+   format de page se règle (il donne aussi ses proportions à la grille).
    ========================================================================= */
 window.MF = window.MF || {};
 
@@ -45,7 +46,8 @@ MF.layoutControls = (() => {
         <span class="muted">×</span>
         <label class="field mini"><span class="field-hint">${t('Hauteur')}</span><input class="input" type="number" min="1" max="20000" data-custom="customH" value="${p.customH}"></label>
         <span class="field-hint">${t('px, mm… seul le rapport compte')}</span></div>` : ''}
-      ${fmt.mm ? `<div class="field"><span>${t('Orientation')}</span>${MF.ui.segmented('orientation', [['portrait', t('Portrait'), 'page-portrait'], ['landscape', t('Paysage'), 'page-landscape']], p.orientation, 'data-orient')}</div>` : ''}
+      ${fmt.mm || !fixed ? `<div class="field"><span>${fixed ? t('Orientation') : t('Sens de la grille')}</span>${MF.ui.segmented('orientation', [['portrait', t('Portrait'), 'page-portrait'], ['landscape', t('Paysage'), 'page-landscape']], p.orientation, 'data-orient')}</div>` : ''}
+      <p class="field-hint">${ic('info', 'ic-inline')} ${fixed ? t('La grille prend les proportions de cette page (elle est recalculée si elles changent).') : t('La page épouse la grille.')}</p>
       ${fixed ? `<div class="place-row">
           <div class="field"><span>${t('Position')}</span><div class="anchor-grid">${MF.design.ANCHORS.map(a => `<button type="button" class="${p.anchor === a ? 'active' : ''}" data-anchor="${a}" aria-label="${esc(t('Position {anchor}', { anchor: a }))}"><i></i></button>`).join('')}</div></div>
           <div class="grow stack">${MF.ui.slider('scale', t('Taille de la grille'), p.scale, 30, 100, 1, '%', { div: 100 })}${MF.ui.slider('padding', t('Marge'), p.padding, 0, 400, 5)}</div>

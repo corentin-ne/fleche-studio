@@ -143,12 +143,12 @@ MF.createActions = app => {
     setPuzzle(patch) { mutate(p => { if (patch.name !== undefined) p.name = S.str(patch.name, S.LIMITS.name) || p.name; }, 'puzzle'); },
     setOption(k, v) { actions.setOptions({ [k]: v }); },
     setOptions(patch) { mutate(p => { p.options = S.options({ ...p.options, ...patch }); }, 'options'); },
-    setPaper(patch) {
-      mutate(p => {
-        const next = { ...p.options, ...patch };
-        if (p.options.size === 'fixed') Object.assign(next, MF.paper.convert(p.options.cols, p.options.rows, p.options, next));
-        p.options = S.options(next);
-      }, 'options');
+    /** Ouvre le réglage du format de page (Design → Page), seul endroit où il se règle. */
+    openPage() {
+      view.designTab = 'page';
+      view.phonePanel = true;
+      store.update(s => { s.ui.tab = 'design'; }, 'ui');
+      app.renderSide();
     },
     setGame(id) {
       const pz = active();
@@ -161,7 +161,15 @@ MF.createActions = app => {
     /* ---------------- Design ---------------- */
     setDesign(patch, { live = false } = {}) {
       view.sideLocked = live;
-      mutate(p => commitDesign(p, MF.design.merge(p.design, patch)), 'design', { coalesce: live ? 'design-live' : undefined });
+      mutate(p => {
+        const before = MF.paper.frame(p.design.poster);
+        commitDesign(p, MF.design.merge(p.design, patch));
+        // Grille de taille fixe : passer d'une page en hauteur à une page en largeur tourne la grille
+        const after = MF.paper.frame(p.design.poster);
+        if (p.options.size === 'fixed' && (before.aspect > 1) !== (after.aspect > 1) && p.options.cols !== p.options.rows) {
+          p.options = S.options({ ...p.options, cols: p.options.rows, rows: p.options.cols });
+        }
+      }, 'design', { coalesce: live ? 'design-live' : undefined });
     },
     setDesignPath(path, value, { live = false } = {}) {
       view.sideLocked = live;

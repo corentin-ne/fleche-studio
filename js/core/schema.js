@@ -30,7 +30,7 @@ MF.schema = (() => {
   /* ---------------- Options de génération ---------------- */
   const DEFAULT_OPTIONS = {
     size: 'auto', pages: 1, fillers: true, cols: 15, rows: 19, effort: 'normal', photoBand: 0,
-    paper: 'A4', orientation: 'portrait', shape: 'rect', directions: 'normal', givens: 3, density: 'normal', lang: 'fr',
+    shape: 'rect', directions: 'normal', givens: 3, density: 'normal', lang: 'fr',
   };
   function options(o) {
     o = obj(o);
@@ -43,8 +43,6 @@ MF.schema = (() => {
       rows: int(o.rows, 5, 50, D.rows),
       effort: oneOf(o.effort, ['fast', 'normal', 'deep'], D.effort),
       photoBand: int(o.photoBand, 0, 20, D.photoBand),
-      paper: oneOf(o.paper, ['A4', 'A3'], D.paper),
-      orientation: oneOf(o.orientation, ['portrait', 'landscape'], D.orientation),
       shape: oneOf(o.shape, MF.shapes.ids, D.shape),
       directions: oneOf(o.directions, ['easy', 'normal', 'hard'], D.directions),
       givens: int(o.givens, 0, 12, D.givens),
@@ -239,6 +237,13 @@ MF.schema = (() => {
     for (const [k, v] of Object.entries(obj(p.fillerClues))) if (WORD.test(k)) fillerClues[k] = str(v, LIMITS.clue);
     const legacyAccent = color(p.accent, null);
     const des = design(p.design || (legacyAccent ? { accent: legacyAccent, poster: { padding: 0 }, background: { type: 'none' } } : {}));
+    // Ancienne « feuille de référence » (A3, paysage) : reprise par le format de page,
+    // seul réglage désormais (sauf si la page avait déjà un format fixe, qui l'emporte)
+    const oldOpts = obj(p.options);
+    if (des.poster.format === 'fit') {
+      if (oldOpts.paper === 'A3') des.poster.format = 'A3';
+      if (oldOpts.orientation === 'landscape') des.poster.orientation = 'landscape';
+    }
     return {
       id: id(p.id),
       name: str(p.name, LIMITS.name) || MF.i18n.t('Nouvelle grille'),

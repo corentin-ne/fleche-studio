@@ -464,15 +464,14 @@ MF.builder = (() => {
   }
 
   const optionsKey = (o = {}) => {
-    const paper = MF.paper.label(o);
-    // A4 portrait (format historique) n'apparaît pas : les grilles déjà calculées restent à jour
+    const paper = MF.paper.key(o);
     return `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}|${paper}|${o.shape || 'rect'}|${o.density || 'normal'}${o.shape && o.shape !== 'rect' ? '|s2' : ''}${o.lang && o.lang !== 'fr' ? `|${o.lang}` : ''}`;
   };
 
   /** Empreinte des données qui influencent la grille. */
   function layoutHash(puzzle) {
     const sig = prepare(puzzle.words).map(it => `${it.id}:${it.norm}:${it.priority ? 1 : 0}`).join('|');
-    return MF.util.hash(`builder3#${sig}#${optionsKey(puzzle.options)}#${(puzzle.banned || []).join(',')}`);
+    return MF.util.hash(`builder3#${sig}#${optionsKey(MF.paper.gridOptions(puzzle))}#${(puzzle.banned || []).join(',')}`);
   }
 
   return { generate, split, prepare, layoutHash, optionsKey };

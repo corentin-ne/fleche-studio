@@ -214,6 +214,36 @@
     assert(failed);
   });
 
+  /* ---------------- Page et proportions de la grille ---------------- */
+  const posterOf = (format, orientation = 'portrait') => ({ ...MF.design.DEFAULT.poster, format, orientation });
+  test('page : la grille prend les proportions de la page', () => {
+    const fr = (f, o) => MF.paper.frame(posterOf(f, o));
+    eq(fr('A4'), { aspect: 0.72, large: false });
+    eq(fr('A4', 'landscape'), { aspect: 1.39, large: false });
+    eq(fr('A3').large, true, 'A3 = grande grille');
+    eq(fr('fit'), { aspect: 0.72, large: false }, 'page ajustée : portrait par défaut');
+    eq(fr('fit', 'landscape').aspect, 1.39, 'page ajustée : sens choisi');
+    assert(fr('story').aspect < 0.6 && Math.abs(fr('square').aspect - 1) < 0.05, 'formats écran');
+  });
+  test('page : grilles déjà calculées toujours à jour (mêmes empreintes)', () => {
+    const key = (f, o, extra = {}) => MF.paper.key({ ...MF.paper.frame(posterOf(f, o)), ...extra });
+    eq([key('fit'), key('A4'), key('A4', 'landscape'), key('A3'), key('fit', 'landscape')], ['A4 portrait', 'A4 portrait', 'A4 paysage', 'A3 portrait', 'A4 paysage']);
+    eq(key('story', 'portrait', { size: 'fixed' }), 'A4 portrait', 'taille fixe : la page ne change pas la grille');
+    eq(key('story', 'portrait', { shape: 'heart' }), 'A4 portrait', 'forme : proportions propres');
+  });
+  test('page : l\'ancienne « feuille de référence » est reprise par le format de page', () => {
+    const a3 = MF.schema.puzzle({ options: { paper: 'A3', orientation: 'landscape' } });
+    eq([a3.design.poster.format, a3.design.poster.orientation, 'paper' in a3.options], ['A3', 'landscape', false]);
+    const kept = MF.schema.puzzle({ options: { paper: 'A3' }, design: { poster: { format: 'story' } } });
+    eq(kept.design.poster.format, 'story', 'un format de page déjà choisi l\'emporte');
+  });
+  test('page : tailles fixes proposées selon la page', () => {
+    const p = MF.paper.presets({ aspect: 0.72 });
+    eq(p.map(x => `${x.cols}x${x.rows}`), ['12x17', '15x21', '17x24', '15x15']);
+    assert(MF.paper.presets({ aspect: 1.39 }).every(x => x.cols >= x.rows), 'paysage');
+    assert(MF.paper.presets({ aspect: 0.72, large: true })[1].rows === 30, 'A3');
+  });
+
   /* ---------------- Chargeur ---------------- */
   test('chargeur : chaque fichier listé une seule fois et présent', async () => {
     const app = MF.loader.ENTRIES.app;

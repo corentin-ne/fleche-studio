@@ -1,8 +1,8 @@
 /* =========================================================================
    Export : PNG, JPEG, WebP, SVG, impression / PDF, lot ZIP.
-   La fenêtre d'export règle la mise en page (format, position, taille) avec
-   aperçu direct, puis le fichier : type, résolution (dpi pour l'impression,
-   pixels pour l'écran), contenu, fond, décor, nom.
+   La fenêtre d'export règle le fichier : type, résolution (dpi pour
+   l'impression, pixels pour l'écran), contenu, fond, décor, nom. Le format
+   de page se règle dans Design → Page (rappelé ici, avec un raccourci).
 
    Une « page » à exporter : { name, puzzle, model }.
    ========================================================================= */
@@ -119,9 +119,9 @@ MF.exporter = (() => {
    * Fenêtre d'export.
    * @param getPage   () => page affichée (relue à chaque changement de mise en page)
    * @param scopes    lots possibles : [{ id, label, pages, zipName }]
-   * @param setDesign (patch, live) => void : enregistre la mise en page choisie
+   * @param onEditPage () => void : ouvre le réglage du format de page (la fenêtre se ferme)
    */
-  function open(getPage, scopes, setDesign) {
+  function open(getPage, scopes, onEditPage) {
     const first = getPage();
     const st = {
       content: 'blank', type: 'png', width: 2400, quality: 0.92, transparent: false, decor: true, title: true,
@@ -134,9 +134,8 @@ MF.exporter = (() => {
       <div class="export-grid">
         <div class="export-preview"><div id="exp-preview"></div><div class="exp-meta" id="exp-meta"></div></div>
         <div class="export-side">
-          <div class="exp-tabs segmented" id="exp-tabs"><button type="button" data-t="page" class="active">${ic('frame')}${t('Mise en page')}</button><button type="button" data-t="file">${ic('image')}${t('Fichier')}</button><button type="button" data-t="batch">${ic('archive')}${t('Lot')}</button></div>
-          <div class="exp-pane" data-pane="page"><div id="exp-layout"></div></div>
-          <div class="exp-pane" data-pane="file" hidden>
+          <div class="exp-tabs segmented" id="exp-tabs"><button type="button" data-t="file" class="active">${ic('image')}${t('Fichier')}</button><button type="button" data-t="batch">${ic('archive')}${t('Lot')}</button></div>
+          <div class="exp-pane" data-pane="file">
             <div class="field"><span>${t('Contenu')}</span>${seg('content', [['blank', t('À remplir')], ['solution', t('Solution')], ['both', t('Les deux')]], st.content)}</div>
             <div class="field"><span>${t('Type de fichier')}</span>
               <div class="type-grid">${Object.entries(TYPES).map(([k, ty]) => `<button type="button" class="type-card ${k === st.type ? 'active' : ''}" data-type="${k}"><b>${ty.label}</b><small>${esc(ty.hint)}</small></button>`).join('')}</div></div>
@@ -168,7 +167,8 @@ MF.exporter = (() => {
       const ty = TYPES[st.type];
       const h = Math.round((st.width * scene.H) / scene.W);
       const f = MF.design.FORMATS[page.puzzle.design.poster.format];
-      root.querySelector('#exp-meta').textContent = st.type === 'svg' ? `${f.label} · ${t('vectoriel')}` : `${f.label} · ${st.width} × ${h} px`;
+      const orient = f.mm ? ` ${MF.design.formatMm(page.puzzle.design.poster)[0] > MF.design.formatMm(page.puzzle.design.poster)[1] ? t('paysage') : t('portrait')}` : '';
+      root.querySelector('#exp-meta').innerHTML = `<span>${esc(f.label + orient)} · ${st.type === 'svg' ? t('vectoriel') : `${st.width} × ${h} px`}</span><button type="button" class="btn btn-sm btn-ghost" id="exp-page">${ic('frame')}${t('Changer le format')}</button>`;
       root.querySelector('#exp-ext').textContent = st.content === 'both' ? `.${st.type === 'jpeg' ? 'jpg' : st.type} (+ -solution)` : `${st.content === 'solution' ? '-solution' : ''}.${st.type === 'jpeg' ? 'jpg' : st.type}`;
       root.querySelector('#exp-res-field').hidden = st.type === 'svg';
       root.querySelector('#exp-quality-field').hidden = !['jpeg', 'webp'].includes(st.type);
@@ -189,11 +189,6 @@ MF.exporter = (() => {
       if (!res.some(r => r.width === st.width)) st.width = res[1]?.width || res[0].width;
       refresh(root);
     };
-    const drawLayout = root => {
-      const box = root.querySelector('#exp-layout');
-      box.innerHTML = MF.layoutControls.html(getPage().puzzle.design);
-      MF.layoutControls.bind(box, (patch, live) => { setDesign({ poster: patch }, live); refresh(root); }, () => { drawLayout(root); snapResolution(root); });
-    };
 
     return MF.ui.modal({
       title: t('Exporter'), wide: true, icon: 'download', className: 'export-modal',
@@ -207,6 +202,7 @@ MF.exporter = (() => {
         root.addEventListener('click', e => {
           const b = e.target.closest('button');
           if (!b) return;
+          if (b.id === 'exp-page') { close(null); onEditPage(); return; }
           const group = b.closest('[data-exp]');
           if (group) {
             group.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b));
@@ -229,7 +225,6 @@ MF.exporter = (() => {
           bundle(scope().pages, { ...st, zipName: scope().zipName }).catch(() => MF.ui.toast(t('Le ZIP n\'a pas pu être créé.'), 'err'));
           close('zip');
         });
-        drawLayout(root);
         snapResolution(root);
       },
       actions: [

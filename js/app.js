@@ -73,7 +73,7 @@
       job.live = { engine, page: i, pages: groups.length, progress: 0, snapshot: null };
       if (shown()) renderLive(job);
       job.run = MF.generator.run(
-        { engine, words: group, options: pz.options, seed: MF.util.randomSeed(), exclude: [...exclude], banned: pz.banned },
+        { engine, words: group, options: MF.paper.gridOptions(pz), seed: MF.util.randomSeed(), exclude: [...exclude], banned: pz.banned },
         p => {
           job.live.progress = p;
           if (shown()) { setBusy(true, (i + p) / groups.length); renderLive(job); }
@@ -400,7 +400,7 @@
     const scopes = [{ id: 'puzzle', label: `${pz.name} · ${plural(mine.length, 'page')}`, pages: mine, zipName: `${MF.exporter.slug(pz.name)}.zip` }];
     if (puzzles.length > 1) scopes.push({ id: 'all', label: `${t('Toutes mes grilles')} · ${plural(everyone.length, 'page')}`, pages: everyone, zipName: `${t('toutes-mes-grilles')}.zip` });
     const getPage = () => { const p = store.active(); return exportPages(p)[derive(p).page]; };
-    MF.exporter.open(getPage, scopes, (patch, live) => actions.setDesign(patch, { live: !!live }));
+    MF.exporter.open(getPage, scopes, () => actions.openPage());
   }
 
   /* ---------------- Événements globaux ---------------- */
@@ -523,8 +523,11 @@
     renderAll();
     const pz = store.active();
     if (!pz) return;
-    // Pas encore de grille, ou forme / taille / jeu modifiés : on (re)construit automatiquement
-    if (['options', 'active', 'puzzles', 'reset', 'history'].includes(reason) || (reason === 'words' && !compatible(pz))) autoRegen();
+    // Pas encore de grille, ou forme / taille / jeu / proportions de la page modifiés : on (re)construit automatiquement
+    const frame = `${pz.id}|${MF.paper.key(MF.paper.gridOptions(pz))}`;
+    const frameChanged = reason === 'design' && view.frame && view.frame !== frame;
+    view.frame = frame;
+    if (['options', 'active', 'puzzles', 'reset', 'history'].includes(reason) || frameChanged || (reason === 'words' && !compatible(pz))) autoRegen();
   }
 
   /**

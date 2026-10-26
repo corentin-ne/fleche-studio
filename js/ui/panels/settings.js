@@ -14,7 +14,9 @@ MF.panels.settings = (() => {
   function render(root, { puzzle, state, actions, view }) {
     const o = puzzle.options;
     const game = MF.games.get(puzzle.game);
-    const paper = MF.paper.of(o);
+    const fr = MF.paper.frame(puzzle.design.poster);
+    const fmt = MF.design.FORMATS[puzzle.design.poster.format] || MF.design.FORMATS.fit;
+    const pageLabel = `${fmt.label}${fmt.mm || !fmt.ratio ? ` · ${MF.paper.isLandscape(fr) ? t('Paysage') : t('Portrait')}` : ''}`;
     const TABS = [['game', t('Jeu'), 'grid'], ['shape', t('Forme'), 'heart'], ['size', t('Taille'), 'page-portrait'], ['data', t('Données'), 'shield']];
     const tab = TABS.some(([k]) => k === view.settingsTab) ? view.settingsTab : 'game';
     const S = (id, title, icon, html) => (id === tab || (id === 'fill' && tab === 'size') ? `<div class="pgroup">${id === 'fill' ? `<div class="pgroup-title">${esc(title)}</div>` : ''}${html}</div>` : '');
@@ -35,11 +37,11 @@ MF.panels.settings = (() => {
         <p class="field-hint">${t('Les mots ne sont placés qu\'à l\'intérieur de la forme. Une forme (ou une lettre) demande un peu plus de place : la grille s\'agrandit toute seule. Astuce : une lettre ressort mieux sur une grande grille.')}</p>`)}
 
       ${S('size', t('Taille & feuille'), 'page-portrait', `
-        <div class="field"><span>${t('Feuille de référence')}</span>
-          <div class="row paper-row">${ui.segmented('paper', [['A4', 'A4'], ['A3', 'A3']], paper.format, 'data-paper')}${ui.segmented('orientation', [['portrait', t('Portrait'), 'page-portrait'], ['landscape', t('Paysage'), 'page-landscape']], paper.orientation, 'data-paper')}</div>
-          <span class="field-hint">${t('Donne les proportions de la grille. Format de page final : Design → Page.')}</span></div>
+        <div class="field"><span>${t('Format de page')}</span>
+          <div class="page-summary">${ic(MF.paper.isLandscape(fr) ? 'page-landscape' : 'page-portrait')}<b>${esc(pageLabel)}</b><button type="button" class="btn btn-sm btn-ghost" id="set-page">${t('Modifier')}${ic('chevronRight', 'ic-sm')}</button></div>
+          <span class="field-hint">${t('La grille prend les proportions de la page. Le format se choisit dans Design → Page.')}</span></div>
         <div class="field"><span>${t('Taille')}</span>${ui.segmented('size', [['auto', t('Auto : tous mes mots')], ['fixed', t('Fixe')]], o.size, 'data-opt')}</div>
-        ${o.size === 'fixed' ? `<div class="size-presets">${MF.paper.presets(o).map(({ cols, rows, label }) => `<button type="button" data-size="${cols}x${rows}" class="${o.cols === cols && o.rows === rows ? 'active' : ''}">${label} · ${cols}×${rows}</button>`).join('')}</div>
+        ${o.size === 'fixed' ? `<div class="size-presets">${MF.paper.presets(MF.paper.gridOptions(puzzle)).map(({ cols, rows, label }) => `<button type="button" data-size="${cols}x${rows}" class="${o.cols === cols && o.rows === rows ? 'active' : ''}">${label} · ${cols}×${rows}</button>`).join('')}</div>
           <div class="row">
             <label class="field mini"><span class="field-hint">${t('Colonnes')}</span><input class="input" type="number" min="5" max="50" id="set-cols" value="${o.cols}"></label>
             <span class="muted">×</span>
@@ -130,6 +132,7 @@ MF.panels.settings = (() => {
       else if (btn.dataset.game) actions.setGame(btn.dataset.game);
       else if (btn.dataset.shapeId) actions.setOption('shape', btn.dataset.shapeId);
       else if (btn.dataset.size) { const [cols, rows] = btn.dataset.size.split('x').map(Number); actions.setOptions({ cols, rows }); }
+      else if (btn.id === 'set-page') actions.openPage();
       else if (btn.id === 'set-backup') actions.backup();
       else if (btn.id === 'set-restore') actions.restore();
       else if (btn.id === 'set-wipe') actions.wipeAll();
@@ -144,8 +147,6 @@ MF.panels.settings = (() => {
       } else {
         const opt = btn.closest('[data-opt]');
         if (opt) actions.setOption(opt.dataset.opt, MF.util.parseValue(btn.dataset.v));
-        const pap = btn.closest('[data-paper]');
-        if (pap) actions.setPaper({ [pap.dataset.paper]: btn.dataset.v });
       }
     });
     root.querySelectorAll('[data-slider]').forEach(inp => {

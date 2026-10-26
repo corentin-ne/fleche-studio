@@ -128,9 +128,9 @@ MF.wordsearch = (() => {
 
   /** Empreinte des données qui influencent la grille. */
   function layoutHash(puzzle) {
-    const o = puzzle.options;
+    const o = MF.paper.gridOptions(puzzle);
     const sig = prepare(puzzle.words).map(it => `${it.id}:${it.norm}:${it.priority ? 1 : 0}`).join('|');
-    return MF.util.hash(`meles1#${sig}#${o.size === 'fixed' ? `${o.cols}x${o.rows}` : 'auto'}|${o.directions}|${o.shape}|${o.photoBand}|${MF.paper.label(o)}|${o.pages}`);
+    return MF.util.hash(`meles1#${sig}#${o.size === 'fixed' ? `${o.cols}x${o.rows}` : 'auto'}|${o.directions}|${o.shape}|${o.photoBand}|${MF.paper.key(o)}|${o.pages}`);
   }
 
   return { generate, prepare, layoutHash };
