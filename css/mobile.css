@@ -29,7 +29,14 @@
   .topbar { flex-wrap: nowrap; gap: 4px; padding: 4px 6px; min-height: 44px; }
   .brand-text, .puzzle-tabs, .tb-sep { display: none; }
   .topbar-actions { gap: 0; }
-  .topbar-actions .btn-icon { width: 36px; height: 36px; }
+  .topbar-actions .btn-icon { width: 40px; height: 40px; }
+  /* Actions secondaires regroupées dans le menu « Plus » */
+  #btn-share, #btn-open, #btn-save, #btn-help, #btn-theme { display: none; }
+  .only-phone { display: inline-flex; }
+
+  /* Clavier ouvert : la barre du bas s'efface, la grille garde toute la hauteur */
+  body.kb-open .phone-nav { display: none; }
+  body.kb-open .app { padding-bottom: 6px; }
 
   /* ---------- Carte de la grille ---------- */
   .grid-head { padding: 8px 8px 6px 12px; gap: 6px; }
@@ -44,8 +51,29 @@
   .grid-tools .btn { height: 36px; }
   .grid-tools .segmented button { height: 30px; min-width: 36px; }
   .zoom input { display: none; }
-  .grid-scroll { padding: 8px; touch-action: pan-x pan-y; }
+  .grid-scroll { padding: 8px; touch-action: pan-x pan-y; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .play-bar { padding: 0 8px 8px 12px; gap: 6px; }
+  .play-bar { flex-wrap: nowrap; gap: 2px; }
+  .play-bar .spacer { min-width: 4px; }
+  .play-bar .btn { height: 34px; padding: 0 7px; gap: 5px; }
+  .play-clue { margin: 0 8px 8px; }
+  /* En train de jouer, clavier ouvert : seules la définition et la grille restent visibles */
+  body.kb-open .grid-head, body.kb-open .stale-bar, body.kb-open .play-bar { display: none; }
+  body.kb-open .play-clue { margin-top: 8px; }
+
+  /* Cibles tactiles confortables (≈ 36-44 px) */
+  .btn-sm { min-height: 34px; }
+  .side-body .btn-icon { min-width: 36px; min-height: 36px; }
+
+  /* Menu « Plus » */
+  .phone-menu { display: flex; flex-direction: column; gap: 4px; }
+  .pm-item {
+    display: flex; align-items: center; gap: 14px; min-height: 50px; padding: 0 14px;
+    border: 0; border-radius: var(--r-md); background: var(--glass-bg-soft); color: var(--text);
+    font: 600 var(--fs-md) var(--font-sans); text-align: left; cursor: pointer;
+  }
+  .pm-item .ic { width: 20px; height: 20px; color: var(--accent); }
+  .pm-item:active { background: rgba(var(--accent-rgb), .18); }
 
   /* ---------- Barre d'onglets du bas ---------- */
   .phone-nav {
@@ -92,7 +120,7 @@
     width: 100%; min-width: 0; max-height: 92vh; max-height: 92dvh;
     border-radius: var(--r-xl) var(--r-xl) 0 0;
     padding-bottom: var(--safe-b);
-    animation: sheetIn var(--t-med) var(--ease);
+    animation: bottomSheetIn var(--t-med) var(--ease);
   }
   .modal-head { padding: var(--sp-4) var(--sp-4) var(--sp-2); }
   .modal-body { padding: var(--sp-2) var(--sp-4) var(--sp-4); }
@@ -106,4 +134,4 @@
   .toast { min-width: 0; max-width: none; }
 }
 
-@keyframes sheetIn { from { transform: translateY(40px); opacity: 0; } }
+@keyframes bottomSheetIn { from { transform: translateY(40px); opacity: 0; } }

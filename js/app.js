@@ -200,12 +200,16 @@
 
     $$('#mode-switch button').forEach(btn => btn.classList.toggle('active', btn.dataset.mode === s.ui.mode));
     $('#play-bar').hidden = s.ui.mode !== 'play' || !d.model.cols;
+    $('#play-clue').hidden = $('#play-bar').hidden || !game.clues;
     $('#btn-fit').classList.toggle('active', !!s.ui.fit);
     $('#btn-hint-word').hidden = pz.game === 'meles';
     $('#btn-hint').innerHTML = `${ic('bulb')}${pz.game === 'meles' ? 'Indice' : 'Lettre'}`;
 
     const entriesFor = `${pz.id}@${pz.layout?.at}#${d.page}`;
-    if (view.entriesFor !== entriesFor) { view.entries = loadEntries(entriesFor); view.entriesFor = entriesFor; view.playStart = Date.now(); }
+    if (view.entriesFor !== entriesFor) {
+      view.entries = loadEntries(entriesFor); view.entriesFor = entriesFor; view.playStart = Date.now();
+      $('#clue-text').textContent = 'Touche une case pour voir sa définition';
+    }
     const box = $('#grid-scroll');
     if (busy) {
       // Pendant le calcul : la grille se construit en direct (remplace l'ancienne grille)
@@ -231,6 +235,7 @@
       onEntries: e => { view.entries = e; saveEntries(entriesFor, e); },
       onMissing: key => editMissing(key),
       onComplete: () => celebrate(),
+      onWord: wid => showClue(wid),
       onFound: (slot, n, tot) => MF.ui.toast(`${slot.label || slot.word} ✓ (${n}/${tot})`, 'ok', 1500),
     });
     $('#zoom').value = lastView?.cellPx || 64;
@@ -460,6 +465,8 @@
     let lastBox = '';
     new ResizeObserver(MF.util.debounce(() => {
       const b = $('#grid-scroll'), key = `${b.clientWidth}x${b.clientHeight}`;
+      // Pendant la saisie, l'ouverture du clavier du téléphone change la hauteur : on ne redessine pas
+      if (document.activeElement?.matches?.('.play-cell')) return;
       if (key !== lastBox && store.get().ui.fit && store.active()) { lastBox = key; renderGrid(); }
     }, 120)).observe($('#grid-scroll'));
     $('#btn-shuffle').onclick = () => store.active() && regenerate(store.active().id);
@@ -545,6 +552,36 @@
       const next = Math.max(10, Math.min(140, cur + (e.deltaY < 0 ? 4 : -4)));
       if (next !== cur) store.update(s => { s.ui.cell = next; s.ui.fit = false; }, 'zoom');
     }, { passive: false });
+    // Zoom à deux doigts (téléphone, tablette)
+    MF.pinchZoom.attach($('#grid-scroll'), {
+      cell: () => lastView?.cellPx || +$('#zoom').value,
+      commit: cell => store.update(s => { s.ui.cell = cell; s.ui.fit = false; }, 'zoom'),
+    });
+
+    // Jeu : définition du mot en cours, mot précédent / suivant, changement de sens
+    $('#clue-prev').onclick = () => MF.gridView.stepWord(-1);
+    $('#clue-next').onclick = () => MF.gridView.stepWord(1);
+    $('#clue-text').onclick = () => { if (!MF.gridView.toggleDir()) MF.gridView.stepWord(0); };
+    // Les boutons ne prennent pas le focus : la case active (et le clavier du téléphone) reste ouverte
+    $$('#play-clue button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
+
+    // Téléphone : actions secondaires de la barre du haut regroupées dans « Plus »
+    $('#btn-more').onclick = () => MF.phoneNav.menu([
+      { id: 'btn-share', icon: 'share', label: 'Partager un lien pour jouer' },
+      { id: 'btn-save', icon: 'download', label: 'Sauvegarder toutes mes grilles' },
+      { id: 'btn-open', icon: 'folder', label: 'Ouvrir un fichier' },
+      { id: 'btn-theme', icon: 'contrast', label: 'Thème clair / sombre' },
+      { id: 'btn-help', icon: 'help', label: 'Aide' },
+    ]);
+  }
+
+  /** Jeu : affiche la définition du mot actif (sens indiqué par une flèche). */
+  function showClue(wid) {
+    const pz = store.active();
+    const slot = derive(pz).model.slots.get(wid);
+    if (!slot) return;
+    const text = MF.gridModel.clueText(slot, pz) || 'Définition à écrire';
+    $('#clue-text').innerHTML = `<b class="pc-dir">${slot.dir === 'V' ? '↓' : '→'}</b><span>${esc(text)}</span><small>${slot.cells.length} lettres</small>`;
   }
 
   /* ---------------- Démarrage ---------------- */

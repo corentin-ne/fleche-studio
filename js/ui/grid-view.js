@@ -22,10 +22,15 @@ MF.gridView = (() => {
     // Taille d'une case à l'écran : fixe, ou calculée pour que toute l'affiche tienne (fonction)
     const cell = typeof o.cell === 'function' ? o.cell(scene.W, scene.H) : o.cell || 64;
     const width = Math.round((scene.W * cell) / U);
+    // Re-rendu en cours de partie (zoom, clavier du téléphone qui redimensionne l'écran) :
+    // on garde la case active, sinon le clavier virtuel se refermerait
+    const act = container.contains(document.activeElement) && document.activeElement.matches('.play-cell') ? document.activeElement : null;
+    const keep = act && ctx && mode === 'play' ? { r: act.dataset.r, c: act.dataset.c, dir: ctx.dir } : null;
     container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''} ${o.animate ? 'enter' : ''}" style="width:${width}px">${MF.renderers.svg(scene)}</div>`;
     const sheet = container.firstElementChild;
-    ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: 'H', o, cellPx: cell };
+    ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: keep?.dir || 'H', o, cellPx: cell };
     if (mode === 'play') (model.game === 'meles' ? mountWordSearch : mountPlay)(sheet);
+    if (keep) container.querySelector(`.play-cell[data-r="${keep.r}"][data-c="${keep.c}"]`)?.focus({ preventScroll: true });
     sheet.querySelector('.mf-svg').addEventListener('click', e => {
       const m = e.target.closest('.missing');
       if (m) o.onMissing?.(m.dataset.key);
@@ -313,6 +318,33 @@ MF.gridView = (() => {
     return true;
   }
 
+  /** Passe au mot suivant / précédent et place le curseur sur sa première case vide. */
+  function stepWord(delta) {
+    if (!ctx || ctx.mode !== 'play' || ctx.model.game === 'meles') return false;
+    const ids = [...ctx.model.slots.keys()];
+    if (!ids.length) return false;
+    const i = ids.indexOf(ctx.current);
+    const s = ctx.model.slots.get(ids[(i + delta + ids.length) % ids.length]);
+    if (s.dir) ctx.dir = s.dir;
+    const target = s.cells.find(([r, c]) => { const inp = inputAt(r, c); return inp && !inp.readOnly && !inp.value; }) || s.cells[0];
+    const inp = inputAt(target[0], target[1]);
+    if (!inp) return false;
+    if (document.activeElement === inp) markWord(target[0], target[1]); else inp.focus();
+    return true;
+  }
+
+  /** Change le sens de saisie sur la case active (si elle appartient aux deux sens). */
+  function toggleDir() {
+    const act = document.activeElement?.matches?.('.play-cell') ? document.activeElement : null;
+    if (!ctx || !act) return false;
+    const r = +act.dataset.r, c = +act.dataset.c;
+    const cell = ctx.model.cells[r][c];
+    if (!(cell.words.H && cell.words.V)) return false;
+    ctx.dir = ctx.dir === 'H' ? 'V' : 'H';
+    markWord(r, c);
+    return true;
+  }
+
   function clearEntries() {
     if (!ctx) return;
     ctx.container.querySelectorAll('.play-cell').forEach(inp => { if (!inp.readOnly) { inp.value = ''; inp.classList.remove('wrong', 'right', 'revealed'); } });
@@ -323,5 +355,5 @@ MF.gridView = (() => {
 
   const current = () => ctx;
 
-  return { render, highlight, check, reveal, clearEntries, current };
+  return { render, highlight, check, reveal, clearEntries, current, stepWord, toggleDir };
 })();

@@ -30,6 +30,52 @@ MF.phoneNav = (() => {
     // Changement d'orientation / de taille : la grille se réajuste via son ResizeObserver
     query.addEventListener?.('change', () => document.body.classList.toggle('is-phone', query.matches));
     document.body.classList.toggle('is-phone', query.matches);
+    watchKeyboard();
+    preventFocusZoom();
+  }
+
+  /** Clavier virtuel ouvert (champ de saisie actif) : la barre du bas s'efface pour laisser la place. */
+  function watchKeyboard() {
+    const typing = el => el?.matches?.('input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]), textarea, select, [contenteditable="true"]');
+    const update = () => document.body.classList.toggle('kb-open', query.matches && typing(document.activeElement));
+    addEventListener('focusin', update);
+    // focusout précède le focusin suivant : on attend la fin du changement de champ
+    addEventListener('focusout', () => setTimeout(update, 60));
+  }
+
+  /**
+   * Les navigateurs mobiles zooment la page sur les petits champs (cases du jeu), ce qui
+   * décale toute l'interface. Sur écran tactile, on fixe l'échelle : la grille a son
+   * propre zoom à deux doigts (MF.pinchZoom).
+   */
+  function preventFocusZoom() {
+    const meta = document.querySelector('meta[name=viewport]');
+    if (matchMedia('(pointer: coarse)').matches && meta && !/maximum-scale/.test(meta.content)) meta.content += ', maximum-scale=1';
+  }
+
+  /**
+   * Menu « Plus » en feuille du bas : reprend les boutons de la barre du haut
+   * masqués sur téléphone (mêmes actions, aucune logique dupliquée).
+   * @param items [{ id: id du bouton d'origine, icon, label }]
+   */
+  function menu(items) {
+    const noPuzzle = document.body.classList.contains('no-puzzle');
+    const available = items.filter(it => {
+      const b = document.getElementById(it.id);
+      return b && !b.disabled && !(noPuzzle && b.classList.contains('only-puzzle'));
+    });
+    MF.ui.modal({
+      title: 'Plus d\'actions', icon: 'more', actions: [],
+      body: `<div class="phone-menu">${available.map(it => `<button type="button" class="pm-item" data-target="${it.id}">${MF.icons.svg(it.icon)}<span>${it.label}</span></button>`).join('')}</div>`,
+    });
+    const scrim = [...document.querySelectorAll('.modal-scrim')].pop();
+    scrim?.querySelector('.phone-menu')?.addEventListener('click', e => {
+      const b = e.target.closest('[data-target]');
+      if (!b) return;
+      scrim.querySelector('[data-close]').click();
+      // Après la fermeture de la feuille (le focus y revient), on déclenche l'action d'origine
+      setTimeout(() => document.getElementById(b.dataset.target)?.click(), 140);
+    });
   }
 
   /** Reflète l'état : vue affichée, onglet actif et badges (copiés depuis ceux du panneau). */
@@ -49,5 +95,5 @@ MF.phoneNav = (() => {
 
   const isPhone = () => query.matches;
 
-  return { init, sync, isPhone };
+  return { init, sync, isPhone, menu };
 })();
