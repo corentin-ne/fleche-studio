@@ -42,7 +42,7 @@ const fail = msg => { failed++; console.error(`✘ ${msg}`); };
  * Budget de poids (Ko, non compressé) : une hausse involontaire (fichier dupliqué, données
  * collées par erreur) fait échouer la vérification. À relever consciemment si nécessaire.
  */
-const BUDGET = { app: 820, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 760 };
+const BUDGET = { app: 880, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 760 };
 
 /** Fichiers listés par js/loader.js (même liste que la page et le service worker). */
 async function loaderLists() {
@@ -153,6 +153,8 @@ try {
     await step('assistant : tous les packs à thème proposés', async () => {
       await page.click('[data-w="new"]');
       await page.waitForSelector('.wizard');
+      // Étape 1 : le jeu (le choisir passe à l'étape des mots)
+      await page.click('.wz-game[data-v="fleches"]');
       const shown = await page.locator('.start-card[data-v^="pack:"]:visible').count();
       const total = await page.evaluate(() => Object.keys(MF.lexicon.packs('fr')).length);
       check(shown === total && total >= 12, `${shown} packs affichés sur ${total}`);

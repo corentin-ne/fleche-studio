@@ -105,6 +105,16 @@ MF.phoneNav = (() => {
     if (!root) return;
     document.body.classList.toggle('m-panel', !!panel);
     const current = panel ? tab : 'grid';
+    // Murdoku : un onglet « Enquête » à la place des mots, ni définitions ni décor
+    const mdk = document.body.classList.contains('game-murdoku');
+    const words = /** @type {HTMLElement | null} */ (root.querySelector('[data-ptab="words"]'));
+    if (words && words.dataset.mdk !== String(mdk)) {
+      words.dataset.mdk = String(mdk);
+      const label = mdk ? t('Enquête') : t('Mots');
+      words.setAttribute('aria-label', label);
+      words.querySelector('.pn-lbl').textContent = label;
+      words.querySelector('[data-icon]').innerHTML = MF.icons.svg(mdk ? 'magnifier' : 'list');
+    }
     root.querySelectorAll('button[data-ptab]').forEach(b => b.classList.toggle('active', b.dataset.ptab === current));
     root.querySelectorAll('[data-badge]').forEach(span => {
       const src = document.getElementById(span.dataset.badge);

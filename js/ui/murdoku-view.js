@@ -19,11 +19,26 @@ MF.murdokuView = (() => {
   const LOOKS = () => [['print', t('Livre d\'art')], ['gouache', t('Encre & gouache')], ['film', t('Film rétro')], ['pixel', t('Pixel art')], ['clean', t('Net')]];
   const MOODS = () => [['day', t('Jour')], ['golden', t('Fin d\'après-midi')], ['dusk', t('Crépuscule')], ['night', t('Nuit')]];
 
+  /** Niveaux : [id, nom, description courte, étoiles]. */
+  const LEVELS = () => [
+    ['easy', t('Facile'), t('Indices directs, quelques bonus'), 1],
+    ['medium', t('Moyen'), t('Un vrai raisonnement'), 2],
+    ['hard', t('Difficile'), t('Relations et négations'), 3],
+    ['expert', t('Expert'), t('Aucune ligne ni colonne donnée'), 4],
+  ];
+  const levelName = id => (LEVELS().find(l => l[0] === id) || [])[1] || '';
+
   /** Options de génération et de rendu, toujours complètes et bornées (MF.schema). */
   const options = o => MF.schema.murdokuOptions(o);
 
   /** Empreinte des réglages qui changent l'énigme (le style d'affichage n'en fait pas partie). */
-  const hashOf = pz => { const o = options(pz.options.murdoku); return MF.util.hash(JSON.stringify([o.size, o.difficulty, o.rooms, o.density, o.names, o.victim, o.seed, pz.options.lang])); };
+  const hashOf = pz => { const o = options(pz.options.murdoku); return MF.util.hash(JSON.stringify([o.theme, o.size, o.difficulty, o.rooms, o.density, o.names, o.victim, o.roomNames, o.objectNames, o.story, o.seed, pz.options.lang])); };
+
+  /** Habillage de l'enquête : univers choisi + noms retouchés, dans la langue de l'enquête. */
+  const themeOf = pz => {
+    const o = options(pz.options.murdoku);
+    return MF.murdokuThemes.resolve(o.theme, pz.options.lang === 'en' ? 'en' : 'fr', { rooms: o.roomNames, objects: o.objectNames, story: o.story });
+  };
 
   /** Adaptateur pour le registre des jeux (MF.games) : pas de mots à préparer, empreinte des réglages. */
   const engine = { prepare: () => [1], layoutHash: hashOf };
@@ -32,7 +47,7 @@ MF.murdokuView = (() => {
   function generate(pz) {
     const o = options(pz.options.murdoku);
     const names = o.names.filter(Boolean);
-    return MF.murdoku.generate({ size: o.size, difficulty: o.difficulty, rooms: o.rooms, density: o.density, lang: pz.options.lang, names: names.length ? names : undefined, victimName: o.victim || undefined }, o.seed || MF.util.randomSeed());
+    return MF.murdoku.generate({ size: o.size, difficulty: o.difficulty, rooms: o.rooms, density: o.density, lang: pz.options.lang, names: names.length ? names : undefined, victimName: o.victim || undefined, theme: themeOf(pz) }, o.seed || MF.util.randomSeed());
   }
 
   /* ---------------- Plan 2D ---------------- */
@@ -54,7 +69,7 @@ MF.murdokuView = (() => {
     out.push(`<rect x="${M - 14}" y="${M - 14}" width="${N * U + 28}" height="${N * U + 28}" rx="18" fill="#3b2f2a"/>`);
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       const type = pz.rooms[room(r, c)]?.type;
-      out.push(`<rect x="${X(c)}" y="${Y(r)}" width="${U}" height="${U}" fill="${FLOORS[type] || '#eee'}"${o.interactive ? ` class="mdk-cell" data-r="${r}" data-c="${c}"` : ''}/>`);
+      out.push(`<rect x="${X(c)}" y="${Y(r)}" width="${U}" height="${U}" fill="${esc(pz.rooms[room(r, c)]?.floor?.[1] || FLOORS[type] || '#eee')}"${o.interactive ? ` class="mdk-cell" data-r="${r}" data-c="${c}"` : ''}/>`);
     }
     // Quadrillage léger, puis murs entre pièces
     for (let i = 1; i < N; i++) out.push(`<path d="M${X(i)} ${M}V${M + N * U}M${M} ${Y(i)}H${M + N * U}" stroke="#5b4a3f" stroke-opacity=".18" stroke-width="2"/>`);
@@ -70,7 +85,7 @@ MF.murdokuView = (() => {
       const id = room(r, c);
       if (named.has(id)) continue;
       named.add(id);
-      out.push(`<text x="${X(c) + 8}" y="${Y(r) + 20}" font-size="15" font-weight="700" fill="#3b2f2a" fill-opacity=".55" font-family="Inter, sans-serif">${esc(MF.murdoku.roomLabel(pz.rooms[id].type))}</text>`);
+      out.push(`<text x="${X(c) + 8}" y="${Y(r) + 20}" font-size="15" font-weight="700" fill="#3b2f2a" fill-opacity=".6" font-family="Inter, sans-serif">${esc(MF.murdoku.roomName(pz, id))}</text>`);
     }
     if (o.highlight) out.push(`<rect x="${X(o.highlight.c) + 4}" y="${Y(o.highlight.r) + 4}" width="${U - 8}" height="${U - 8}" rx="12" fill="none" stroke="#7b3fe4" stroke-width="6"/>`);
     for (const ob of pz.objects) {
@@ -78,7 +93,7 @@ MF.murdokuView = (() => {
       if (ob.type === 'rug') out.push(`<rect x="${X(ob.c) + 14}" y="${Y(ob.r) + 22}" width="${U - 28}" height="${U - 44}" rx="8" fill="#b5523b" fill-opacity=".55" stroke="#7a3324" stroke-dasharray="6 5" stroke-width="3"/>`);
       else {
         if (occ) out.push(`<circle cx="${X(ob.c) + U / 2}" cy="${Y(ob.r) + U / 2}" r="34" fill="#fff" fill-opacity=".45"/>`);
-        out.push(`<text x="${X(ob.c) + U / 2}" y="${Y(ob.r) + U / 2 + 17}" font-size="${occ ? 40 : 48}" text-anchor="middle">${ICONS[ob.type] || '▪'}</text>`);
+        out.push(`<text x="${X(ob.c) + U / 2}" y="${Y(ob.r) + U / 2 + 17}" font-size="${occ ? 40 : 48}" text-anchor="middle">${esc(pz.objectNames?.[ob.type]?.icon || ICONS[ob.type] || '▪')}</text>`);
       }
     }
     for (const k of o.crosses || []) {
@@ -208,13 +223,15 @@ MF.murdokuView = (() => {
   }
 
   /* ---------------- Énoncé ---------------- */
-  const clueList = puzzle => puzzle.clues.map(c => MF.murdoku.clueText(c, puzzle));
+  const clueList = puzzle => puzzle.clues.map(c => MF.murdoku.clueText(c, puzzle, puzzle.lang));
   const suspects = puzzle => puzzle.people.filter(p => p.role !== 'victim');
   const victim = puzzle => puzzle.people.find(p => p.role === 'victim');
 
   function sheetHtml(puzzle, { checks = [], murderer = false } = {}) {
     const v = victim(puzzle);
+    const theme = MF.murdokuThemes.get(puzzle.theme);
     return `<div class="mdk-sheet">
+      ${puzzle.story ? `<p class="mdk-story"><span aria-hidden="true">${theme.emoji}</span>${esc(puzzle.story)}</p>` : ''}
       <div class="mdk-cast">${puzzle.people.map(p => `<span class="mdk-person ${p.role}" style="--p:${esc(p.color)}"><i>${p.role === 'victim' ? '💀' : esc(initial(p.name))}</i>${esc(p.name)}${p.role === 'victim' ? ` <small>${esc(t('victime'))}</small>` : ''}</span>`).join('')}</div>
       <ol class="mdk-clues">${clueList(puzzle).map((txt, i) => `<li><label><input type="checkbox" data-clue="${i}" ${checks.includes(i) ? 'checked' : ''}><span>${esc(txt)}</span></label></li>`).join('')}</ol>
       ${murderer ? `<p class="mdk-verdict">${ic('magnifier')} ${esc(t('Coupable : {name}', { name: puzzle.people.find(p => p.id === puzzle.murderer)?.name || '?' }))}</p>` : ''}
@@ -346,7 +363,9 @@ MF.murdokuView = (() => {
     clueList(puzzle).forEach((txt, i) => lines.push({ n: i + 1, rows: wrap(txt, clueSize, colW - 60 * S) }));
     const colH = [0, 0], placed = [];
     for (const l of lines) { const col = colH[0] <= colH[1] ? 0 : 1; placed.push({ ...l, col, y: colH[col] }); colH[col] += l.rows.length * clueSize * 1.3 + 18 * S; }
-    const titleH = 130 * S, castH = 110 * S, cluesH = Math.max(...colH) + 40 * S, verdictH = solution ? 110 * S : 0;
+    const storyRows = puzzle.story ? wrap(puzzle.story, 34 * S, W - pad * 2, 500) : [];
+    const storyH = storyRows.length ? storyRows.length * 34 * S * 1.35 + 30 * S : 0;
+    const titleH = 130 * S + storyH, castH = 110 * S, cluesH = Math.max(...colH) + 40 * S, verdictH = solution ? 110 * S : 0;
     const H = Math.round(pad + titleH + board.height + 40 * S + castH + cluesH + verdictH + pad);
     const cv = document.createElement('canvas');
     cv.width = W; cv.height = H;
@@ -358,9 +377,13 @@ MF.murdokuView = (() => {
     g.font = `700 ${84 * S}px ${titleFont}`;
     g.fillText(pz.name, pad, y + 80 * S);
     g.font = `600 ${34 * S}px ${font}`; g.fillStyle = '#8a6d5a'; g.textAlign = 'right';
-    const level = { easy: t('Facile'), medium: t('Moyen'), hard: t('Difficile') }[puzzle.difficulty] || '';
+    const level = levelName(puzzle.difficulty);
     g.fillText(`Murdoku · ${level}${solution ? ` · ${t('Solution')}` : ''}`, W - pad, y + 76 * S);
     g.textAlign = 'left';
+    if (storyRows.length) {
+      g.fillStyle = '#5a4638'; g.font = `italic 500 ${34 * S}px ${font}`;
+      storyRows.forEach((row, j) => g.fillText(row, pad, y + 130 * S + 20 * S + j * 34 * S * 1.35));
+    }
     y += titleH;
     g.drawImage(board, pad, y);
     y += board.height + 40 * S;
@@ -436,5 +459,5 @@ MF.murdokuView = (() => {
   /** Vignette du tableau de bord (plan 2D, solution cachée). */
   const thumb = pz => (pz.layout?.engine === 'murdoku' ? planSvg(pz.layout.pages[0], { labels: false, cls: 'dash-svg' }) : '');
 
-  return { LOOKS, MOODS, options, hashOf, engine, release, generate, planSvg, load3d, renderStudio, renderPlay, openExport, composePage, thumb, clueList };
+  return { LOOKS, MOODS, LEVELS, levelName, themeOf, options, hashOf, engine, release, generate, planSvg, load3d, renderStudio, renderPlay, openExport, composePage, thumb, clueList };
 })();

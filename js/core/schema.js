@@ -58,15 +58,23 @@ MF.schema = (() => {
   const MDK_LOOKS = ['print', 'gouache', 'film', 'pixel', 'clean'];
   const MDK_MOODS = ['day', 'golden', 'dusk', 'night'];
   /** Réglages d'une enquête (génération et rendu). */
+  /** Textes retouchés d'une enquête : { type: valeur } pour les seuls types connus. */
+  const textMap = (m, types, fn) => Object.fromEntries(Object.entries(obj(m)).filter(([k]) => types.includes(k)).map(([k, v]) => [k, fn(v)]).filter(([, v]) => v));
   function murdokuOptions(o) {
     o = obj(o);
+    const M = MF.murdoku;
     return {
+      theme: oneOf(o.theme, MF.murdokuThemes?.ids || ['manor'], 'manor'),
       size: int(o.size, 5, 8, 6),
-      difficulty: oneOf(o.difficulty, ['easy', 'medium', 'hard'], 'medium'),
+      difficulty: oneOf(o.difficulty, ['easy', 'medium', 'hard', 'expert'], 'medium'),
       rooms: oneOf(o.rooms, ['few', 'normal', 'many'], 'normal'),
       density: oneOf(o.density, ['sparse', 'normal', 'full'], 'normal'),
-      names: (Array.isArray(o.names) ? o.names : []).slice(0, 8).map(n => str(n, 16)),
-      victim: str(o.victim, 16),
+      names: (Array.isArray(o.names) ? o.names : []).slice(0, 8).map(n => str(n, 20)),
+      victim: str(o.victim, 20),
+      // Lieux et objets renommés (par type), histoire
+      roomNames: M ? textMap(o.roomNames, M.ROOM_TYPES, v => { const x = obj(v), name = str(x.name, 40), inn = str(x.in, 60); return name || inn ? { name, in: inn } : null; }) : {},
+      objectNames: M ? textMap(o.objectNames, Object.keys(M.OBJECTS), v => str(v, 32)) : {},
+      story: str(o.story, 600),
       look: oneOf(o.look, MDK_LOOKS, 'print'),
       mood: oneOf(o.mood, MDK_MOODS, 'day'),
       camera: oneOf(o.camera, ['iso', 'top'], 'iso'),
@@ -85,7 +93,16 @@ MF.schema = (() => {
     const N = int(p.size, 5, 8, 0);
     const M = MF.murdoku;
     if (!N || !M || !Array.isArray(p.rooms) || !Array.isArray(p.cells) || p.cells.length !== N) return null;
-    const rooms = p.rooms.slice(0, N * N).map((r, i) => ({ id: i, type: oneOf(obj(r).type, M.ROOM_TYPES, 'hall') }));
+    const PATTERNS = ['wood', 'tile', 'carpet', 'grass', 'stone'];
+    const rooms = p.rooms.slice(0, N * N).map(obj).map((r, i) => {
+      const out = { id: i, type: oneOf(r.type, M.ROOM_TYPES, 'hall') };
+      // Habillage d'un univers : nom, phrase « dans … », sol et mur
+      if (r.name) out.name = str(r.name, 40);
+      if (r.in) out.in = str(r.in, 60);
+      if (Array.isArray(r.floor) && PATTERNS.includes(r.floor[0])) out.floor = [r.floor[0], color(r.floor[1], '#cccccc'), color(r.floor[2], '#999999')];
+      if (r.wall) out.wall = color(r.wall, '#cccccc');
+      return out;
+    });
     const cells = p.cells.map(row => (Array.isArray(row) && row.length === N ? row.map(v => int(v, 0, rooms.length - 1, -1)) : null));
     if (cells.some(row => !row || row.includes(-1))) return null;
     const OBJ = M.OBJECTS;
@@ -93,7 +110,7 @@ MF.schema = (() => {
     const objects = (Array.isArray(p.objects) ? p.objects : []).slice(0, N * N).map(obj)
       .filter(o => OBJ[o.type] && cellOk(o.r, o.c)).map(o => ({ type: o.type, r: o.r, c: o.c }));
     const people = (Array.isArray(p.people) ? p.people : []).slice(0, N).map(obj).map((x, i) => ({
-      id: /^[a-z0-9]{1,8}$/i.test(x.id) ? x.id : `p${i}`, name: str(x.name, 16) || '?', color: color(x.color, '#888888'),
+      id: /^[a-z0-9]{1,8}$/i.test(x.id) ? x.id : `p${i}`, name: str(x.name, 20) || '?', color: color(x.color, '#888888'),
       role: x.role === 'victim' ? 'victim' : 'suspect', r: int(x.r, 0, N - 1, 0), c: int(x.c, 0, N - 1, 0),
     }));
     const ids = new Set(people.map(x => x.id));
@@ -114,8 +131,18 @@ MF.schema = (() => {
     const out = {
       engine: 'murdoku', v: 1, size: N, seed: int(p.seed, 0, 2 ** 32, 0), rooms, cells, objects, people,
       victim: people.find(x => x.role === 'victim').id, lang: oneOf(p.lang, MF.lexicon.ids, 'fr'),
-      murderer: ref(p.murderer) || people[0].id, difficulty: oneOf(p.difficulty, ['easy', 'medium', 'hard'], 'medium'),
+      murderer: ref(p.murderer) || people[0].id, difficulty: oneOf(p.difficulty, ['easy', 'medium', 'hard', 'expert'], 'medium'),
     };
+    if (typeof p.theme === 'string') out.theme = str(p.theme, 20);
+    if (p.story) out.story = str(p.story, 600);
+    const on = Object.entries(obj(p.objectNames)).filter(([k]) => OBJ[k]).map(([k, v]) => {
+      const x = obj(v);
+      /** @type {{ name: string, a: string, on: string, icon?: string }} */
+      const w = { name: str(x.name, 32), a: str(x.a, 48), on: str(x.on, 60) };
+      if (x.icon) w.icon = str(x.icon, 8);
+      return /** @type {[string, typeof w]} */ ([k, w]);
+    }).filter(([, w]) => w.name && w.a);
+    if (on.length) out.objectNames = Object.fromEntries(on);
     out.clues = clues.filter(c => M.validClue(c, out));
     return out;
   }

@@ -23,6 +23,9 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Murdoku : 17 univers (sirènes, samouraïs, pirates, pharaons, Paris, bal de la Régence…) avec lieux, objets, suspects et histoire, tous modifiables',
+    'Murdoku : niveau Expert, nouveaux indices (bord du plan, « pas à côté de ») et phrases plus variées',
+    'Création repensée en trois étapes, plus simple sur téléphone',
     'Nouveau jeu : Murdoku, une enquête en diorama 3D peint (place les suspects, démasque le coupable), jouable et exportable',
     'Studio et jeu séparés : une page de jeu à part et une Salle de jeu dans le tableau de bord',
     'Multicolore : lettres, cases, définitions et mots de plusieurs couleurs (arc-en-ciel, pastel, néon…, couleurs au choix)',

@@ -469,7 +469,7 @@
   test('murdoku : puzzles conformes, solution unique, coupable seul avec la victime', () => {
     const times = [];
     for (const size of [5, 6, 7, 8]) {
-      for (const difficulty of ['easy', 'medium', 'hard']) {
+      for (const difficulty of ['easy', 'medium', 'hard', 'expert']) {
         for (const seed of [1, 77, 4242]) {
           const opts = { size, difficulty, rooms: ['few', 'normal', 'many'][seed % 3], density: ['sparse', 'normal', 'full'][size % 3] };
           const t0 = performance.now();
@@ -518,7 +518,8 @@
     const all = [
       { kind: 'inRoom', person: p[0].id, room: 0 }, { kind: 'notInRoom', person: p[0].id, room: 0 },
       { kind: 'onObject', person: p[0].id, object: 'chair' }, { kind: 'onObject', person: p[0].id, object: 'table' },
-      { kind: 'besideObject', person: p[0].id, object: 'plant' }, { kind: 'row', person: p[0].id, row: 2 },
+      { kind: 'besideObject', person: p[0].id, object: 'plant' }, { kind: 'notBesideObject', person: p[0].id, object: 'plant' },
+      { kind: 'edge', person: p[0].id }, { kind: 'notEdge', person: p[0].id }, { kind: 'row', person: p[0].id, row: 2 },
       { kind: 'column', person: p[0].id, col: 1 }, { kind: 'sameRow', person: p[0].id, object: 'bed' },
       { kind: 'sameColumn', person: p[0].id, object: 'tv' }, { kind: 'alone', person: p[0].id },
       { kind: 'withPerson', a: p[0].id, b: p[1].id }, { kind: 'notWith', a: p[0].id, b: p[1].id },
@@ -533,11 +534,47 @@
         assert(s && !/[{}]|undefined/.test(s), `${cl.kind} : ${s}`);
       }
     }
-    eq(M.clueText({ kind: 'column', person: p[0].id, col: 1 }, pz, 'fr'), `${p[0].name} était sur la colonne B.`);
-    eq(M.clueText({ kind: 'leftOf', a: p[0].id, b: p[1].id }, { ...pz, people: [{ id: p[0].id, name: 'Bruno' }, { id: p[1].id, name: 'Alice' }] }, 'fr'), "Bruno était plus à gauche qu'Alice.");
+    assert(['était sur la colonne B.', 'La colonne B : voilà où se trouvait'].some(x => M.clueText({ kind: 'column', person: p[0].id, col: 1 }, pz, 'fr').includes(x)), 'colonne');
+    const left = M.clueText({ kind: 'leftOf', a: p[0].id, b: p[1].id }, { ...pz, people: [{ id: p[0].id, name: 'Bruno' }, { id: p[1].id, name: 'Alice' }] }, 'fr');
+    assert(["Bruno était plus à gauche qu'Alice.", "Bruno se trouvait sur une colonne à gauche de celle d'Alice."].includes(left), left);
+    // Formulation stable pour un même indice
+    eq(M.clueText(all[0], pz, 'fr'), M.clueText({ ...all[0] }, pz, 'fr'), 'formulation stable');
     assert(M.rulesText().length >= 3 && M.rulesText().every(s => s.length > 10), 'règles');
     for (const t of M.ROOM_TYPES) assert(M.roomLabel(t) && M.roomLabel(t) !== t, `pièce ${t}`);
     for (const t of Object.keys(M.OBJECTS)) assert(M.objectLabel(t) && M.objectLabel(t) !== t, `objet ${t}`);
+  });
+
+  test('murdoku : univers (noms, lieux, objets, histoire) et retouches', () => {
+    const M = MF.murdoku, U = MF.murdokuThemes;
+    assert(U.ids.length >= 15, 'univers');
+    for (const id of U.ids) {
+      const th = U.THEMES[id];
+      for (const lang of ['fr', 'en']) {
+        const res = U.resolve(id, lang);
+        assert(res.names.length >= 7 && new Set(res.names).size === res.names.length, `${id} ${lang} : prénoms`);
+        assert(res.victims.length >= 2 && res.story.includes('{victim}'), `${id} ${lang} : victimes et histoire`);
+        for (const type of res.roomTypes) assert(M.ROOMS[type] && res.rooms[type].name && res.rooms[type].in, `${id} : pièce ${type}`);
+        for (const type of Object.keys(th.objects)) assert(M.OBJECTS[type] && res.objects[type].a, `${id} : objet ${type}`);
+      }
+      assert(!Object.keys(th.rooms).length || Object.keys(th.rooms).length >= 8, `${id} : assez de lieux`);
+      const pz = M.generate({ size: 6, difficulty: 'hard', lang: 'fr', theme: U.resolve(id, 'fr') }, 31);
+      eq(checkMurdoku(pz), [], `${id} : contrat`);
+      const th2 = U.resolve(id, 'fr');
+      assert(pz.people.filter(x => x.role === 'suspect').every(x => th2.names.includes(x.name)), `${id} : prénoms de l'univers`);
+      if (Object.keys(th.rooms).length) assert(pz.rooms.every(r => r.name && r.in && th2.roomTypes.includes(r.type)), `${id} : pièces habillées`);
+      assert(pz.story && !pz.story.includes('{victim}'), `${id} : histoire`);
+      // Intact après validation (lien partagé)
+      const back = MF.schema.layout({ engine: 'murdoku', pages: [pz], hash: 'x', at: 1 }).pages[0];
+      eq([back.rooms.map(r => r.name), back.objectNames, back.story], [pz.rooms.map(r => r.name), pz.objectNames, pz.story], `${id} : validation`);
+    }
+    // Retouches : un lieu, un objet, l'histoire
+    const res = U.resolve('pirates', 'fr', { rooms: { kitchen: { name: 'Cave à rhum' } }, objects: { bed: 'Paillasse' }, story: 'Adieu {victim}.' });
+    eq([res.rooms.kitchen.name, res.rooms.kitchen.in, res.objects.bed.a, res.story], ['Cave à rhum', 'dans la cave à rhum', 'une paillasse', 'Adieu {victim}.']);
+    eq(U.resolve('pirates', 'en', { objects: { bed: 'anchor' } }).objects.bed.a, 'an anchor');
+    // Textes dans la langue de l'énigme
+    const en = M.generate({ size: 5, lang: 'en', theme: U.resolve('space', 'en') }, 5);
+    const txt = en.clues.map(c => M.clueText(c, en)).join(' ');
+    assert(txt && !/était|dans la |personne/.test(txt), `anglais : ${txt.slice(0, 160)}`);
   });
 
   test('murdoku : énigme intacte après validation (lien partagé), énigme trafiquée rejetée', () => {

@@ -137,3 +137,6 @@
 }
 
 @keyframes bottomSheetIn { from { transform: translateY(40px); opacity: 0; } }
+
+/* Murdoku sur téléphone : ni définitions ni décor */
+.game-murdoku .phone-nav [data-ptab="diag"], .game-murdoku .phone-nav [data-ptab="decor"] { display: none; }

@@ -33,7 +33,7 @@
       'js/engine/design.js', 'js/engine/shapes.js', 'js/engine/backgrounds.js', 'js/engine/games.js', 'js/data/stickers.js',
       'js/core/schema.js', 'js/core/assets.js', 'js/core/store.js', 'js/core/versions.js', 'js/core/zip.js', 'js/core/qr.js', 'js/core/share.js',
     ],
-    data: ['js/data/packs.js', 'js/data/packs-en.js', 'js/data/palettes.js', 'js/data/themes.js'],
+    data: ['js/data/packs.js', 'js/data/packs-en.js', 'js/data/palettes.js', 'js/data/themes.js', 'js/data/murdoku-themes.js'],
     services: ['js/services/dictionary.js', 'js/services/wiki.js', 'js/services/importer.js'],
     engine: [
       'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/generator.js',

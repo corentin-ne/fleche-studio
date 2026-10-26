@@ -29,6 +29,14 @@ export const ROOM_STYLE = {
   music: { floor: ['wood', '#e0b47e', '#a5703e', 1], wall: '#c4a27a' },
 };
 const styleOf = (type) => ROOM_STYLE[type] ?? ROOM_STYLE.living;
+const PATTERNS = ['wood', 'tile', 'carpet', 'grass', 'stone'];
+// A room may carry its own look (Murdoku themes): floor [pattern, c1, c2] and wall colour
+function roomStyle(rm) {
+  const base = styleOf(rm?.type);
+  const f = Array.isArray(rm?.floor) ? rm.floor : null;
+  const floor = f && PATTERNS.includes(f[0]) ? [f[0], f[1] || base.floor[1], f[2] || base.floor[2], f[0] === 'tile' ? 2 : 1] : base.floor;
+  return { floor, wall: typeof rm?.wall === 'string' ? rm.wall : base.wall };
+}
 
 function shade(hex, l) {
   const c = new THREE.Color(hex);
@@ -71,6 +79,7 @@ export function buildBoard(puzzle) {
   const roomOf = (rr, cc) => (rr < 0 || cc < 0 || rr >= n || cc >= n ? -1 : puzzle.cells[rr]?.[cc] ?? -1);
   const rooms = new Map((puzzle.rooms ?? []).map((rm) => [rm.id, rm]));
   const typeOf = (id) => rooms.get(id)?.type ?? 'living';
+  const lookOf = (id) => roomStyle(rooms.get(id));
   const group = new THREE.Group();
   group.name = 'board';
 
@@ -92,7 +101,7 @@ export function buildBoard(puzzle) {
   for (let rr = 0; rr < n; rr++)
     for (let cc = 0; cc < n; cc++) {
       const id = roomOf(rr, cc);
-      const [pattern, c1, c2, rep] = styleOf(typeOf(id)).floor;
+      const [pattern, c1, c2, rep] = lookOf(id).floor;
       // rooms of the same type get slightly different tones
       const tone = ((id * 37) % 5 - 2) * 0.018;
       const m = patternMaterial(pattern, shade(c1, tone), shade(c2, tone), rep, rep);
@@ -149,7 +158,7 @@ export function buildBoard(puzzle) {
       if (a === b) continue;
       const door = doors.has(edgeKey(rr - 1, cc, rr, cc));
       const x = (cc - (n - 1) / 2) * CELL, z = (rr - n / 2) * CELL;
-      wallSegment(wb, { x, z, alongX: true, colA: sideColor(a, typeOf), colB: sideColor(b, typeOf), door, garden: gardenEdge(a, b, typeOf), r });
+      wallSegment(wb, { x, z, alongX: true, colA: sideColor(a, lookOf), colB: sideColor(b, lookOf), door, garden: gardenEdge(a, b, typeOf), r });
       if (rr - 1 >= 0) wallSides[rr - 1][cc].s = door ? 'door' : 'wall';
       if (rr < n) wallSides[rr][cc].n = door ? 'door' : 'wall';
     }
@@ -160,7 +169,7 @@ export function buildBoard(puzzle) {
       if (a === b) continue;
       const door = doors.has(edgeKey(rr, cc - 1, rr, cc));
       const x = (cc - n / 2) * CELL, z = (rr - (n - 1) / 2) * CELL;
-      wallSegment(wb, { x, z, alongX: false, colA: sideColor(a, typeOf), colB: sideColor(b, typeOf), door, garden: gardenEdge(a, b, typeOf), r });
+      wallSegment(wb, { x, z, alongX: false, colA: sideColor(a, lookOf), colB: sideColor(b, lookOf), door, garden: gardenEdge(a, b, typeOf), r });
       if (cc - 1 >= 0) wallSides[rr][cc - 1].e = door ? 'door' : 'wall';
       if (cc < n) wallSides[rr][cc].w = door ? 'door' : 'wall';
     }
@@ -227,8 +236,8 @@ export function buildBoard(puzzle) {
   return { group, labels, labelMats: labels.children.map((m) => m.material), cells, n, half, grid: gridMat };
 }
 
-function sideColor(id, typeOf) {
-  return id < 0 ? FACADE : styleOf(typeOf(id)).wall;
+function sideColor(id, lookOf) {
+  return id < 0 ? FACADE : lookOf(id).wall;
 }
 function gardenEdge(a, b, typeOf) {
   const ga = a >= 0 && typeOf(a) === 'garden', gb = b >= 0 && typeOf(b) === 'garden';

@@ -26,6 +26,8 @@ Contrat entre le moteur (`js/engine/murdoku.js`, `MF.murdoku`), le rendu 3D
   rooms: [                         // pièces
     { id: 0, type: 'kitchen' },    // types : living, kitchen, bedroom, bathroom, office, library,
   ],                               //   dining, garden, hall, music, guest, game, veranda, laundry
+                                   // habillage facultatif (univers) : name, in (« dans la cambuse »),
+                                   //   floor: [motif, couleur 1, couleur 2], wall: couleur
   cells: [[0, 0, 1, ...], ...],    // N lignes × N colonnes : indice de pièce
   objects: [                       // au plus un objet par case
     { type: 'table', r: 2, c: 3 },
@@ -39,8 +41,11 @@ Contrat entre le moteur (`js/engine/murdoku.js`, `MF.murdoku`), le rendu 3D
   clues: [                         // indices structurés (texte produit à l'affichage)
     { kind: 'inRoom', person: 'p0', room: 0 },
   ],
-  difficulty: 'easy' | 'medium' | 'hard',
-  lang: 'fr' | 'en',               // langue des prénoms par défaut
+  difficulty: 'easy' | 'medium' | 'hard' | 'expert',
+  lang: 'fr' | 'en',               // langue de l'énigme (prénoms, lieux, phrases des indices)
+  theme: 'pirates',                // univers (facultatif, js/data/murdoku-themes.js)
+  objectNames: { bed: { name: 'Hamac', a: 'un hamac', on: 'dans un hamac', icon: '🪢' } }, // facultatif
+  story: '…',                      // histoire (facultatif), nom de la victime déjà inséré
 }
 ```
 
@@ -64,6 +69,8 @@ Chaque indice est vrai pour la solution ; le texte est produit à l'affichage pa
 | inRoom / notInRoom | person, room | était (n'était pas) dans la pièce |
 | onObject | person, object | se tenait sur l'objet (occupable) |
 | besideObject | person, object | à côté (case orthogonalement voisine) d'un objet de ce type |
+| notBesideObject | person, object | aucune case voisine ne porte un objet de ce type |
+| edge / notEdge | person | sur une case du bord du plan (pas sur une case du bord) |
 | row / column | person, row / col | sur cette ligne / colonne |
 | sameRow / sameColumn | person, object | un objet de ce type est sur sa ligne / colonne (autre case) |
 | alone | person | personne d'autre dans sa pièce |
@@ -77,6 +84,17 @@ Aucun indice ne désigne directement le coupable (jamais « X était avec la vic
 « X était dans la pièce de la victime » pour le coupable). La règle du coupable fait partie
 des règles : le solveur impose que la pièce de la victime contienne exactement 2 personnes.
 
+Chaque sorte d'indice a plusieurs formulations : la variante dépend de l'indice lui-même
+(empreinte), elle reste donc stable d'un affichage à l'autre.
+
+## Univers (`MF.murdokuThemes`)
+
+`js/data/murdoku-themes.js` habille les types du moteur sans changer la logique : noms et
+phrases des pièces, couleurs des sols et des murs (rendu 3D et plan 2D), noms et icônes des
+objets, prénoms, victimes, histoire, style et ambiance de rendu. `resolve(id, lang, custom)`
+renvoie l'habillage complet, retouches de l'auteur comprises (`custom.rooms[type] = { name, in }`,
+`custom.objects[type] = nom`, `custom.story`) ; le moteur le reçoit dans l'option `theme`.
+
 ## Interface du moteur (`MF.murdoku`)
 
 - `generate(options, seed)` → puzzle (déterministe pour une graine). Options :
@@ -84,12 +102,15 @@ des règles : le solveur impose que la pièce de la victime contienne exactement
   `density` `'sparse' | 'normal' | 'full'` (mobilier), `lang` `'fr' | 'en'`, `names` (prénoms
   des suspects, complétés par `NAMES[lang]`), `victimName`, `roomTypes` (types autorisés),
   `clueKinds` (sortes d'indices autorisées ; si elles ne suffisent jamais, lignes et colonnes
-  sont ajoutées en dernier recours). `options(o)` renvoie les options validées.
+  sont ajoutées en dernier recours), `theme` (habillage de `MF.murdokuThemes.resolve`).
+  `options(o)` renvoie les options validées. Le niveau `expert` n'utilise jamais d'indice de
+  ligne ou de colonne (sauf en dernier recours).
 - `solve(puzzle, clues = puzzle.clues, limit = 2)` → solutions `{ idPersonne: { r, c } }`.
 - `isSolved(puzzle, placement)`, `murdererOf(puzzle, placement)` (id ou null),
   `holds(puzzle, clue, placement)`, `validClue(clue, puzzle)`.
 - Textes (traduits via `MF.i18n.t`, ou en français forcé avec `lang = 'fr'`) :
-  `clueText`, `rulesText()` (liste de phrases), `roomLabel(type)`, `objectLabel(type)`.
+  `clueText(clue, puzzle, lang = puzzle.lang)`, `rulesText()` (liste de phrases), `roomLabel(type)`,
+  `objectLabel(type)`, `roomName(puzzle, id)`, `objectName(puzzle, type)` (noms habillés).
 - Données : `OBJECTS`, `ROOMS` (`{ floor, size, edge?, objects }` : sol suggéré
   `wood | tile | carpet | grass | stone`, taille préférée 1…3, `objects[0]` toujours posé),
   `ROOM_TYPES`, `NAMES`, `VICTIMS`, `COLORS`, `VICTIM_COLOR`, `KINDS`.

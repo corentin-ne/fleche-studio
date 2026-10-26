@@ -261,11 +261,13 @@ MF.createActions = app => {
       const res = await MF.welcome.wizard(defaults);
       if (!res) return;
       const pack = res.start.startsWith('pack:') ? MF.lexicon.packs(res.lang)[res.start.slice(5)] : null;
-      const mdk = res.game === 'murdoku' ? { size: +res.mdkSize, difficulty: res.mdkDifficulty, seed: MF.util.randomSeed() % 2147483647 } : undefined;
-      const pz = store.makePuzzle({ name: res.name || pack?.label || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang, murdoku: mdk } });
+      const look = res.game === 'murdoku' ? MF.murdokuThemes.get(res.mdkTheme) : null;
+      const mdk = look ? { theme: res.mdkTheme, size: +res.mdkSize, difficulty: res.mdkDifficulty, render: res.mdkRender, look: look.look, mood: look.mood, seed: MF.util.randomSeed() % 2147483647 } : undefined;
+      const mdkName = look ? `Murdoku · ${MF.murdokuThemes.card(res.mdkTheme, res.lang).label}` : '';
+      const pz = store.makePuzzle({ name: res.name || mdkName || pack?.label || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang, murdoku: mdk } });
       await MF.lexicon.ensure(res.lang).catch(() => {}); // tirage au hasard : dictionnaire de la langue choisie
       MF.dictionary.use(res.lang);
-      pz.design = MF.themes.apply(pz.design, res.theme);
+      pz.design = MF.themes.apply(pz.design, mdk && res.theme === 'violet' ? 'kraft' : res.theme);
       let words = [];
       if (mdk) words = [];
       else if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
