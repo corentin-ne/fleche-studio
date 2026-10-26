@@ -1,0 +1,57 @@
+# Publie Flèche Studio sur GitHub Pages à chaque push sur main.
+# Seuls les fichiers du site (liste blanche ci-dessous) sont mis en ligne :
+# tests, réglages et tout autre fichier du dépôt restent hors du site.
+name: Déploiement GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Droits minimaux : lecture du code, écriture sur Pages uniquement
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      # Actions épinglées par commit (une étiquette de version peut être déplacée, pas un SHA)
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Assembler le site (liste blanche)
+        run: |
+          set -eu
+          mkdir _site
+          cp -r index.html sw.js manifest.webmanifest icon.svg css js _site/
+          # Garde-fou : aucun fichier inattendu ne doit partir en ligne
+          unexpected=$(find _site -type f ! -name '*.html' ! -name '*.js' ! -name '*.css' ! -name '*.svg' ! -name '*.webmanifest')
+          if [ -n "$unexpected" ]; then echo "Fichiers inattendus : $unexpected"; exit 1; fi
+          find _site -type f | sort
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

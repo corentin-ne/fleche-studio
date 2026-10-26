@@ -10,3 +10,17 @@ desktop.ini
 
 # Exports générés
 *.zip
+
+# Données personnelles et autres projets : ne jamais publier (le dépôt est public)
+studio-a-adapter/
+mots a mettre en json.txt
+*.xlsx
+*.xls
+*.csv
+*.bundle
+
+# Secrets (au cas où)
+.env
+.env.*
+*.pem
+*.key
