@@ -255,6 +255,7 @@
     const pz = store.active();
     const d = derive(pz);
     const slot = d.layout?.words.find(w => MF.gridModel.slotKey(w) === key);
+    view.phonePanel = true;
     if (slot?.src === 'theme') {
       store.update(s => { s.ui.tab = 'words'; }, 'ui');
       requestAnimationFrame(() => $(`#side-body .word-item[data-id="${slot.wid}"] [data-act="def"]`)?.click());
@@ -290,6 +291,15 @@
     panel(body, ctx);
     body.dataset.tab = s.ui.tab;
     if (sameTab) body.scrollTop = scroll;
+    MF.phoneNav.sync({ tab: s.ui.tab, panel: view.phonePanel });
+  }
+
+  /** Téléphone : affiche la grille ou un panneau d'édition (plein écran). */
+  function showPhone(tab) {
+    view.phonePanel = tab !== 'grid';
+    if (view.phonePanel && store.get().ui.tab !== tab) store.update(s => { s.ui.tab = tab; }, 'ui');
+    else renderSide();
+    if (view.phonePanel) $('#side-body').scrollTop = 0;
   }
 
   function renderAll() {
@@ -441,6 +451,7 @@
       const b = e.target.closest('button[data-tab]');
       if (b) store.update(s => { s.ui.tab = b.dataset.tab; }, 'ui');
     });
+    MF.phoneNav.init($('#phone-nav'), { onSelect: showPhone });
     $('#page-switch').addEventListener('click', e => { const b = e.target.closest('button[data-page]'); if (b) actions.setPage(+b.dataset.page); });
     $('#mode-switch').addEventListener('click', e => { const b = e.target.closest('button[data-mode]'); if (b) setMode(b.dataset.mode); });
     $('#zoom').addEventListener('input', e => store.update(s => { s.ui.cell = +e.target.value; s.ui.fit = false; }, 'zoom'));

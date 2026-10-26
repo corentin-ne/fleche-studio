@@ -1,0 +1,108 @@
+/* =========================================================================
+   Version téléphone : une vue à la fois (grille ou panneau) en plein écran,
+   barre d'onglets en bas à portée de pouce, modales en feuilles du bas.
+   ========================================================================= */
+
+.phone-nav { display: none; }
+
+@media (max-width: 760px) {
+  :root { --nav-h: 60px; --safe-b: env(safe-area-inset-bottom, 0px); }
+
+  /* ---------- Coquille : hauteur de l'écran, sans défilement de page ---------- */
+  body { overflow: hidden; }
+  .app {
+    height: 100vh; height: 100dvh; min-height: 0;
+    padding: max(6px, env(safe-area-inset-top)) max(6px, env(safe-area-inset-right)) calc(var(--nav-h) + 12px + var(--safe-b)) max(6px, env(safe-area-inset-left));
+    gap: 6px;
+  }
+  .show-home .app, .no-puzzle .app { padding-bottom: max(6px, var(--safe-b)); }
+
+  .workspace { grid-template-columns: 1fr; grid-template-rows: minmax(0, 1fr); gap: 0; }
+  .grid-card { height: auto; }
+  .side { max-height: none; }
+  .side-body { overflow-y: auto; overscroll-behavior: contain; padding: 12px 10px 20px; }
+  body:not(.m-panel) .side { display: none; }
+  body.m-panel .grid-card { display: none; }
+  .side .tabs { display: none; } /* remplacés par la barre du bas */
+
+  /* ---------- Barre du haut compacte ---------- */
+  .topbar { flex-wrap: nowrap; gap: 4px; padding: 4px 6px; min-height: 44px; }
+  .brand-text, .puzzle-tabs, .tb-sep { display: none; }
+  .topbar-actions { gap: 0; }
+  .topbar-actions .btn-icon { width: 36px; height: 36px; }
+
+  /* ---------- Carte de la grille ---------- */
+  .grid-head { padding: 8px 8px 6px 12px; gap: 6px; }
+  .grid-title { width: 100%; flex-wrap: nowrap; }
+  .grid-title h1 { font-size: 17px; max-width: none; flex: 1; min-width: 0; }
+  .grid-stats { display: none; }
+  .grid-tools { margin-left: 0; width: 100%; gap: 6px; }
+  .grid-tools > * { flex: none; }
+  .stale-bar { gap: 8px; }
+  .stale-bar .btn { margin-left: auto; }
+  .grid-tools #btn-export { margin-left: auto; }
+  .grid-tools .btn { height: 36px; }
+  .grid-tools .segmented button { height: 30px; min-width: 36px; }
+  .zoom input { display: none; }
+  .grid-scroll { padding: 8px; touch-action: pan-x pan-y; }
+  .play-bar { padding: 0 8px 8px 12px; gap: 6px; }
+
+  /* ---------- Barre d'onglets du bas ---------- */
+  .phone-nav {
+    position: fixed; z-index: 60;
+    left: max(6px, env(safe-area-inset-left)); right: max(6px, env(safe-area-inset-right));
+    bottom: calc(6px + var(--safe-b));
+    height: var(--nav-h);
+    display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 2px; padding: 4px;
+    border-radius: var(--r-lg);
+    background: var(--glass-bg-strong);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, .55);
+  }
+  .show-home .phone-nav, .no-puzzle .phone-nav { display: none; }
+  .phone-nav button {
+    position: relative; min-width: 0;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    border: 0; border-radius: 12px; background: transparent; color: var(--text-3);
+    font: 600 10.5px var(--font-sans); cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    transition: background var(--t-fast) var(--ease), color var(--t-fast);
+  }
+  .phone-nav button .ic { width: 21px; height: 21px; }
+  .phone-nav button:active { transform: scale(.94); }
+  .phone-nav button.active { color: var(--text); background: rgba(var(--accent-rgb), .18); }
+  .phone-nav button.active .ic { color: var(--accent); }
+  .pn-lbl { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pn-badge {
+    position: absolute; top: 3px; left: calc(50% + 6px);
+    min-width: 17px; height: 17px; padding: 0 5px; border-radius: var(--r-pill);
+    display: grid; place-items: center;
+    font: 700 9.5px var(--font-sans); font-variant-numeric: tabular-nums;
+    color: #fff; background: var(--accent);
+  }
+  .pn-badge.warn { background: var(--warn); color: #231f20; }
+  .pn-badge.err { background: var(--err); }
+
+  /* ---------- Saisie : 16px évite le zoom automatique d'iOS ---------- */
+  input:not([type=range]):not([type=checkbox]):not([type=radio]), select, textarea { font-size: 16px; }
+
+  /* ---------- Modales en feuilles du bas ---------- */
+  .modal-scrim { padding: 0; place-items: end stretch; }
+  .modal, .modal.wide, .modal.small {
+    width: 100%; max-height: 92vh; max-height: 92dvh;
+    border-radius: var(--r-xl) var(--r-xl) 0 0;
+    padding-bottom: var(--safe-b);
+    animation: sheetIn var(--t-med) var(--ease);
+  }
+  .modal-head { padding: var(--sp-4) var(--sp-4) var(--sp-2); }
+  .modal-body { padding: var(--sp-2) var(--sp-4) var(--sp-4); }
+  .modal-foot { padding: var(--sp-3) var(--sp-4) var(--sp-4); }
+  .modal-foot .btn { flex: 1; justify-content: center; }
+  .modal-foot .foot-note { flex-basis: 100%; }
+  .export-preview svg { max-height: 40vh; }
+
+  /* ---------- Notifications au-dessus de la barre du bas ---------- */
+  .toasts { left: 12px; right: 12px; bottom: calc(var(--nav-h) + 18px + var(--safe-b)); align-items: stretch; }
+  .toast { min-width: 0; max-width: none; }
+}
+
+@keyframes sheetIn { from { transform: translateY(40px); opacity: 0; } }
