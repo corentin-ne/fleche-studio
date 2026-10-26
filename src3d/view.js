@@ -21,7 +21,7 @@ const CAMERAS = {
   top: { az: 0, el: 76, ortho: true },
 };
 
-const DEFAULTS = { look: 'print', mood: 'day', camera: 'iso', labels: true, names: false, interactive: true, ao: true, padding: 0.04, maxPixelRatio: 2, background: null };
+const DEFAULTS = { look: 'print', mood: 'day', camera: 'iso', labels: true, names: false, clutter: 'some', interactive: true, ao: true, padding: 0.04, maxPixelRatio: 2, background: null };
 
 const _v = new THREE.Vector3();
 
@@ -180,6 +180,7 @@ export class BoardView {
     if (this.opts.mood !== prev.mood || o.background !== undefined) this.applyMood();
     this.syncLabels();
     if (this.opts.names !== prev.names) this.refresh();
+    if (this.opts.clutter !== prev.clutter && this.puzzle) this.setPuzzle(this.puzzle, this.state);
     this.fit();
     this.invalidate(true);
   }
@@ -257,11 +258,11 @@ export class BoardView {
   // ---------------------------------------------------------------- puzzle
   setPuzzle(puzzle, state = {}) {
     if (!puzzle || !puzzle.size || !puzzle.cells) throw new Error('murdoku3d: invalid puzzle');
-    const sig = JSON.stringify([puzzle.size, puzzle.seed, puzzle.rooms, puzzle.cells, puzzle.objects]);
+    const sig = JSON.stringify([puzzle.size, puzzle.seed, puzzle.rooms, puzzle.cells, puzzle.objects, puzzle.theme, this.opts.clutter]);
     if (sig !== this.sig) {
       this.sig = sig;
       this.clearBoard();
-      this.board = buildBoard(puzzle);
+      this.board = buildBoard(puzzle, { clutter: this.opts.clutter });
       this.world.add(this.board.group);
       this.syncLabels();
       this.pickables = [];

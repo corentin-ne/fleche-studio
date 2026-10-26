@@ -1198,4 +1198,9 @@ MF.i18n.add('en', {
   "facultatif": "optional",
   "Retour": "Back",
   "Suivant": "Next",
+  "Réinventer les noms et l'histoire": "Reinvent the names and the story",
+  "Un peu": "A little",
+  "Nourriture, livres, tonneaux, coquillages… pour le plaisir des yeux : le décor ne compte pas dans l'énigme.": "Food, books, barrels, seashells… just for the eyes: the decor is not part of the puzzle.",
+  "Murdoku : scènes 3D bien plus vivantes (nourriture, livres, tonneaux, coquillages, petits tapis…), réglable dans Rendu": "Murdoku: much livelier 3D scenes (food, books, barrels, seashells, little rugs…), adjustable under Rendering",
+  "Murdoku : générateur de surnoms, de victimes et d'histoires qui mélange les ingrédients de chaque univers": "Murdoku: a generator of nicknames, victims and stories that mixes each world's ingredients",
 });

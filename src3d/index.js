@@ -27,13 +27,13 @@ export async function createView(container, opts = {}) {
 }
 
 // Offscreen render of a puzzle into a new canvas (PNG export, print).
-export async function renderImage(puzzle, { show = 'blank', placements, crosses, selected, highlight, look, mood, camera, labels, names, width = 1600, height, transparent = false } = {}) {
+export async function renderImage(puzzle, { show = 'blank', placements, crosses, selected, highlight, look, mood, camera, labels, names, clutter, width = 1600, height, transparent = false } = {}) {
   height = height ?? width;
   const div = document.createElement('div');
   div.style.cssText = `position:fixed;left:-20000px;top:0;width:${Math.min(width, 1200)}px;height:${Math.round((Math.min(width, 1200) * height) / width)}px;pointer-events:none;`;
   document.body.appendChild(div);
   const opts = { interactive: false };
-  for (const [k, v] of Object.entries({ look, mood, camera, labels, names })) if (v !== undefined) opts[k] = v;
+  for (const [k, v] of Object.entries({ look, mood, camera, labels, names, clutter })) if (v !== undefined) opts[k] = v;
   const view = new BoardView(div, opts);
   try {
     view.setPuzzle(puzzle, { show, placements, crosses, selected, highlight });

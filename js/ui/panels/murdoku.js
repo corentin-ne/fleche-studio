@@ -57,7 +57,7 @@ MF.panels.murdoku = (() => {
         <p class="field-hint">${t('Prénoms de l\'univers par défaut : écris par-dessus pour mettre les tiens.')}</p>
         <div class="mdk-names">${Array.from({ length: nSuspects }, (_, i) => `<input class="input" data-name="${i}" maxlength="20" aria-label="${esc(t('Suspect {n}', { n: i + 1 }))}" placeholder="${esc(current[i] || t('Suspect {n}', { n: i + 1 }))}" value="${esc(o.names[i] || '')}">`).join('')}</div>
         <label class="field"><span>${t('Victime')}</span><input class="input" id="mdk-victim" maxlength="20" placeholder="${esc(victimNow || t('Au hasard'))}" value="${esc(o.victim)}"></label>
-        <button type="button" class="btn btn-sm" id="mdk-shuffle">${ic('dice')}${t('Autres prénoms de l\'univers')}</button>`)}
+        <button type="button" class="btn btn-sm" id="mdk-shuffle">${ic('dice')}${t('Réinventer les noms et l\'histoire')}</button>`)}
 
       ${ui.advanced('mdk-places', t('Lieux'), `
         <p class="field-hint">${t('Renomme les pièces. La seconde case est la façon de le dire dans les indices (« dans la cave »).')}</p>
@@ -72,7 +72,7 @@ MF.panels.murdoku = (() => {
         <div class="mdk-objs">${objTypes.map(type => `<label class="mdk-obj"><span title="${esc(MF.murdoku.OBJECTS[type].occupiable ? t('On peut s\'y tenir') : t('Bloquant'))}">${MF.murdoku.OBJECTS[type].occupiable ? '🪑' : '⛔'}</span><input class="input" data-obj="${type}" maxlength="32" placeholder="${esc(objBase(type))}" value="${esc(o.objectNames[type] || '')}"></label>`).join('')}</div>`) : ''}
 
       ${ui.advanced('mdk-story', t('Histoire'), `
-        <textarea class="input mdk-story-input" id="mdk-story" rows="4" maxlength="600" placeholder="${esc(th.story)}">${esc(o.story)}</textarea>
+        <textarea class="input mdk-story-input" id="mdk-story" rows="4" maxlength="600" placeholder="${esc(puzzle?.story || th.story)}">${esc(o.story)}</textarea>
         <span class="field-hint">${t('{victim} est remplacé par le nom de la victime.')}</span>`)}
 
       ${ui.advanced('mdk-scene', t('Scène'), `
@@ -82,6 +82,8 @@ MF.panels.murdoku = (() => {
       ${o.render === '3d' ? ui.advanced('mdk-look', t('Rendu'), `
         <div class="field"><span>${t('Style')}</span>${ui.segmented('look', V().LOOKS(), o.look, 'data-mdk')}</div>
         <div class="field"><span>${t('Ambiance')}</span>${ui.segmented('mood', V().MOODS(), o.mood, 'data-mdk')}</div>
+        <div class="field"><span>${t('Décor')}</span>${ui.segmented('clutter', [['none', t('Aucun')], ['some', t('Un peu')], ['lots', t('Beaucoup')]], o.clutter, 'data-mdk')}
+          <span class="field-hint">${t('Nourriture, livres, tonneaux, coquillages… pour le plaisir des yeux : le décor ne compte pas dans l\'énigme.')}</span></div>
         <div class="field"><span>${t('Vue')}</span>${ui.segmented('camera', [['iso', t('Diorama (3/4)')], ['top', t('De dessus')]], o.camera, 'data-mdk')}</div>
         <label class="check"><input type="checkbox" id="mdk-labels" ${o.labels ? 'checked' : ''}> ${t('Repères des lignes et colonnes')}</label>`) : `<label class="check"><input type="checkbox" id="mdk-labels" ${o.labels ? 'checked' : ''}> ${t('Repères des lignes et colonnes')}</label>`}
       ${custom ? `<button type="button" class="btn btn-ghost btn-sm" id="mdk-reset">${ic('undo')}${t('Revenir aux noms de l\'univers')}</button>` : ''}
@@ -93,7 +95,7 @@ MF.panels.murdoku = (() => {
       const card = /** @type {HTMLElement | null} */ (root.querySelector('.mdk-theme.active'));
       if (card?.parentElement) card.parentElement.scrollLeft = card.offsetLeft - card.parentElement.offsetLeft - 8;
     });
-    root.querySelector('#mdk-new').addEventListener('click', () => set({ seed: fresh() }));
+    root.querySelector('#mdk-new').addEventListener('click', () => set({ seed: fresh(), flavor: 0 }));
     // Écouteur sur le contenu recréé à chaque rendu (jamais empilé sur le conteneur du panneau)
     root.querySelector('.mdk-panel').addEventListener('click', e => {
       const target = /** @type {any} */ (e.target);
@@ -103,11 +105,11 @@ MF.panels.murdoku = (() => {
         if (id === o.theme) return;
         // Nouvel univers : ses noms, son ambiance, une nouvelle énigme
         const look = MF.murdokuThemes.get(id);
-        set({ theme: id, names: [], victim: '', roomNames: {}, objectNames: {}, story: '', look: look.look, mood: look.mood, seed: fresh() });
+        set({ theme: id, names: [], victim: '', roomNames: {}, objectNames: {}, story: '', look: look.look, mood: look.mood, seed: fresh(), flavor: 0 });
         return;
       }
       const lv = target.closest('[data-mdk-level]');
-      if (lv) { set({ difficulty: lv.dataset.mdkLevel, seed: fresh() }); return; }
+      if (lv) { set({ difficulty: lv.dataset.mdkLevel, seed: fresh(), flavor: 0 }); return; }
       const b = target.closest('[data-mdk] [data-v]');
       if (!b) return;
       const key = b.parentElement.dataset.mdk;
@@ -118,12 +120,8 @@ MF.panels.murdoku = (() => {
     const names = () => [...root.querySelectorAll('[data-name]')].map(val);
     root.querySelectorAll('[data-name]').forEach(inp => inp.addEventListener('change', () => set({ names: names() })));
     root.querySelector('#mdk-victim')?.addEventListener('change', e => set({ victim: val(e.target) }));
-    root.querySelector('#mdk-shuffle')?.addEventListener('click', () => {
-      const pool = MF.util.shuffle(th.names.filter(n => !current.includes(n)).concat(th.names), Math.random);
-      const picked = [...new Set(pool)].slice(0, nSuspects);
-      const victims = th.victims.filter(v => v !== victimNow);
-      set({ names: picked, victim: victims[Math.floor(Math.random() * victims.length)] || '' });
-    });
+    // Générateur : nouveaux surnoms, victime et histoire, même énigme
+    root.querySelector('#mdk-shuffle')?.addEventListener('click', () => set({ flavor: fresh(), names: [], victim: '', story: '' }));
     root.querySelectorAll('[data-room]').forEach(inp => inp.addEventListener('change', () => {
       const type = /** @type {any} */ (inp).dataset.room;
       const get = k => val(root.querySelector(`[data-room="${type}"][data-k="${k}"]`));

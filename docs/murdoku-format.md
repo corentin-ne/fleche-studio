@@ -91,9 +91,18 @@ Chaque sorte d'indice a plusieurs formulations : la variante dépend de l'indice
 
 `js/data/murdoku-themes.js` habille les types du moteur sans changer la logique : noms et
 phrases des pièces, couleurs des sols et des murs (rendu 3D et plan 2D), noms et icônes des
-objets, prénoms, victimes, histoire, style et ambiance de rendu. `resolve(id, lang, custom)`
+objets, prénoms, victimes, histoire, style et ambiance de rendu. `resolve(id, lang, custom, seed)`
 renvoie l'habillage complet, retouches de l'auteur comprises (`custom.rooms[type] = { name, in }`,
-`custom.objects[type] = nom`, `custom.story`) ; le moteur le reçoit dans l'option `theme`.
+`custom.objects[type] = nom`, `custom.story`) ; le moteur le reçoit dans l'option `theme`. Avec une graine, le générateur mélange les
+ingrédients de l'univers (`gen` : ouvertures, objets trouvés, surnoms, titres et noms de victimes) avec
+des morceaux communs : prénoms parfois surnommés, victimes et histoire neufs pour chaque variante.
+
+## Décor 3D
+
+`src3d/clutter.js` ajoute des accessoires purement décoratifs (nourriture, livres, tonneaux,
+coquillages, os, petits tapis…) dans les coins des cases libres et sur les tables, bureaux et
+plans de travail ; quantité réglée par l'option de rendu `clutter` (`none`, `some`, `lots`).
+Ils ne comptent jamais dans l'énigme : un petit tapis décoratif n'est pas l'objet « tapis ».
 
 ## Interface du moteur (`MF.murdoku`)
 

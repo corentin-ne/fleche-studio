@@ -567,6 +567,21 @@
       const back = MF.schema.layout({ engine: 'murdoku', pages: [pz], hash: 'x', at: 1 }).pages[0];
       eq([back.rooms.map(r => r.name), back.objectNames, back.story], [pz.rooms.map(r => r.name), pz.objectNames, pz.story], `${id} : validation`);
     }
+    // Générateur : variantes différentes selon la graine, toujours bien formées
+    const stories = new Set(), nicknamed = new Set();
+    for (const id of U.ids) for (const lang of ['fr', 'en']) for (let seed = 1; seed <= 6; seed++) {
+      const g = U.resolve(id, lang, {}, seed);
+      eq(U.resolve(id, lang, {}, seed).story, g.story, `${id} : déterministe`);
+      assert(g.story.includes('{victim}') && g.story.length <= 600 && !/undefined|\{thing\}/.test(g.story), `${id} ${lang} : histoire ${g.story}`);
+      assert(g.names.length >= 7 && g.names.every(n => n.length <= 20) && new Set(g.names).size === g.names.length, `${id} : prénoms ${g.names}`);
+      assert(g.victims.length >= 2 && g.victims.every(v => v && v.length <= 20), `${id} : victimes`);
+      stories.add(g.story);
+      g.names.filter(n => n.includes(' ')).forEach(n => nicknamed.add(n));
+    }
+    assert(stories.size > U.ids.length * 6, `histoires variées : ${stories.size}`);
+    assert(nicknamed.size > 50, `surnoms : ${nicknamed.size}`);
+    const gz = M.generate({ size: 7, lang: 'fr', theme: U.resolve('pirates', 'fr', {}, 9) }, 9);
+    eq(checkMurdoku(gz), [], 'contrat avec le générateur');
     // Retouches : un lieu, un objet, l'histoire
     const res = U.resolve('pirates', 'fr', { rooms: { kitchen: { name: 'Cave à rhum' } }, objects: { bed: 'Paillasse' }, story: 'Adieu {victim}.' });
     eq([res.rooms.kitchen.name, res.rooms.kitchen.in, res.objects.bed.a, res.story], ['Cave à rhum', 'dans la cave à rhum', 'une paillasse', 'Adieu {victim}.']);

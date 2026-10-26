@@ -5,6 +5,7 @@
 import * as THREE from 'three';
 import { Builder, handmade, patternMaterial, rng, seedBuilders, foliage } from './geo.js';
 import { buildObject } from './furniture.js';
+import { buildClutter } from './clutter.js';
 
 export const CELL = 2; // one board cell, in metres
 export const WALL_H = 0.42;
@@ -71,7 +72,7 @@ export function colName(c) {
 }
 
 // Builds the static board. Returns { group, labels, cells[r][c] = { top, seat }, n, half }.
-export function buildBoard(puzzle) {
+export function buildBoard(puzzle, { clutter = 'some' } = {}) {
   const n = puzzle.size;
   const half = (n * CELL) / 2;
   const seed = (puzzle.seed ?? 1) >>> 0;
@@ -201,6 +202,7 @@ export function buildBoard(puzzle) {
   const cells = [];
   for (let rr = 0; rr < n; rr++) cells.push(Array.from({ length: n }, () => ({ top: 0, seat: 0, object: null })));
   const counts = new Map();
+  const spots = new Map(); // "r,c" -> world places on top of a table, desk, counter…
   for (const o of puzzle.objects ?? []) {
     if (!(o.r >= 0 && o.r < n && o.c >= 0 && o.c < n)) continue;
     const id = roomOf(o.r, o.c);
@@ -227,7 +229,15 @@ export function buildBoard(puzzle) {
     obj.group.traverse((ch) => (ch.userData.cell = [o.r, o.c]));
     group.add(obj.group);
     cells[o.r][o.c] = { top: obj.h, seat: obj.seat ?? obj.h, object: o.type, occupiable: obj.seat != null };
+    if (obj.spots.length) {
+      const cs = Math.cos(ry), sn = Math.sin(ry);
+      spots.set(`${o.r},${o.c}`, obj.spots.map(([x, y, z]) => [p.x + x * cs + z * sn, y, p.z - x * sn + z * cs]));
+    }
   }
+
+  // ---- decor: food, books, crates, shells… (never part of the puzzle)
+  const decor = buildClutter(puzzle, { n, cells, cellCenter, roomType: (rr, cc) => typeOf(roomOf(rr, cc)), spots, clutter });
+  if (decor) group.add(decor);
 
   group.traverse((o) => {
     o.matrixAutoUpdate = false;

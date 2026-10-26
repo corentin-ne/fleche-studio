@@ -23,6 +23,8 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Murdoku : scènes 3D bien plus vivantes (nourriture, livres, tonneaux, coquillages, petits tapis…), réglable dans Rendu',
+    'Murdoku : générateur de surnoms, de victimes et d\'histoires qui mélange les ingrédients de chaque univers',
     'Murdoku : 17 univers (sirènes, samouraïs, pirates, pharaons, Paris, bal de la Régence…) avec lieux, objets, suspects et histoire, tous modifiables',
     'Murdoku : niveau Expert, nouveaux indices (bord du plan, « pas à côté de ») et phrases plus variées',
     'Création repensée en trois étapes, plus simple sur téléphone',

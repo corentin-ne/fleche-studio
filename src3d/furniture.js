@@ -147,7 +147,7 @@ const MODELS = {
       b.cyl(0.07, 0.09, 0.08, 0, 0.75, 0, '#c9a24a', BRASS);
       b.cyl(0.025, 0.025, 0.22, 0, 0.83, 0, '#f6f2ea');
       b.sphere(0.03, 0, 1.08, 0, '#ffcf7a', { emissive: '#ffb340', ei: 1.5, shadow: false });
-      return { w: 1.4, d: 1.4, h: 1.1 };
+      return { w: 1.4, d: 1.4, h: 1.1, spots: [[0.4, 0.77, 0], [-0.4, 0.77, 0]] };
     }
     if (o.room === 'living') {
       // low coffee table with books and a bowl
@@ -158,7 +158,7 @@ const MODELS = {
       for (let k = 0; k < 3; k++) b.cbox(0.3, 0.04, 0.22, -0.3, 0.47 + k * 0.04, 0.02, ['#a33b2b', '#2f5d8a', '#e4dccb'][k], { ry: (r() - 0.5) * 0.5 });
       b.sphere(0.16, 0.28, 0.45, 0, '#2f6f7e', { sy: 0.45, seg: 18 });
       for (let i = 0; i < 3; i++) b.sphere(0.06, 0.24 + i * 0.05, 0.52, (i - 1) * 0.06, ['#e8492c', '#e0a94a', '#7cae4f'][i], { seg: 8 });
-      return { w: 1.2, d: 0.7, h: 0.6, up: 1.25 };
+      return { w: 1.2, d: 0.7, h: 0.6, up: 1.25, spots: [[0, 0.45, 0.2]] };
     }
     // kitchen table: wood with a checked cloth runner, fruit bowl, mugs
     b.box(1.4, 0.05, 0.85, 0, 0.72, 0, wood);
@@ -168,7 +168,7 @@ const MODELS = {
     for (let i = 0; i < 4; i++) b.sphere(0.07, Math.cos(i * 1.6) * 0.08, 0.88, Math.sin(i * 1.6) * 0.08, ['#e8492c', '#e0a94a', '#7cae4f', '#e8492c'][i], { seg: 8 });
     b.cyl(0.05, 0.045, 0.1, 0.48, 0.77, 0.2, '#2f6f7e', { seg: 10 });
     b.cyl(0.05, 0.045, 0.1, -0.5, 0.77, -0.22, '#f4efe4', { seg: 10 });
-    return { w: 1.4, d: 0.85, h: 0.95 };
+    return { w: 1.4, d: 0.85, h: 0.95, spots: [[0.36, 0.77, -0.2], [-0.38, 0.77, 0.2]] };
   },
 
   desk(b, o) {
@@ -186,7 +186,7 @@ const MODELS = {
     b.cyl(0.05, 0.12, 0.1, 0.5, h + 0.3, -0.12, '#2f6f4a', { seg: 14 });
     b.cyl(0.04, 0.035, 0.1, -0.58, h, -0.22, '#a33b2b', { seg: 10 });
     for (let k = 0; k < 2; k++) b.cbox(0.26, 0.05, 0.2, 0.3, h + k * 0.05, 0.18, ['#2f5d8a', '#d9b44a'][k], { ry: 0.2 + k * 0.3 });
-    return { w, d, h: h + 0.45, wall: true, up: 1.15 };
+    return { w, d, h: h + 0.45, wall: true, up: 1.15, spots: [[-0.55, h, 0.16]] };
   },
 
   plant(b, o) {
@@ -337,7 +337,7 @@ const MODELS = {
     b.box(0.45, 0.03, 0.3, -0.35, h, 0.02, '#c4a27a');
     b.sphere(0.12, -0.38, h + 0.06, 0.02, '#d9a066', { sy: 0.6, seg: 12 });
     b.box(0.08, 0.3, 0.08, -0.72, h, -0.2, '#efe6c8');
-    return { w, d, h: h + 0.35, wall: true, up: 1.05 };
+    return { w, d, h: h + 0.35, wall: true, up: 1.05, spots: [[0, h, 0.05]] };
   },
 
   cabinet(b, o) {
@@ -355,7 +355,7 @@ const MODELS = {
     foliage(b, { seed: o.seed, rx: 0.18, ry: 0.16, palette: 'green', voxel: 0.05, flowers: ['#e8492c', '#f4f1ff', '#f2c94c'][o.k % 3], flowerRate: 0.5 }, -0.3, h + 0.35, 0);
     b.cbox(0.26, 0.2, 0.03, 0.25, h + 0.13, -0.05, '#c9a24a', { rx: -0.2, ...BRASS });
     b.cbox(0.2, 0.15, 0.035, 0.25, h + 0.13, -0.045, '#8fc3d6', { rx: -0.2 });
-    return { w: w + 0.05, d: d + 0.05, h: h + 0.5, wall: true, up: 1.2 };
+    return { w: w + 0.05, d: d + 0.05, h: h + 0.5, wall: true, up: 1.2, spots: [[-0.02, h + 0.03, 0.05]] };
   },
 
   lamp(b, o) {
@@ -419,7 +419,9 @@ export function buildObject(type, { room = 'living', k = 0, seed = 1, fit = 1.7 
   model.scale.setScalar(s);
   if (info.cz) model.position.z = -info.cz * s;
   group.add(model);
-  return { group, h: info.h * s, seat: info.seat != null ? info.seat * s : null, wall: !!info.wall, size: [info.w * s, info.d * s] };
+  // free places on its top for small decor (local, scaled)
+  const spots = (info.spots ?? []).map(([x, y, z]) => [x * s, y * s, (z - (info.cz ?? 0)) * s]);
+  return { group, h: info.h * s, seat: info.seat != null ? info.seat * s : null, wall: !!info.wall, size: [info.w * s, info.d * s], spots };
 }
 
 export { DARK };

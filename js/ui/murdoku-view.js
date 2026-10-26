@@ -32,12 +32,12 @@ MF.murdokuView = (() => {
   const options = o => MF.schema.murdokuOptions(o);
 
   /** Empreinte des réglages qui changent l'énigme (le style d'affichage n'en fait pas partie). */
-  const hashOf = pz => { const o = options(pz.options.murdoku); return MF.util.hash(JSON.stringify([o.theme, o.size, o.difficulty, o.rooms, o.density, o.names, o.victim, o.roomNames, o.objectNames, o.story, o.seed, pz.options.lang])); };
+  const hashOf = pz => { const o = options(pz.options.murdoku); return MF.util.hash(JSON.stringify([o.theme, o.size, o.difficulty, o.rooms, o.density, o.names, o.victim, o.roomNames, o.objectNames, o.story, o.flavor, o.seed, pz.options.lang])); };
 
   /** Habillage de l'enquête : univers choisi + noms retouchés, dans la langue de l'enquête. */
   const themeOf = pz => {
     const o = options(pz.options.murdoku);
-    return MF.murdokuThemes.resolve(o.theme, pz.options.lang === 'en' ? 'en' : 'fr', { rooms: o.roomNames, objects: o.objectNames, story: o.story });
+    return MF.murdokuThemes.resolve(o.theme, pz.options.lang === 'en' ? 'en' : 'fr', { rooms: o.roomNames, objects: o.objectNames, story: o.story }, o.flavor || o.seed || 1);
   };
 
   /** Adaptateur pour le registre des jeux (MF.games) : pas de mots à préparer, empreinte des réglages. */
@@ -134,7 +134,7 @@ MF.murdokuView = (() => {
     return loading;
   }
   const want3d = pz => options(pz.options.murdoku).render === '3d';
-  const viewOpts = pz => { const o = options(pz.options.murdoku); return { look: o.look, mood: o.mood, camera: o.camera, labels: o.labels }; };
+  const viewOpts = pz => { const o = options(pz.options.murdoku); return { look: o.look, mood: o.mood, camera: o.camera, labels: o.labels, clutter: o.clutter }; };
 
   /**
    * Vue 3D unique, déplacée d'un conteneur à l'autre (studio, jeu) : créer une scène prend du

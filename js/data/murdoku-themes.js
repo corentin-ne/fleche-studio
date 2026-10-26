@@ -9,6 +9,8 @@
             (motif : wood | tile | carpet | grass | stone)
    Objets : type -> ['g:Nom|prép', 'name|prep'] ; g = m ou f (un / une), prép. = « sur »
             par défaut (« dans » pour un fauteuil…), « on » en anglais.
+   gen    : matière du générateur (ouvertures, objets trouvés, surnoms, titres et noms de
+            victimes) : chaque enquête mélange ces morceaux pour des noms et une histoire neufs.
    Tout reste modifiable dans l'enquête (noms, lieux, objets, histoire).
    ========================================================================= */
 window.MF = window.MF || {};
@@ -17,6 +19,7 @@ MF.murdokuThemes = (() => {
   const THEMES = {
     manor: {
       emoji: '🕯️', colors: ['#5b3a29', '#c99a5b'], look: 'print', mood: 'golden',
+      gen: { open: [["Une nuit d'orage, au manoir.", "Le dîner d'anniversaire du notaire touchait à sa fin.", "Le vieux manoir grinçait sous la pluie, et la partie de bridge s'éternisait."], ["A stormy night at the manor.", "The notary's birthday dinner was drawing to a close.", "The old manor creaked in the rain, and the bridge game dragged on."]], things: [["une tasse de thé encore tiède", "un gant de velours", "une clé en laiton", "une lettre déchirée"], ["a still-warm cup of tea", "a velvet glove", "a brass key", "a torn letter"]], nick: [["Sans-Souci", "Main-Leste", "Pince-Sans-Rire", "Bec-Fin", "Belle-Plume", "Œil-Vif"], ["Quickhands", "Deadpan", "Sharpeye", "Silvertongue", "Lightfoot", "Goldpen"]], vt: [["Lord", "Tante", "Colonel", "Maître"], ["Lord", "Aunt", "Colonel", "Master"]], vn: ["Victor", "Wolff", "Valmont", "Vesper"] },
       label: ['Manoir', 'Manor'], tagline: ['Le grand classique du crime en huis clos', 'The classic locked-house mystery'],
       story: ['Une nuit d\'orage, au manoir. Au petit matin, {victim} est retrouvé·e sans vie. Les invités jurent n\'avoir rien entendu… mais chacun était quelque part.',
         'A stormy night at the manor. At dawn, {victim} is found dead. The guests swear they heard nothing… yet each of them was somewhere.'],
@@ -31,6 +34,7 @@ MF.murdokuThemes = (() => {
 
     mermaids: {
       emoji: '🧜‍♀️', colors: ['#1d6f8a', '#7fd6c8'], look: 'gouache', mood: 'day',
+      gen: { open: [["Au palais de corail, la fête des marées battait son plein.", "Sous la lune pleine, le royaume des sirènes chantait.", "Une tempête agitait la surface, mais au fond tout semblait calme."], ["The tide festival was in full swing at the coral palace.", "Under the full moon, the mermaid kingdom was singing.", "A storm raged at the surface, but down below all seemed calm."]], things: [["une écaille dorée", "une perle fendue", "un peigne de nacre", "une bouteille à la mer"], ["a golden scale", "a cracked pearl", "a mother-of-pearl comb", "a message in a bottle"]], nick: [["Queue-d'Or", "Voix-d'Écume", "Nage-Vite", "Œil-de-Perle", "Corail", "Bulle"], ["Goldtail", "Foamvoice", "Swiftfin", "Pearleye", "Coral", "Bubbles"]], vt: [["Roi", "Reine", "Vieux", "Sirène"], ["King", "Queen", "Old", "Siren"]], vn: ["Triton", "Ondine", "Poulpe", "Vaïa"] },
       label: ['Sirènes', 'Mermaids'], tagline: ['Un royaume de nacre au fond des mers', 'A pearly kingdom under the sea'],
       story: ['Au palais de corail, la fête des marées battait son plein. Quand la conque a sonné, {victim} flottait, immobile. Une sirène ment, et les bulles ne trahissent rien.',
         'The tide festival was in full swing at the coral palace. When the conch sounded, {victim} was drifting, lifeless. One mermaid is lying, and bubbles tell no tales.'],
@@ -67,6 +71,7 @@ MF.murdokuThemes = (() => {
 
     japan: {
       emoji: '🏯', colors: ['#7a1f1f', '#e9b7a5'], look: 'gouache', mood: 'dusk',
+      gen: { open: [["Sous la lune d'automne, le château du daimyo dormait.", "La cérémonie du thé venait de commencer.", "Les cerisiers étaient en fleurs, et le tournoi de sabre attirait tout le monde."], ["Beneath the autumn moon, the daimyo's castle slept.", "The tea ceremony had just begun.", "The cherry trees were in bloom, and the sword tournament had drawn everyone."]], things: [["un shuriken", "un éventail brisé", "une sandale de paille", "un pétale de cerisier taché"], ["a shuriken", "a broken fan", "a straw sandal", "a stained cherry petal"]], nick: [["l'Ombre", "Lame-Vive", "Pas-Feutré", "Œil-de-Faucon", "Vent-du-Nord", "Main-de-Fer"], ["the Shadow", "Swiftblade", "Softstep", "Hawkeye", "Northwind", "Ironhand"]], vt: [["Seigneur", "Dame", "Maître", "Shogun"], ["Lord", "Lady", "Master", "Shogun"]], vn: ["Oda", "Murasaki", "Tanaka", "Ieyasu"] },
       label: ['Samouraïs & ninjas', 'Samurai & ninjas'], tagline: ['Japon féodal, lames et ombres', 'Feudal Japan, blades and shadows'],
       story: ['Sous la lune d\'automne, le château du daimyo dormait. À l\'aube, {victim} gisait sur les tatamis. Un ninja s\'est glissé parmi les invités : son honneur ne le sauvera pas.',
         'Beneath the autumn moon, the daimyo\'s castle slept. At dawn, {victim} lay on the tatami. A ninja is hiding among the guests: honour will not save them.'],
@@ -103,6 +108,7 @@ MF.murdokuThemes = (() => {
 
     paris: {
       emoji: '🥐', colors: ['#24427a', '#e8b4b8'], look: 'print', mood: 'golden',
+      gen: { open: [["Paris, 1900. La fête battait son plein de Montmartre aux quais de Seine.", "Le rideau du cabaret venait de tomber.", "Un matin de brouillard, la boulangerie embaumait tout le quartier."], ["Paris, 1900. The party was raging from Montmartre to the Seine.", "The cabaret curtain had just come down.", "One foggy morning, the bakery perfumed the whole street."]], things: [["un croissant entamé", "un béret rouge", "un pinceau plein de peinture", "un ticket de métro"], ["a half-eaten croissant", "a red beret", "a paint-soaked brush", "a metro ticket"]], nick: [["la Gouaille", "Belle-Moustache", "Pied-Léger", "Bon-Vivant", "Mille-Feuille", "Cancan"], ["Smoothtalk", "Grandmoustache", "Lightfoot", "Bon Vivant", "Millefeuille", "Cancan"]], vt: [["Monsieur", "Madame", "Baron", "Mademoiselle"], ["Monsieur", "Madame", "Baron", "Mademoiselle"]], vn: ["Vidal", "Vernet", "Valois", "Pinson"] },
       label: ['Paris, Belle Époque', 'Paris, Belle Époque'], tagline: ['Cabarets, croissants et coups bas', 'Cabarets, croissants and dirty tricks'],
       story: ['Paris, 1900. La fête battait son plein de Montmartre aux quais de Seine quand {victim} s\'est effondré·e, un croissant à la main. Oh là là… quelqu\'un ment, et ce n\'est pas l\'accordéoniste.',
         'Paris, 1900. The party was raging from Montmartre to the Seine when {victim} collapsed, croissant in hand. Oh là là… someone is lying, and it is not the accordion player.'],
@@ -140,6 +146,7 @@ MF.murdokuThemes = (() => {
 
     regency: {
       emoji: '💐', colors: ['#7d6bb3', '#f2c6d6'], look: 'gouache', mood: 'golden',
+      gen: { open: [["Chère lectrice, cher lecteur… Le bal de la saison battait son plein.", "Les débutantes venaient d'être présentées à la reine.", "Une partie de croquet tournait au vinaigre dans la roseraie."], ["Dearest reader… The ball of the season was in full swing.", "The debutantes had just been presented to the queen.", "A croquet game was turning sour in the rose garden."]], things: [["un éventail de dentelle", "une lettre anonyme", "un carnet de bal", "un gant parfumé"], ["a lace fan", "an anonymous letter", "a dance card", "a perfumed glove"]], nick: [["Ashford", "Bellerive", "Montclair", "Whitby", "Featherstone", "Langley"], ["Ashford", "Bellerive", "Montclair", "Whitby", "Featherstone", "Langley"]], vt: [["Lord", "Lady", "Duc", "Comtesse"], ["Lord", "Lady", "Duke", "Countess"]], vn: ["Ashworth", "Whitmore", "Valcourt", "Vane"], rate: 0.75 },
       label: ['Bal de la Régence', 'Regency ball'], tagline: ['Bals, scandales et lettres anonymes', 'Balls, scandals and anonymous letters'],
       story: ['Chère lectrice, cher lecteur… Au beau milieu du bal de la saison, {victim} s\'est effondré·e entre deux valses. Les éventails s\'agitent, les langues aussi : un seul invité a des choses à cacher.',
         'Dearest reader… In the middle of the season\'s grandest ball, {victim} collapsed between two waltzes. Fans flutter, tongues wag: only one guest has something to hide.'],
@@ -177,6 +184,7 @@ MF.murdokuThemes = (() => {
 
     egypt: {
       emoji: '🐫', colors: ['#b8862b', '#2f5e8c'], look: 'print', mood: 'golden',
+      gen: { open: [["Sur les rives du Nil, la crue s'annonçait belle.", "Le temple venait d'ouvrir ses portes pour la fête d'Opet.", "Une tempête de sable soufflait sur Thèbes."], ["On the banks of the Nile, the flood promised to be good.", "The temple had just opened its doors for the Opet festival.", "A sandstorm was blowing over Thebes."]], things: [["un scarabée de jade", "un papyrus froissé", "une sandale dorée", "une fiole de parfum vide"], ["a jade scarab", "a crumpled papyrus", "a golden sandal", "an empty perfume vial"]], nick: [["l'Ancien", "Œil-d'Horus", "Fils-du-Nil", "Main-d'Or", "Pied-de-Sable", "le Scribe"], ["the Elder", "Horus-Eye", "Nileborn", "Goldhand", "Sandfoot", "the Scribe"]], vt: [["Pharaon", "Grand prêtre", "Princesse", "Vizir"], ["Pharaoh", "High Priest", "Princess", "Vizier"]], vn: ["Ankhou", "Ka", "Isis", "Ptah"] },
       label: ['Pharaons', 'Pharaohs'], tagline: ['Sable, scarabées et malédictions', 'Sand, scarabs and curses'],
       story: ['Sur les rives du Nil, la crue s\'annonçait belle. Mais au lever de Râ, {victim} ne s\'est jamais réveillé·e. Les scribes ont tout noté : à toi de lire entre les hiéroglyphes.',
         'On the banks of the Nile, the flood promised to be good. But when Ra rose, {victim} never woke. The scribes wrote everything down: read between the hieroglyphs.'],
@@ -214,6 +222,7 @@ MF.murdokuThemes = (() => {
 
     pirates: {
       emoji: '🏴‍☠️', colors: ['#123e52', '#e0a94a'], look: 'gouache', mood: 'golden',
+      gen: { open: [["Mille sabords ! Le navire mouillait dans la crique.", "La chasse au trésor touchait au but.", "Le rhum coulait à flots après l'abordage."], ["Shiver me timbers! The ship lay at anchor in the cove.", "The treasure hunt was nearly over.", "The rum was flowing after the boarding."]], things: [["une plume de perroquet", "une pièce d'or maudite", "une carte au trésor déchirée", "une jambe de bois"], ["a parrot feather", "a cursed gold coin", "a torn treasure map", "a wooden leg"]], nick: [["Barbe-Rousse", "Jambe-de-Bois", "Œil-de-Verre", "Sabre-Clair", "Crochet", "Sans-Dents"], ["Redbeard", "Pegleg", "Glasseye", "Brightsabre", "Hook", "Toothless"]], vt: [["Capitaine", "Vieux", "Amiral", "Maître-coq"], ["Captain", "Old", "Admiral", "Cook"]], vn: ["Vane", "Bones", "Hawk", "Wilhelm"] },
       label: ['Pirates', 'Pirates'], tagline: ['Rhum, trésors et trahisons', 'Rum, treasure and treachery'],
       story: ['Mille sabords ! Le navire mouillait dans la crique quand {victim} a été retrouvé·e raide comme un mât. L\'équipage jure sur le rhum… mais un forban dit faux.',
         'Shiver me timbers! The ship lay at anchor in the cove when {victim} was found stiff as a mast. The crew swear on the rum… but one scallywag is lying.'],
@@ -251,6 +260,7 @@ MF.murdokuThemes = (() => {
 
     western: {
       emoji: '🤠', colors: ['#8a4b26', '#e7b866'], look: 'film', mood: 'golden',
+      gen: { open: [["Dust Creek, midi pile.", "La diligence venait d'arriver en ville.", "Le grand concours de lasso battait son plein."], ["Dust Creek, high noon.", "The stagecoach had just pulled into town.", "The big lasso contest was in full swing."]], things: [["un éperon d'argent", "un as de pique", "une étoile de shérif cabossée", "un fer à cheval"], ["a silver spur", "an ace of spades", "a dented sheriff's star", "a horseshoe"]], nick: [["la Gâchette", "Gros-Bras", "Six-Coups", "Poussière", "le Kid", "Bottes-Rouges"], ["Trigger", "Bigarm", "Sixshooter", "Dusty", "the Kid", "Redboots"]], vt: [["Shérif", "Big", "Miss", "Juge"], ["Sheriff", "Big", "Miss", "Judge"]], vn: ["Walker", "Joe", "Lily", "Bean"] },
       label: ['Far West', 'Wild West'], tagline: ['Saloon, shérif et coups de feu', 'Saloons, sheriffs and gunfire'],
       story: ['Dust Creek, midi pile. Le piano du saloon s\'est tu d\'un coup : {victim} était à terre. Le shérif a fermé la ville. Personne ne sort tant que le coupable n\'est pas démasqué.',
         'Dust Creek, high noon. The saloon piano stopped dead: {victim} was down. The sheriff has locked the town. Nobody leaves until the culprit is unmasked.'],
@@ -288,6 +298,7 @@ MF.murdokuThemes = (() => {
 
     space: {
       emoji: '🚀', colors: ['#1b2440', '#7f8cff'], look: 'clean', mood: 'night',
+      gen: { open: [["Station Orbitale 9, cycle 3042.", "Le vaisseau traversait une ceinture d'astéroïdes.", "L'équipage fêtait son millième jour en orbite."], ["Orbital Station 9, cycle 3042.", "The ship was crossing an asteroid belt.", "The crew was celebrating day one thousand in orbit."]], things: [["un gant de combinaison", "une puce mémoire effacée", "un tube de purée lyophilisée", "un badge d'accès"], ["a spacesuit glove", "a wiped memory chip", "a tube of freeze-dried mash", "an access badge"]], nick: [["X-7", "Zéro-G", "Nébuleuse", "Pulsar", "Quasar", "Comète"], ["X-7", "Zero-G", "Nebula", "Pulsar", "Quasar", "Comet"]], vt: [["Commandant", "Robot", "Docteure", "Capitaine"], ["Commander", "Robot", "Doctor", "Captain"]], vn: ["Vox", "V-8", "Weyl", "Zed"] },
       label: ['Station spatiale', 'Space station'], tagline: ['À des années-lumière de tout alibi', 'Light years away from any alibi'],
       story: ['Station Orbitale 9, cycle 3042. Les capteurs sont formels : {victim} ne respire plus. Aucune navette n\'a quitté le bord. Le coupable flotte encore parmi nous.',
         'Orbital Station 9, cycle 3042. The sensors are clear: {victim} has stopped breathing. No shuttle has left. The culprit is still floating among us.'],
@@ -325,6 +336,7 @@ MF.murdokuThemes = (() => {
 
     haunted: {
       emoji: '👻', colors: ['#2b1d3a', '#8fd16a'], look: 'film', mood: 'night',
+      gen: { open: [["Minuit sonne au château de Malvoisie.", "La séance de spiritisme venait de commencer.", "Un corbeau s'est posé sur la tour au coucher du soleil."], ["Midnight strikes at Grimwood Castle.", "The séance had just begun.", "A raven landed on the tower at sunset."]], things: [["une chandelle soufflée", "un crâne qui ricane", "une toile d'araignée déchirée", "une fiole verte"], ["a snuffed candle", "a grinning skull", "a torn cobweb", "a green vial"]], nick: [["Teint-Pâle", "Croc-Noir", "Nuit-Noire", "Os-Sec", "le Spectre", "Griffe"], ["Palecheek", "Blackfang", "Darknight", "Drybones", "the Spectre", "Claw"]], vt: [["Comte", "Baronne", "Docteur", "Majordome"], ["Count", "Baroness", "Doctor", "Butler"]], vn: ["Vlad", "Grim", "Wolf", "Mortis"] },
       label: ['Château hanté', 'Haunted castle'], tagline: ['Fantômes, grimoires et grincements', 'Ghosts, grimoires and creaking doors'],
       story: ['Minuit sonne au château de Malvoisie. Les chandelles vacillent, un corbeau croasse… et {victim} ne se relèvera pas. Les fantômes ne mentent jamais. Les invités, si.',
         'Midnight strikes at Grimwood Castle. Candles flicker, a raven croaks… and {victim} will not rise again. Ghosts never lie. The guests do.'],
@@ -361,6 +373,7 @@ MF.murdokuThemes = (() => {
 
     medieval: {
       emoji: '🏰', colors: ['#4a5a7a', '#d9b45a'], look: 'print', mood: 'day',
+      gen: { open: [["Oyez, oyez ! Le grand tournoi venait de s'achever.", "Le banquet du roi durait depuis trois jours.", "La brume enveloppait le donjon au petit matin."], ["Hear ye, hear ye! The great tournament had just ended.", "The king's banquet had lasted three days.", "Mist wrapped the keep at dawn."]], things: [["un gantelet cabossé", "une pomme croquée", "un sceau brisé", "une plume de faucon"], ["a dented gauntlet", "a bitten apple", "a broken seal", "a falcon feather"]], nick: [["Cœur-de-Lion", "Sans-Terre", "Brise-Fer", "le Hardi", "Barbe-Fleurie", "l'Écuyer"], ["Lionheart", "Lackland", "Ironbreaker", "the Bold", "Flowerbeard", "the Squire"]], vt: [["Roi", "Dame", "Sire", "Bouffon"], ["King", "Lady", "Sir", "Jester"]], vn: ["Godefroy", "Mélisende", "Wilfried", "Tristou"] },
       label: ['Chevaliers', 'Knights'], tagline: ['Tournois, bannières et trahison au donjon', 'Tournaments, banners and treason in the keep'],
       story: ['Oyez, oyez ! Le grand tournoi venait de s\'achever quand {victim} fut retrouvé·e sans vie. Le roi exige un nom avant le coucher du soleil. Gare à qui accusera à tort !',
         'Hear ye, hear ye! The great tournament had just ended when {victim} was found dead. The king demands a name before sunset. Woe to whoever accuses wrongly!'],
@@ -399,6 +412,7 @@ MF.murdokuThemes = (() => {
 
     prehistory: {
       emoji: '🦣', colors: ['#6b4a2e', '#9fc46a'], look: 'gouache', mood: 'day',
+      gen: { open: [["Il y a très, très longtemps…", "La tribu dansait autour du feu.", "Les mammouths migraient dans la vallée."], ["A very, very long time ago…", "The tribe was dancing around the fire.", "The mammoths were migrating through the valley."]], things: [["un silex taillé", "une dent de mammouth", "une empreinte de main", "un os rongé"], ["a knapped flint", "a mammoth tooth", "a handprint", "a gnawed bone"]], nick: [["Gros-Bras", "Pied-Plat", "Œil-Vif", "Mange-Tout", "Cheveux-Feu", "Ouga"], ["Bigarm", "Flatfoot", "Sharpeye", "Eatsall", "Firehair", "Ooga"]], vt: [["Grand Sage", "Chef", "Vieille", "Chamane"], ["Elder", "Chief", "Old", "Shaman"]], vn: ["Ouk", "Mammouth", "Ula", "Wa"] },
       label: ['Préhistoire', 'Stone Age'], tagline: ['Silex, mammouths et feux de camp', 'Flint, mammoths and campfires'],
       story: ['Il y a très, très longtemps… La tribu dansait autour du feu quand {victim} s\'est écroulé·e. Pas d\'écriture, pas de témoins fiables : seulement des traces. Ouga !',
         'A very, very long time ago… The tribe was dancing around the fire when {victim} collapsed. No writing, no reliable witnesses: only tracks. Ooga!'],
@@ -435,6 +449,7 @@ MF.murdokuThemes = (() => {
 
     circus: {
       emoji: '🎪', colors: ['#c0283a', '#f5d36b'], look: 'print', mood: 'dusk',
+      gen: { open: [["Mesdames et messieurs !", "Le roulement de tambour retentissait sous le chapiteau.", "La parade venait de traverser la ville."], ["Ladies and gentlemen!", "The drumroll echoed under the big top.", "The parade had just crossed the town."]], things: [["un nez rouge", "une quille de jongleur", "une plume d'autruche", "un ticket d'entrée déchiré"], ["a red nose", "a juggling pin", "an ostrich feather", "a torn ticket"]], nick: [["Paillette", "le Magnifique", "Trapèze", "Grelot", "Barbe-à-Papa", "Mille-Pattes"], ["Sequin", "the Magnificent", "Trapeze", "Jingles", "Candyfloss", "Centipede"]], vt: [["Monsieur", "Grand", "Madame", "Hercule"], ["Mister", "Great", "Madame", "Hercules"]], vn: ["Loyal", "Zampano", "Zelda", "Fort"] },
       label: ['Cirque', 'Circus'], tagline: ['Paillettes, lions et tours de passe-passe', 'Glitter, lions and sleight of hand'],
       story: ['Mesdames et messieurs ! Le roulement de tambour s\'est arrêté net : {victim} gisait au milieu de la piste. Le spectacle doit continuer… mais pas avant d\'avoir démasqué le coupable.',
         'Ladies and gentlemen! The drumroll stopped dead: {victim} lay in the middle of the ring. The show must go on… but not before the culprit is unmasked.'],
@@ -472,6 +487,7 @@ MF.murdokuThemes = (() => {
 
     train: {
       emoji: '🚂', colors: ['#1f3a33', '#c9a24a'], look: 'film', mood: 'night',
+      gen: { open: [["L'express de minuit est immobilisé par la neige.", "Le wagon-restaurant servait le dernier service.", "Le train filait vers Istanbul à travers la nuit."], ["The midnight express is snowbound.", "The dining car was serving the last sitting.", "The train sped towards Istanbul through the night."]], things: [["un billet de première classe", "un mouchoir brodé", "une montre arrêtée", "un bouton de manchette"], ["a first-class ticket", "an embroidered handkerchief", "a stopped watch", "a cufflink"]], nick: [["Ivanov", "Dubois", "Lindqvist", "Moretti", "Hartley", "Popescu"], ["Ivanov", "Dubois", "Lindqvist", "Moretti", "Hartley", "Popescu"]], vt: [["Baron", "Comtesse", "Mister", "Docteur"], ["Baron", "Countess", "Mister", "Doctor"]], vn: ["Vronski", "Valeska", "Whitaker", "Volkov"], rate: 0.75 },
       label: ['Train de nuit', 'Night train'], tagline: ['Un express de luxe bloqué par la neige', 'A luxury express stuck in the snow'],
       story: ['L\'express de minuit est immobilisé par la neige, quelque part entre Vienne et Istanbul. Au matin, {victim} ne répond plus. Personne n\'a pu quitter le train : le coupable est à bord.',
         'The midnight express is snowbound somewhere between Vienna and Istanbul. By morning, {victim} no longer answers. Nobody could leave the train: the culprit is on board.'],
@@ -509,6 +525,7 @@ MF.murdokuThemes = (() => {
 
     chalet: {
       emoji: '❄️', colors: ['#2f5a8a', '#e6eef6'], look: 'clean', mood: 'day',
+      gen: { open: [["La tempête a coupé la route du chalet.", "La soirée fondue battait son plein.", "La dernière remontée venait de fermer."], ["The blizzard has cut off the chalet.", "The fondue night was in full swing.", "The last lift had just closed."]], things: [["un bâton de ski cassé", "un bonnet à pompon", "une trace de raquette", "un caquelon renversé"], ["a broken ski pole", "a bobble hat", "a snowshoe print", "a spilled fondue pot"]], nick: [["Poudreuse", "Schuss", "Flocon", "Chamois", "Slalom", "Avalanche"], ["Powder", "Schuss", "Snowflake", "Chamois", "Slalom", "Avalanche"]], vt: [["Moniteur", "Baronne", "Docteur", "Guide"], ["Instructor", "Baroness", "Doctor", "Guide"]], vn: ["Victor", "Wintz", "Vogel", "Yéti"] },
       label: ['Chalet au ski', 'Ski chalet'], tagline: ['Fondue, poudreuse et alibis glacés', 'Fondue, powder snow and frosty alibis'],
       story: ['La tempête a coupé la route du chalet. Entre deux fondues, {victim} a été retrouvé·e figé·e comme un glaçon. Personne ne descend dans la vallée tant que l\'affaire n\'est pas réglée.',
         'The blizzard has cut off the chalet. Between two fondues, {victim} was found frozen like an icicle. Nobody goes down to the valley until this is solved.'],
@@ -547,6 +564,7 @@ MF.murdokuThemes = (() => {
 
     world: {
       emoji: '🌍', colors: ['#1aa3d9', '#f5c542'], look: 'clean', mood: 'day',
+      gen: { open: [["Le grand pari était lancé : faire le tour du monde en un temps record.", "L'avion venait d'atterrir après une escale mouvementée.", "Le dernier jour du rallye autour du monde commençait."], ["The great wager was on: around the world in record time.", "The plane had just landed after a bumpy layover.", "The final day of the round-the-world rally was starting."]], things: [["un passeport tamponné", "une boussole", "une carte postale sans adresse", "un billet d'avion froissé"], ["a stamped passport", "a compass", "a postcard with no address", "a crumpled plane ticket"]], nick: [["Globe-Trotteur", "Boussole", "Escale", "Jet-Lag", "Sac-à-Dos", "Long-Courrier"], ["Globetrotter", "Compass", "Layover", "Jetlag", "Backpack", "Longhaul"]], vt: [["Lord", "Capitaine", "Madame", "Docteur"], ["Lord", "Captain", "Madame", "Doctor"]], vn: ["Fogg", "Valise", "Voyage", "Globe"] },
       label: ['Tour du monde', 'Around the world'], tagline: ['Un crime, six continents, zéro escale', 'One crime, six continents, no layover'],
       story: ['Le grand pari était lancé : faire le tour du monde en un temps record. Mais à l\'arrivée, {victim} manquait à l\'appel. Chaque voyageur était quelque part sur la carte… un seul a du sang sur son passeport.',
         'The great wager was on: around the world in record time. But at the finish line, {victim} was missing. Every traveller was somewhere on the map… only one has blood on their passport.'],
@@ -585,6 +603,7 @@ MF.murdokuThemes = (() => {
 
     rome: {
       emoji: '🏛️', colors: ['#8a2a2a', '#e9d9b0'], look: 'print', mood: 'day',
+      gen: { open: [["Rome, aux ides de mars.", "Les jeux du cirque venaient de s'achever.", "Le banquet de l'empereur s'éternisait au triclinium."], ["Rome, on the Ides of March.", "The circus games had just ended.", "The emperor's banquet dragged on in the triclinium."]], things: [["une couronne de laurier", "une toge déchirée", "une pièce à l'effigie de César", "une grappe de raisin écrasée"], ["a laurel wreath", "a torn toga", "a coin bearing Caesar's face", "a crushed bunch of grapes"]], nick: [["Maximus", "Felix", "Magnus", "Rufus", "Pius", "Severus"], ["Maximus", "Felix", "Magnus", "Rufus", "Pius", "Severus"]], vt: [["Empereur", "Sénateur", "Vestale", "Gladiateur"], ["Emperor", "Senator", "Vestal", "Gladiator"]], vn: ["Nerva", "Varro", "Valeria", "Spartax"], rate: 0.6 },
       label: ['Rome antique', 'Ancient Rome'], tagline: ['Toges, sénateurs et poignards', 'Togas, senators and daggers'],
       story: ['Rome, aux ides de mars. Le Sénat bruisse de rumeurs quand {victim} tombe sans un mot. Tous les patriciens ont un alibi gravé dans le marbre… sauf un.',
         'Rome, on the Ides of March. The Senate is buzzing with rumours when {victim} falls without a word. Every patrician has an alibi carved in marble… except one.'],
@@ -621,6 +640,55 @@ MF.murdokuThemes = (() => {
     },
   };
   const ids = Object.keys(THEMES);
+
+  /* ---------------- Générateur : histoires et noms mélangés ---------------- */
+  // Morceaux communs à tous les univers (fr, en), assemblés avec ceux de l'univers
+  const FIND = [
+    ['{victim} a été retrouvé·e sans vie.', 'On a retrouvé {victim}, immobile pour toujours.', '{victim} ne s\'est jamais relevé·e.', 'Un cri a déchiré le silence : {victim} gisait à terre.', 'Au petit matin, {victim} manquait à l\'appel… avant d\'être retrouvé·e, glacé·e.'],
+    ['{victim} was found dead.', '{victim} was found, still forever.', '{victim} never got up again.', 'A scream broke the silence: {victim} lay on the floor.', 'By morning, {victim} was missing… until they were found, cold as ice.'],
+  ];
+  const CLUE = [
+    ['Sur place, un seul indice : {thing}.', 'Près du corps traînait {thing}.', 'Et puis il y a ce détail : {thing}, là où rien ne devrait être.', 'Le seul témoin muet : {thing}.', 'Dans la poche de la victime : {thing}. Étrange…'],
+    ['At the scene, a single clue: {thing}.', 'Near the body lay {thing}.', 'And then there is this detail: {thing}, where nothing should be.', 'The only silent witness: {thing}.', 'In the victim\'s pocket: {thing}. Strange…'],
+  ];
+  const TWIST = [
+    ['Tout le monde a un alibi… mais un seul ment.', 'Les portes étaient fermées : le coupable est encore là.', 'Chacun accuse son voisin, personne ne dit tout.', 'Les témoignages se contredisent… presque tous.', 'L\'horloge s\'est arrêtée pile au moment du drame.', 'Personne n\'a rien entendu. Vraiment personne ?'],
+    ['Everyone has an alibi… but one of them is lying.', 'The doors were locked: the culprit is still here.', 'Everyone blames their neighbour, nobody tells the whole story.', 'The statements contradict each other… almost all of them.', 'The clock stopped at the very moment of the crime.', 'Nobody heard a thing. Really, nobody?'],
+  ];
+  const END = [
+    ['À toi de démasquer le coupable !', 'Place chaque suspect et trouve qui était seul avec la victime.', 'L\'enquête commence maintenant.', 'Ouvre l\'œil : chaque indice compte.'],
+    ['Unmask the culprit!', 'Place every suspect and find who was alone with the victim.', 'The investigation starts now.', 'Keep your eyes open: every clue counts.'],
+  ];
+
+  /**
+   * Prénoms, victimes et histoire d'une variante (déterministe pour une graine) : les prénoms
+   * reçoivent parfois un surnom de l'univers, les victimes mêlent titres et noms, l'histoire
+   * assemble une ouverture, la découverte, un détail troublant et une chute.
+   */
+  function generate(th, lang, seed) {
+    // L'univers entre dans la graine : deux univers ne tirent pas les mêmes morceaux
+    const i = L(lang), g = th.gen, r = MF.util.rng(((seed >>> 0) ^ parseInt(MF.util.hash(th.label[0]), 36)) >>> 0 || 1);
+    const pick = a => a[Math.floor(r() * a.length)];
+    const base = th.names[lang] || th.names.fr;
+    if (!g) return { names: base, victims: th.victims[lang] || th.victims.fr, story: th.story[i] };
+    const nicks = MF.util.shuffle(g.nick[i], r);
+    let k = 0;
+    const names = MF.util.shuffle(base, r).map(n => {
+      if (k >= nicks.length || r() > (g.rate ?? 0.35)) return n;
+      const full = `${n} ${nicks[k]}`;
+      if (full.length > 20) return n;
+      k++;
+      return full;
+    });
+    const titles = MF.util.shuffle(g.vt[i].map((tt, j) => j), r);
+    const victims = [...titles.map(j => `${g.vt[i][j]} ${pick(g.vn)}`), ...(th.victims[lang] || th.victims.fr)].filter(v => v.length <= 20);
+    const story = r() < 0.2 ? th.story[i] : [
+      pick(g.open[i]), pick(FIND[i]),
+      r() < 0.75 ? pick(CLUE[i]).replace('{thing}', pick(g.things[i])) : '',
+      r() < 0.6 ? pick(TWIST[i]) : '', pick(END[i]),
+    ].filter(Boolean).join(' ');
+    return { names, victims: [...new Set(victims)], story };
+  }
   const get = id => THEMES[id] || THEMES.manor;
   const L = lang => (lang === 'en' ? 1 : 0);
 
@@ -658,8 +726,9 @@ MF.murdokuThemes = (() => {
    * @param {string} lang 'fr' | 'en'
    * @param {{ rooms?: any, objects?: any, story?: string }} [custom]  noms retouchés (rooms[type] = { name, in }, objects[type] = nom)
    */
-  function resolve(id, lang, custom = {}) {
+  function resolve(id, lang, custom = {}, seed = 0) {
     const th = get(id), i = L(lang);
+    const gen = seed ? generate(th, lang, seed) : { names: th.names[lang] || th.names.fr, victims: th.victims[lang] || th.victims.fr, story: th.story[i] };
     const rooms = {};
     for (const [type, r] of Object.entries(th.rooms)) rooms[type] = { name: r[i * 2], in: r[i * 2 + 1], floor: [r[4], r[5], r[6]], wall: r[7] };
     for (const [type, c] of Object.entries(custom.rooms || {})) {
@@ -678,9 +747,9 @@ MF.murdokuThemes = (() => {
       id: ids.includes(id) ? id : 'manor',
       roomTypes: Object.keys(th.rooms),
       rooms, objects, icons: th.icons || {},
-      names: th.names[lang] || th.names.fr,
-      victims: th.victims[lang] || th.victims.fr,
-      story: String(custom.story || '').trim() || th.story[i],
+      names: gen.names,
+      victims: gen.victims,
+      story: String(custom.story || '').trim() || gen.story,
       look: th.look, mood: th.mood,
     };
   }
@@ -688,5 +757,5 @@ MF.murdokuThemes = (() => {
   /** Libellés d'un univers (cartes de choix). */
   const card = (id, lang) => { const th = get(id), i = L(lang); return { id, emoji: th.emoji, label: th.label[i], tagline: th.tagline[i], colors: th.colors }; };
 
-  return { THEMES, ids, get, resolve, card, where, objectWords };
+  return { THEMES, ids, get, resolve, generate, card, where, objectWords };
 })();
