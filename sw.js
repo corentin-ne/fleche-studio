@@ -5,7 +5,7 @@
    « copie locale puis mise à jour » pour les polices.
    Les requêtes Wiktionnaire / Wikipédia ne sont jamais mises en cache ici.
    ========================================================================= */
-const CACHE = 'fleche-studio-v10';
+const CACHE = 'fleche-studio-v11';
 const FONT_CACHE = 'fleche-studio-fonts-v1';
 const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
 

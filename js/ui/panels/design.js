@@ -10,22 +10,32 @@ MF.panels.design = (() => {
   const { esc } = MF.util;
   const ic = MF.icons.svg;
   const ui = MF.ui;
-  const ACCENTS = ['#e8212b', '#ff6a1a', '#ffb000', '#3db54a', '#16a394', '#1f8fff', '#7b3fe4', '#f0457f', '#6b4226', '#1d1b22'];
   const TABS = [['theme', 'Thème', 'sparkle'], ['colors', 'Couleurs', 'palette'], ['background', 'Fond', 'image'], ['cells', 'Cases', 'grid'], ['text', 'Texte', 'type'], ['page', 'Page', 'frame']];
 
   const fontOptions = value => Object.entries(MF.design.FONTS).map(([id, f]) => `<option value="${id}" ${id === value ? 'selected' : ''} style="font-family:${esc(f.css)}">${esc(f.label)}</option>`).join('');
   const group = (title, content) => `<div class="pgroup">${title ? `<div class="pgroup-title">${esc(title)}</div>` : ''}${content}</div>`;
 
-  function themeTab(d) {
-    return `<div class="theme-grid">${Object.entries(MF.themes.THEMES).map(([id, t]) => `
-      <button type="button" class="theme-card ${d.theme === id ? 'active' : ''}" data-theme-id="${id}" title="${esc(t.label)}">
+  /** Thèmes filtrés sur place par ambiance (aucun nouveau rendu). */
+  function themeTab(d, filter = 'all') {
+    const filters = [['all', 'Tous'], ...Object.entries(MF.themes.MOODS)];
+    return `<div class="chips theme-filters" role="toolbar" aria-label="Filtrer les thèmes">${filters.map(([k, l]) => `<button type="button" class="chip chip-btn ${k === filter ? 'active' : ''}" data-theme-filter="${k}">${esc(l)}</button>`).join('')}</div>
+      <div class="theme-grid">${Object.entries(MF.themes.THEMES).map(([id, t]) => `
+      <button type="button" class="theme-card ${d.theme === id ? 'active' : ''}" data-theme-id="${id}" data-moods="${esc(t.moods.join(' '))}" ${filter === 'all' || t.moods.includes(filter) ? '' : 'hidden'} title="${esc(t.label)}">
         <span class="theme-thumb">${MF.previews.theme(id)}</span><span class="theme-name">${esc(t.label)}</span></button>`).join('')}</div>`;
   }
 
+  /** Nuancier rangé par familles ; `attr` porte la valeur (ex. data-accent="#e8212b"). */
+  const palette = (families, current, attr) => `<div class="swatch-palette">${families.map(([name, colors]) => `
+      <div class="sp-row"><span class="sp-name">${esc(name)}</span><div class="swatches">${colors.map(x => `<button type="button" class="swatch-btn ${x === current ? 'active' : ''}" ${attr}="${x}" style="--c:${x}" aria-label="${x}" title="${x}"></button>`).join('')}</div></div>`).join('')}</div>`;
+
   function colorsTab(d, C) {
     const c = (k, label) => ui.colorField(`colors.${k}`, label, d.colors[k], { auto: true, resolved: C[k] });
-    return group('Couleur principale', `<div class="swatches">${ACCENTS.map(x => `<button type="button" class="swatch-btn ${x === d.accent ? 'active' : ''}" data-accent="${x}" style="--c:${x}" aria-label="${x}"></button>`).join('')}
-        <label class="swatch-btn custom" title="Couleur personnalisée" style="--c:${d.accent}"><input type="color" data-accent-input value="${d.accent}"></label></div>
+    return group('Couleur principale', `${palette(MF.palettes.ACCENTS, d.accent, 'data-accent')}
+        <div class="row palette-tools">
+          <label class="btn btn-sm palette-custom" title="Choisir n'importe quelle couleur"><span class="swatch-btn custom" style="--c:${d.accent}"><input type="color" data-accent-input value="${d.accent}" aria-label="Couleur personnalisée"></span>Sur mesure</label>
+          <button type="button" class="btn btn-sm" data-random-accent>${ic('dice')}Au hasard</button>
+          <span class="palette-current"><i style="--c:${d.accent}"></i><code>${esc(d.accent)}</code></span>
+        </div>
         <p class="field-hint">Le cadre, les flèches et les cases définitions suivent cette couleur. Les textes restent toujours lisibles (contraste automatique).</p>`)
       + group('Détail', `<div class="color-grid">${c('frame', 'Cadre & cases noires')}${c('line', 'Traits')}${c('letter', 'Cases lettres')}${c('clue', 'Cases définitions')}${c('clueInk', 'Texte des définitions')}${c('arrow', 'Flèches')}${c('solution', 'Lettres solution')}${c('ink', 'Numéros & lettres')}${c('void', 'Cases vides claires')}</div>
         <button type="button" class="btn btn-sm btn-ghost" data-reset-colors>${ic('refresh')}Tout en automatique</button>`);
@@ -36,7 +46,7 @@ MF.panels.design = (() => {
     const types = [['solid', 'Uni'], ['gradient', 'Dégradé'], ['radial', 'Halo'], ['mesh', 'Aurore'], ['pattern', 'Motif'], ['image', 'Image'], ['none', 'Aucun']];
     const col = (k, label) => ui.colorField(`background.${k}`, label, b[k]);
     let extra = '';
-    if (b.type === 'solid') extra = `<div class="color-row">${col('c1', 'Couleur')}</div>`;
+    if (b.type === 'solid') extra = `${palette(MF.palettes.BACKGROUNDS, b.c1, 'data-bg-color')}<div class="color-row">${col('c1', 'Sur mesure')}</div>`;
     if (b.type === 'gradient') extra = `<div class="color-row">${col('c1', 'Début')}${col('c2', 'Milieu')}${col('c3', 'Fin')}</div>${ui.slider('background.angle', 'Angle', b.angle, 0, 360, 5, '°')}`;
     if (b.type === 'radial') extra = `<div class="color-row">${col('c1', 'Centre')}${col('c2', 'Bords')}</div>`;
     if (b.type === 'mesh') extra = `<div class="color-row">${col('c1', 'Fond')}${col('c2', 'Lueur 1')}${col('c3', 'Lueur 2')}</div><button type="button" class="btn btn-sm" data-random-palette>${ic('dice')}Couleurs au hasard</button>`;
@@ -104,13 +114,25 @@ MF.panels.design = (() => {
     const d = puzzle.design;
     const C = MF.design.resolve(d);
     const tab = TABS.some(([k]) => k === view.designTab) ? view.designTab : 'theme';
-    const content = { theme: () => themeTab(d), colors: () => colorsTab(d, C), background: () => backgroundTab(d), cells: () => cellsTab(d, C, puzzle.game), text: () => textTab(d, puzzle.game), page: () => pageTab(d) }[tab]();
+    const content = { theme: () => themeTab(d, MF.themes.MOODS[view.themeFilter] ? view.themeFilter : 'all'), colors: () => colorsTab(d, C), background: () => backgroundTab(d), cells: () => cellsTab(d, C, puzzle.game), text: () => textTab(d, puzzle.game), page: () => pageTab(d) }[tab]();
     root.innerHTML = `<div class="design-panel">
       <nav class="subtabs" id="design-tabs">${TABS.map(([k, l, i]) => `<button type="button" data-dtab="${k}" class="${k === tab ? 'active' : ''}">${ic(i)}<span>${l}</span></button>`).join('')}</nav>
       <div class="subtab-body">${content}</div>
       <input type="file" id="bg-file" accept="${MF.assets.ACCEPT.join(',')}" hidden>
     </div>`;
     bind(root, puzzle, actions, view);
+  }
+
+  function filterThemes(root, chip) {
+    const k = chip.dataset.themeFilter;
+    root.querySelectorAll('[data-theme-filter]').forEach(c => c.classList.toggle('active', c === chip));
+    root.querySelectorAll('.theme-card').forEach(card => { card.hidden = k !== 'all' && !card.dataset.moods.split(' ').includes(k); });
+  }
+
+  /** Couleur du nuancier tirée au hasard (jamais la couleur actuelle). */
+  function randomAccent(current) {
+    const all = MF.palettes.ACCENTS.flatMap(([, c]) => c).filter(c => c !== current);
+    return all[Math.floor(Math.random() * all.length)];
   }
 
   function bind(root, puzzle, actions, view) {
@@ -125,7 +147,10 @@ MF.panels.design = (() => {
       const t = e.target.closest('button');
       if (!t || t.closest('#layout-box') || t.dataset.dtab) return;
       if (t.dataset.themeId) actions.applyTheme(t.dataset.themeId);
+      else if (t.dataset.themeFilter) { view.themeFilter = t.dataset.themeFilter; filterThemes(root, t); }
       else if (t.dataset.accent) actions.setDesign({ accent: t.dataset.accent });
+      else if (t.dataset.bgColor) set('background.c1', t.dataset.bgColor);
+      else if (t.hasAttribute('data-random-accent')) actions.setDesign({ accent: randomAccent(puzzle.design.accent) });
       else if (t.dataset.cellStyle) { const { label, ...vals } = MF.design.CELL_STYLES[t.dataset.cellStyle]; void label; actions.setDesign({ cell: { ...vals, style: t.dataset.cellStyle } }); }
       else if (t.dataset.pattern) set('background.pattern', t.dataset.pattern);
       else if (t.hasAttribute('data-auto')) set(t.closest('[data-color-key]').dataset.colorKey, 'auto');

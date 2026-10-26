@@ -75,8 +75,8 @@ MF.exporter = (() => {
     const area = document.getElementById('print-area');
     const variants = o.content === 'both' ? [false, true] : [o.content === 'solution'];
     const p = page.puzzle.design.poster;
-    const f = MF.design.FORMATS[p.format];
-    const sheet = f?.group === 'print' ? `${p.format === 'letter' ? 'letter' : p.format} ${p.orientation}` : 'A4 portrait';
+    const mm = MF.design.formatMm(p);
+    const sheet = mm ? `${mm[0]}mm ${mm[1]}mm` : 'A4 portrait';
     let style = document.getElementById('print-page');
     if (!style) { style = document.createElement('style'); style.id = 'print-page'; document.head.appendChild(style); }
     style.textContent = `@media print { @page { size: ${sheet}; margin: 8mm; } }`;
@@ -106,8 +106,8 @@ MF.exporter = (() => {
   /** Résolutions proposées selon le format : dpi pour l'impression, pixels sinon. */
   function resolutions(design) {
     const p = design.poster, f = MF.design.FORMATS[p.format] || MF.design.FORMATS.fit;
-    if (f.group === 'print') {
-      const mmW = p.orientation === 'landscape' ? f.mm[1] : f.mm[0];
+    if (f.mm) {
+      const mmW = MF.design.formatMm(p)[0];
       return [[150, 'Brouillon'], [300, 'Impression'], [600, 'Haute qualité']].map(([dpi, label]) => ({ width: Math.round((mmW / 25.4) * dpi), label: `${dpi} dpi`, hint: label }));
     }
     if (f.px) return [[1, 'Natif'], [2, 'Retina'], [4, 'Très grand']].map(([k, label]) => ({ width: f.px[0] * k, label: `${f.px[0] * k} px`, hint: label }));

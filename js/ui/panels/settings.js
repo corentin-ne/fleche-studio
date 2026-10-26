@@ -28,8 +28,8 @@ MF.panels.settings = (() => {
         ${puzzle.game === 'codes' ? ui.slider('opt.givens', 'Lettres données au départ', o.givens, 0, 8, 1) : ''}
         ${puzzle.game === 'meles' ? `<div class="field"><span>Sens des mots cachés</span>${ui.segmented('directions', [['easy', 'Facile →↓'], ['normal', 'Normal + diagonales'], ['hard', 'Expert : tous sens']], o.directions, 'data-opt')}</div>` : ''}`)}
 
-      ${S('shape', 'Forme de la grille', 'heart', `<div class="shape-grid">${MF.shapes.ids.map(id => `<button type="button" class="shape-btn ${o.shape === id ? 'active' : ''}" data-shape-id="${id}" title="${esc(MF.shapes.SHAPES[id].label)}">${MF.shapes.preview(id)}<span>${esc(MF.shapes.SHAPES[id].label)}</span></button>`).join('')}</div>
-        <p class="field-hint">Les mots ne sont placés qu'à l'intérieur de la forme. Une forme demande un peu plus de place : la grille s'agrandit toute seule.</p>`)}
+      ${S('shape', 'Forme de la grille', 'heart', `${MF.shapePicker.html(o.shape)}
+        <p class="field-hint">Les mots ne sont placés qu'à l'intérieur de la forme. Une forme (ou une lettre) demande un peu plus de place : la grille s'agrandit toute seule. Astuce : une lettre ressort mieux sur une grande grille.</p>`)}
 
       ${S('size', 'Taille & feuille', 'page-portrait', `
         <div class="field"><span>Feuille de référence</span>
@@ -70,6 +70,7 @@ MF.panels.settings = (() => {
     </div>`;
 
     bind(root, puzzle, actions, view);
+    MF.shapePicker.bind(root);
     storage(root.querySelector('#storage-meter'), state);
   }
 

@@ -419,7 +419,7 @@ MF.builder = (() => {
       const letters = all.reduce((s, it) => s + it.norm.length, 0);
       const area = MF.shapes.fraction(shape);
       // Dans une forme, les lignes les plus longues sont plus courtes que le cadre
-      const reach = shape === 'rect' ? 1 : 0.82;
+      const reach = MF.shapes.reach(shape);
       const frameAt = hh => sheetFrame(opts, hh, bandRows(opts, hh));
       const roomy = hh => {
         const f = frameAt(hh), useful = hh - f.top;

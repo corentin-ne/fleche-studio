@@ -25,7 +25,7 @@ MF.welcome = (() => {
       <div class="welcome-foot">
         <span>${ic('lock')}Rien n'est envoyé sur un serveur : tout reste dans ton navigateur.</span>
         <span>${ic('book')}${MF.dictionary.size().toLocaleString('fr-FR')} mots définis + Wiktionnaire</span>
-        <span>${ic('palette')}${Object.keys(MF.themes.THEMES).length} thèmes · ${MF.shapes.ids.length} formes · stickers</span>
+        <span>${ic('palette')}${Object.keys(MF.themes.THEMES).length} thèmes · ${MF.shapes.ids.length} formes &amp; lettres · stickers</span>
       </div>
     </div>`;
     root.querySelector('[data-w="new"]').onclick = onNew;
@@ -43,7 +43,7 @@ MF.welcome = (() => {
       body: `<div class="wizard-body">
         <label class="field"><span>Nom</span><input class="input input-lg" id="wz-name" maxlength="${MF.schema.LIMITS.name}" placeholder="ex : Anniversaire de Léa, Révisions CM2…" autofocus></label>
         <div class="field"><span>Jeu</span><div class="game-grid compact">${Object.entries(MF.games.GAMES).map(([id, g]) => `<button type="button" class="game-card ${id === st.game ? 'active' : ''}" data-wz="game" data-v="${id}">${ic(g.icon)}<b>${esc(g.label)}</b></button>`).join('')}</div></div>
-        <div class="field"><span>Forme</span><div class="shape-grid compact">${MF.shapes.ids.map(id => `<button type="button" class="shape-btn ${id === st.shape ? 'active' : ''}" data-wz="shape" data-v="${id}" title="${esc(MF.shapes.SHAPES[id].label)}">${MF.shapes.preview(id, 11)}<span>${esc(MF.shapes.SHAPES[id].label)}</span></button>`).join('')}</div></div>
+        <div class="field"><span>Forme</span>${MF.shapePicker.html(st.shape, { compact: true, attrs: id => `data-wz="shape" data-v="${id}"` })}</div>
         <div class="field"><span>Style <span class="field-hint">modifiable à tout moment dans Design</span></span><div class="theme-strip">${themes.map(([id, t]) => {
           const { bg, C } = MF.themes.swatch(id);
           return `<button type="button" class="theme-chip ${id === st.theme ? 'active' : ''}" data-wz="theme" data-v="${id}"><span style="background:${esc(bg)}"><i style="background:${C.frame}"></i><i style="background:${C.clue}"></i></span>${esc(t.label)}</button>`;
@@ -60,6 +60,7 @@ MF.welcome = (() => {
         </div></div>
       </div>`,
       onOpen: root => {
+        MF.shapePicker.bind(root);
         root.addEventListener('click', e => {
           const b = e.target.closest('[data-wz]');
           if (!b) return;

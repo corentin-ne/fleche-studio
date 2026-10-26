@@ -40,35 +40,60 @@ MF.design = (() => {
 
   /**
    * Formats d'affiche, par famille.
-   *  - print : feuilles (mm, en portrait ; l'orientation peut basculer) ;
+   *  - print / cards : feuilles et cartes (mm, en portrait ; l'orientation peut basculer) ;
    *  - social / screen : formats en pixels, orientation fixe ;
    *  - fit : l'affiche épouse la grille ; custom : rapport libre.
    */
-  const FORMAT_GROUPS = { auto: 'Automatique', print: 'Impression', social: 'Réseaux sociaux', screen: 'Écran', custom: 'Sur mesure' };
+  const FORMAT_GROUPS = { auto: 'Automatique', print: 'Impression', cards: 'Cartes', social: 'Réseaux sociaux', screen: 'Écrans', custom: 'Sur mesure' };
   const FORMATS = {
     fit: { label: 'Ajusté', hint: 'Épouse la grille', group: 'auto' },
+    A6: { label: 'A6', hint: '105 × 148 mm', group: 'print', mm: [105, 148] },
     A5: { label: 'A5', hint: '148 × 210 mm', group: 'print', mm: [148, 210] },
     A4: { label: 'A4', hint: '210 × 297 mm', group: 'print', mm: [210, 297] },
     A3: { label: 'A3', hint: '297 × 420 mm', group: 'print', mm: [297, 420] },
+    A2: { label: 'A2', hint: '420 × 594 mm', group: 'print', mm: [420, 594] },
     letter: { label: 'US Letter', hint: '8,5 × 11 in', group: 'print', mm: [216, 279] },
+    legal: { label: 'US Legal', hint: '8,5 × 14 in', group: 'print', mm: [216, 356] },
+    tabloid: { label: 'Tabloïd', hint: '11 × 17 in', group: 'print', mm: [279, 432] },
+    photo: { label: 'Photo 10 × 15', hint: '102 × 152 mm', group: 'cards', mm: [102, 152] },
+    photo13: { label: 'Photo 13 × 18', hint: '130 × 180 mm', group: 'cards', mm: [130, 180] },
+    card57: { label: 'Carte 5 × 7', hint: '127 × 178 mm', group: 'cards', mm: [127, 178] },
+    cardSq: { label: 'Carte carrée', hint: '150 × 150 mm', group: 'cards', mm: [150, 150] },
+    dl: { label: 'Flyer DL', hint: '99 × 210 mm', group: 'cards', mm: [99, 210] },
+    bookmark: { label: 'Marque-page', hint: '50 × 180 mm', group: 'cards', mm: [50, 180] },
     square: { label: 'Carré', hint: '1080 × 1080', group: 'social', px: [1080, 1080] },
     post: { label: 'Post 4:5', hint: '1080 × 1350', group: 'social', px: [1080, 1350] },
     story: { label: 'Story 9:16', hint: '1080 × 1920', group: 'social', px: [1080, 1920] },
     pin: { label: 'Épingle 2:3', hint: '1000 × 1500', group: 'social', px: [1000, 1500] },
+    youtube: { label: 'Miniature vidéo', hint: '1280 × 720', group: 'social', px: [1280, 720] },
+    xpost: { label: 'Post paysage', hint: '1600 × 900', group: 'social', px: [1600, 900] },
+    linkedin: { label: 'Lien partagé', hint: '1200 × 627', group: 'social', px: [1200, 627] },
+    cover: { label: 'Bannière', hint: '1640 × 624', group: 'social', px: [1640, 624] },
     wide: { label: 'Écran 16:9', hint: '1920 × 1080', group: 'screen', px: [1920, 1080] },
+    desk: { label: 'Écran 16:10', hint: '2560 × 1600', group: 'screen', px: [2560, 1600] },
+    ultra: { label: 'Ultra-large 21:9', hint: '3440 × 1440', group: 'screen', px: [3440, 1440] },
     slide: { label: 'Diapo 4:3', hint: '1600 × 1200', group: 'screen', px: [1600, 1200] },
+    phone: { label: 'Fond téléphone', hint: '1170 × 2532', group: 'screen', px: [1170, 2532] },
+    tablet: { label: 'Fond tablette', hint: '1640 × 2360', group: 'screen', px: [1640, 2360] },
     custom: { label: 'Personnalisé', hint: 'Largeur × hauteur', group: 'custom' },
   };
   for (const f of Object.values(FORMATS)) {
     const [w, h] = f.mm || f.px || [];
     if (w) f.ratio = w / h;
   }
+  /** Dimensions en mm d'un format papier selon l'orientation (null pour les formats écran). */
+  function formatMm(p) {
+    const f = FORMATS[p.format];
+    if (!f?.mm) return null;
+    const [w, h] = f.mm;
+    return p.orientation === 'landscape' ? [h, w] : [w, h];
+  }
   /** Rapport largeur / hauteur effectif d'un format (null = ajusté à la grille). */
   function formatRatio(p) {
     const f = FORMATS[p.format] || FORMATS.fit;
     if (p.format === 'custom') return Math.max(0.1, Math.min(10, p.customW / p.customH));
     if (!f.ratio) return null;
-    return f.group === 'print' && p.orientation === 'landscape' ? 1 / f.ratio : f.ratio;
+    return f.mm && p.orientation === 'landscape' ? 1 / f.ratio : f.ratio;
   }
   const ANCHORS = ['nw', 'n', 'ne', 'w', 'c', 'e', 'sw', 's', 'se'];
 
@@ -169,5 +194,5 @@ MF.design = (() => {
     return [...ids].map(font);
   }
 
-  return { FONTS, font, weightFor, CELL_STYLES, ARROWS, VOIDS, FORMATS, FORMAT_GROUPS, formatRatio, ANCHORS, DEFAULT, merge, resolve, readable, contrast, metrics, fontsOf, backgroundTone };
+  return { FONTS, font, weightFor, CELL_STYLES, ARROWS, VOIDS, FORMATS, FORMAT_GROUPS, formatRatio, formatMm, ANCHORS, DEFAULT, merge, resolve, readable, contrast, metrics, fontsOf, backgroundTone };
 })();

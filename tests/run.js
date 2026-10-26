@@ -105,7 +105,7 @@
   test('import : doublons retirés', () => eq(MF.importer.parseText('Été\nete\nÉTÉ').length, 1));
 
   /* ---------------- Générateurs ---------------- */
-  for (const shape of ['rect', 'circle', 'heart', 'star']) {
+  for (const shape of ['rect', 'circle', 'heart', 'star', 'moon', 'lW', 'lA', 'n8']) {
     test(`mots fléchés (${shape}) : règles respectées`, async () => {
       const words = randomWords(18, shape.length * 7);
       const page = await MF.builder.generate(words, MF.schema.options({ shape, effort: 'fast' }), { seed: 1234 });
@@ -164,6 +164,13 @@
     eq(r({ format: 'story', orientation: 'landscape' }), 1080 / 1920, 'story ne pivote pas');
     eq(r({ format: 'custom', customW: 300, customH: 100 }), 3);
     eq(r({ format: 'fit' }), null);
+    assert(Math.abs(r({ format: 'bookmark', orientation: 'landscape' }) - 180 / 50) < 1e-6, 'les cartes pivotent');
+    eq(MF.design.formatMm({ format: 'A5', orientation: 'landscape' }), [210, 148]);
+    eq(MF.design.formatMm({ format: 'story' }), null);
+  });
+  test('formes : chaque lettre et chiffre a une surface utilisable', () => {
+    for (const g of ['letters', 'digits']) eq(MF.shapes.byGroup(g).length, g === 'letters' ? 26 : 10);
+    for (const id of MF.shapes.ids) { const f = MF.shapes.fraction(id); assert(f > 0.25 && f <= 1, `${id} : ${f}`); }
   });
 
   /* ---------------- Partage ---------------- */
