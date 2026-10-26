@@ -3,7 +3,7 @@ import js from '@eslint/js';
 import globals from 'globals';
 
 export default [
-  { ignores: ['node_modules/', 'js/data/clues-*.js', 'test-results/'] },
+  { ignores: ['node_modules/', 'js/data/clues-*.js', 'test-results/', 'js/vendor/', 'src3d/'] },
   js.configs.recommended,
   {
     files: ['js/**/*.js', 'sw.js', 'tests/run.js'],

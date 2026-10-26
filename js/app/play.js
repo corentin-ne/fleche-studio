@@ -76,6 +76,14 @@ MF.play = (() => {
     return { best: isNew ? all[key] : previous, previous, isNew };
   }
 
+  /** Meilleur temps d'une grille (toutes ses pages, calcul en cours) en secondes, 0 si aucun. */
+  function bestOf(/** @type {any} */ pz, storage = localStorage) {
+    if (!pz?.layout) return 0;
+    const prefix = `${pz.id}@${pz.layout.at}#`;
+    const times = Object.entries(readBest(storage)).filter(([k, v]) => k.startsWith(prefix) && v > 0).map(([, v]) => v);
+    return times.length ? Math.min(...times) : 0;
+  }
+
   /* ---------------- Écran allumé pendant une partie ---------------- */
   /** @type {any} */
   let wakeLock = null;
@@ -107,5 +115,5 @@ MF.play = (() => {
     setTimeout(() => layer.remove(), 4000);
   }
 
-  return { keyOf, load, save, prune, clock, elapsed, record, keepAwake, confetti };
+  return { keyOf, load, save, prune, clock, elapsed, record, bestOf, keepAwake, confetti };
 })();

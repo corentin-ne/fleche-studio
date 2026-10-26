@@ -83,7 +83,11 @@ MF.themes = (() => {
     },
     rainbow: {
       label: t('Arc-en-ciel'), moods: ['vivid', 'party'],
-      design: { accent: '#7b3fe4', colors: { clue: '#fff7d6', arrow: '#e5384f' }, background: { type: 'gradient', c1: '#ffd6e0', c2: '#fff3b0', c3: '#c7f0ff', angle: 120 }, cell: { style: 'tiles', gap: 8, radius: 14, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' } },
+      design: { accent: '#7b3fe4', colors: { clue: '#fff7d6', arrow: '#e5384f' }, background: { type: 'gradient', c1: '#ffd6e0', c2: '#fff3b0', c3: '#c7f0ff', angle: 120 }, cell: { style: 'tiles', gap: 8, radius: 14, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' }, multi: { on: true, targets: { letters: true, cells: false, clues: false, words: true }, mode: 'letter', preset: 'rainbow', palette: ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#3949ab', '#8e24aa'] } },
+    },
+    crayons: {
+      label: t('Crayons de couleur'), moods: ['party', 'vivid'],
+      design: { accent: '#3a3a5c', colors: { clue: '#ffffff', arrow: '#3a3a5c', line: '#3a3a5c', frame: '#3a3a5c' }, background: { type: 'pattern', pattern: 'dots', c1: '#fffdf6', c2: '#ffe3ef', c3: '#d8f0ff', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 14, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 16, radius: 24 }, font: { clue: 'nunito', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' }, multi: { on: true, targets: { letters: true, cells: false, clues: true, words: true }, mode: 'word', preset: 'candy', palette: ['#ff4d8d', '#ff9f1c', '#ffd23f', '#3ec300', '#00bbf9', '#9b5de5'] } },
     },
     night: {
       label: t('Nuit étoilée'), moods: ['dark'],

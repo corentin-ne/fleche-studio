@@ -76,6 +76,7 @@ MF.gridView = (() => {
     const C = MF.design.resolve(ctx.puzzle.design);
     layer.style.setProperty('--play-ink', C.ink);
     layer.style.setProperty('--play-font', MF.design.font(ctx.puzzle.design.font.letter).css);
+    const MC = MF.design.multiColors(ctx.puzzle.design, C, ctx.model);
     const codes = ctx.model.game === 'codes';
     ctx.model.cells.forEach((row, r) => row.forEach((cell, c) => {
       if (cell.type !== 'letter') return;
@@ -97,6 +98,8 @@ MF.gridView = (() => {
         fontSize: `${ctx.cellPx * (codes || ctx.model.game === 'croises' ? 0.46 : 0.52)}px`,
         paddingTop: codes || ctx.model.game === 'croises' ? `${ctx.cellPx * 0.16}px` : '0',
       });
+      // Multicolore : chaque lettre saisie prend la couleur de sa case
+      if (MC) inp.style.setProperty('--play-ink', MC.letter(r, c, C.ink));
       layer.appendChild(inp);
     }));
     sheet.appendChild(layer);
@@ -208,8 +211,9 @@ MF.gridView = (() => {
     sheet.appendChild(over);
     ctx.found = new Set(Array.isArray(ctx.entries.found) ? ctx.entries.found.filter(k => ctx.model.slots.has(k)) : []);
     const C = MF.design.resolve(ctx.puzzle.design);
+    const MC = MF.design.multiColors(ctx.puzzle.design, C, ctx.model);
 
-    const capsule = (a, b, cls) => {
+    const capsule = (a, b, cls, color = C.arrow) => {
       const p = cellBox(a[0], a[1]), q = cellBox(b[0], b[1]);
       const x0 = p.x + U / 2, y0 = p.y + U / 2, x1 = q.x + U / 2, y1 = q.y + U / 2;
       const len = Math.hypot(x1 - x0, y1 - y0) + U * 0.8;
@@ -217,13 +221,13 @@ MF.gridView = (() => {
       g.setAttribute('x', -len / 2); g.setAttribute('y', -U * 0.36); g.setAttribute('width', len); g.setAttribute('height', U * 0.72); g.setAttribute('rx', U * 0.36);
       g.setAttribute('transform', `translate(${(x0 + x1) / 2} ${(y0 + y1) / 2}) rotate(${(Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI})`);
       g.setAttribute('class', cls);
-      g.style.setProperty('--ws', C.arrow);
+      g.style.setProperty('--ws', color);
       over.appendChild(g);
       return g;
     };
     const drawFound = () => {
       over.querySelectorAll('.ws-found').forEach(n => n.remove());
-      ctx.found.forEach(k => { const s = ctx.model.slots.get(k); capsule(s.cells[0], s.cells[s.cells.length - 1], 'ws-found'); });
+      ctx.found.forEach(k => { const s = ctx.model.slots.get(k); capsule(s.cells[0], s.cells[s.cells.length - 1], 'ws-found', MC?.word(k) || C.arrow); });
       sheet.querySelectorAll('.mf-svg [data-key]').forEach(t => t.classList.toggle('found', ctx.found.has(t.dataset.key)));
     };
     drawFound();

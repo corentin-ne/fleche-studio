@@ -13,11 +13,17 @@ listes de mots par thème), sans cookie ni référent.
 
 ## Fonctionnalités
 
-- **4 jeux** : mots fléchés, mots croisés, mots mêlés, mots codés ; une ou deux grilles par projet.
+- **5 jeux** : mots fléchés, mots croisés, mots mêlés, mots codés (une ou deux grilles par projet),
+  et **Murdoku** : une enquête logique sur un plan en diorama 3D peint (rendu adapté de
+  [building-builder](https://github.com/corentin-ne/building-builder), sources dans `src3d/`,
+  `npm run build:3d` produit `js/vendor/murdoku3d.js`), avec un plan 2D de secours.
+- **Studio et jeu séparés** : le studio crée (solution ou grille vierge) ; on joue sur une page à
+  part, depuis la Salle de jeu du tableau de bord.
 - **Mots** : saisie avec autocomplétion et correction, dictionnaire intégré (FR, EN),
   18 packs à thème de 25 mots définis, catégories du Wiktionnaire, tirage au hasard,
   import texte, CSV, JSON ou Excel.
 - **Définitions** : dictionnaire local, Wiktionnaire, Wikipédia et Wikidata.
+- **Multicolore** : lettres, cases, définitions et mots en plusieurs couleurs (palettes ou couleurs au choix).
 - **Design** : thèmes, formes (cœur, étoile, lettres…), polices, fonds, stickers, photos,
   formats de page (A4, carré, story…).
 - **Jeu** : mode jeu avec chronomètre, indices, vérification et meilleur temps ; lien de

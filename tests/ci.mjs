@@ -42,7 +42,7 @@ const fail = msg => { failed++; console.error(`✘ ${msg}`); };
  * Budget de poids (Ko, non compressé) : une hausse involontaire (fichier dupliqué, données
  * collées par erreur) fait échouer la vérification. À relever consciemment si nécessaire.
  */
-const BUDGET = { app: 760, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 150, polices: 800, images: 700 };
+const BUDGET = { app: 820, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 760 };
 
 /** Fichiers listés par js/loader.js (même liste que la page et le service worker). */
 async function loaderLists() {
@@ -52,6 +52,13 @@ async function loaderLists() {
   vm.createContext(ctx);
   vm.runInContext(await readFile(join(ROOT, 'js/loader.js'), 'utf8'), ctx);
   return ctx.MF.loader;
+}
+/** Énigme Murdoku cohérente : une personne par ligne et par colonne, un coupable parmi les suspects. */
+function MF_solveCheck(pz) {
+  const n = pz.size;
+  if (new Set(pz.people.map(p => p.r)).size !== n || new Set(pz.people.map(p => p.c)).size !== n) return 'lignes ou colonnes en double';
+  if (!pz.people.some(p => p.id === pz.murderer && p.role === 'suspect')) return 'coupable introuvable';
+  return '';
 }
 const sizeOf = async files => (await Promise.all(files.map(f => stat(join(ROOT, f))))).reduce((n, st) => n + st.size, 0) / 1024;
 const dir = async (d, ext) => (await readdir(join(ROOT, d))).filter(f => f.endsWith(ext)).map(f => `${d}/${f}`);
@@ -67,6 +74,8 @@ try {
       styles: await sizeOf(await dir('css', '.css')),
       polices: await sizeOf(await dir('fonts', '.woff2')),
       images: await sizeOf(await dir('icons', '.png')),
+      // Rendu 3D du Murdoku : chargé seulement quand on ouvre une enquête
+      'murdoku 3D': await sizeOf(['js/vendor/murdoku3d.js']),
     };
     for (const [k, kb] of Object.entries(measured)) {
       if (kb > BUDGET[k]) fail(`budget : ${k} ${kb.toFixed(0)} Ko > ${BUDGET[k]} Ko`);
@@ -108,7 +117,7 @@ try {
     const svg = await page.locator('#grid-scroll svg.mf-svg').count();
     if (!svg) fail(`application (${lang}) : grille non affichée`);
     // Mode jeu : une case par lettre, reliée à la définition du mot
-    await page.click('#mode-switch [data-mode="play"]');
+    await page.click('#btn-play');
     const cells = await page.locator('.play-cell[aria-describedby="clue-text"]').count();
     if (!cells) fail(`application (${lang}) : mode jeu sans cases`);
     if (errors.length) fail(`application (${lang}) : erreurs dans la console\n    ${errors.join('\n    ')}`);
@@ -227,6 +236,39 @@ try {
       return `${await p2.evaluate(() => MF.store.get().puzzles.length)} grilles`;
     });
     await fresh.close();
+  }
+
+  /* ---------- Murdoku : création, solution, partie jusqu'au coupable ---------- */
+  {
+    const ctx = await browser.newContext({ locale: 'fr-FR', serviceWorkers: 'block' });
+    await offlineApis(ctx);
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    try {
+      await page.goto(`${base}/index.html`);
+      await page.waitForSelector('[data-quick="murdoku"]', { timeout: 30000 });
+      await page.click('[data-quick="murdoku"]');
+      await page.click('.modal-foot .btn-primary');
+      await page.waitForSelector('.mdk-stage .mdk-clues li', { timeout: 30000 });
+      // Plan dessiné (2D) : rapide et identique partout ; la 3D est essayée à part (tools/murdoku3d-demo)
+      await page.click('.mdk-panel [data-mdk="render"] [data-v="2d"]');
+      await page.waitForSelector('.mdk-board svg .mdk-cell');
+      const pz = await page.evaluate(() => MF.store.active().layout.pages[0]);
+      if (MF_solveCheck(pz)) throw new Error(MF_solveCheck(pz));
+      await page.click('#btn-play');
+      await page.waitForSelector('.mdk-tools [data-tool]');
+      for (const p of pz.people) {
+        await page.click(`.mdk-tools [data-tool="${p.id}"]`);
+        await page.click(`.mdk-board svg .mdk-cell[data-r="${p.r}"][data-c="${p.c}"]`, { force: true });
+      }
+      await page.waitForSelector('[data-accuse]', { timeout: 5000 });
+      await page.click(`[data-accuse="${pz.murderer}"]`);
+      await page.waitForFunction(() => /Bravo|record/.test(document.querySelector('.toasts')?.textContent || ''), null, { timeout: 5000 });
+      if (errors.length) throw new Error(errors.join('\n    '));
+      console.log(`✔ murdoku : ${pz.size} × ${pz.size}, ${pz.clues.length} indices, partie gagnée`);
+    } catch (e) { fail(`murdoku : ${e.message}`); }
+    await ctx.close();
   }
 
   /* ---------- 4. Téléphone ---------- */

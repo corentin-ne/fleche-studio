@@ -54,6 +54,8 @@
         <span class="brand-text" translate="no"><strong>Flèche</strong><small>Studio</small></span>
       </button>
       <nav class="puzzle-tabs" id="puzzle-tabs" aria-label="Mes grilles"></nav>
+      <div class="play-title" id="play-title" aria-live="polite"></div>
+      <button class="btn btn-ghost arcade-btn" id="btn-arcade" type="button" title="Salle de jeu : jouer à mes grilles" aria-label="Salle de jeu"><span data-icon="gamepad"></span><span class="lbl">Jouer</span></button>
       <div class="topbar-actions">
         <button class="btn btn-ghost btn-icon" id="btn-undo" title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière action"><span data-icon="undo"></span></button>
         <button class="btn btn-ghost btn-icon" id="btn-redo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><span data-icon="redo"></span></button>
@@ -82,13 +84,13 @@
             <div class="segmented" id="mode-switch" role="group" aria-label="Affichage">
               <button data-mode="solution" title="Voir les réponses"><span data-icon="eye"></span><span class="lbl">Solution</span></button>
               <button data-mode="blank" title="Grille à remplir"><span data-icon="eyeOff"></span><span class="lbl">Vierge</span></button>
-              <button data-mode="play" title="Jouer (P)"><span data-icon="play"></span><span class="lbl">Jouer</span></button>
             </div>
             <div class="zoom">
               <button class="btn btn-sm btn-ghost" id="btn-fit" title="Ajuster à l'écran"><span data-icon="grid"></span></button>
               <input type="range" id="zoom" min="10" max="160" step="2" aria-label="Zoom" title="Zoom (Ctrl + molette)">
             </div>
             <button class="btn" id="btn-shuffle" title="Calculer une autre grille (M)"><span data-icon="shuffle"></span><span class="lbl">Mélanger</span></button>
+            <button class="btn" id="btn-play" title="Jouer à cette grille (P)"><span data-icon="gamepad"></span><span class="lbl">Jouer</span></button>
             <button class="btn btn-primary" id="btn-export" title="Exporter (E)"><span data-icon="download"></span>Exporter</button>
           </div>
         </div>
@@ -102,6 +104,7 @@
           <button class="btn btn-sm btn-primary" data-regen><span data-icon="refresh"></span>Mettre à jour la grille</button>
         </div>
         <div class="play-bar" id="play-bar" hidden>
+          <button class="btn btn-sm" id="btn-play-exit" title="Revenir au studio (Échap)"><span data-icon="chevronLeft"></span><span class="lbl">Studio</span></button>
           <span class="play-time"><span data-icon="clock"></span><b id="play-time">0:00</b></span>
           <span class="muted small play-tip">Clique une case et tape · re-clic ou Espace : change de sens</span>
           <span class="spacer"></span>

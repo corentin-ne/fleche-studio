@@ -54,7 +54,8 @@ MF.createStore = ({ key: KEY = 'mfm:v2', persist = true } = {}) => {
       ui: {
         cell: S.int(ui.cell, 12, 140, base.ui.cell),
         fit: S.bool(ui.fit, true),
-        mode: S.oneOf(ui.mode, ['solution', 'blank', 'play'], 'solution'),
+        // Le jeu a sa propre page (plus un mode du studio) : un ancien « play » revient à la solution
+        mode: S.oneOf(ui.mode, ['solution', 'blank'], 'solution'),
         tab: S.oneOf(ui.tab, ['words', 'diag', 'design', 'decor', 'settings'], 'words'),
         photoMarks: S.bool(ui.photoMarks, false),
         decor: S.oneOf(ui.decor, ['emoji', 'shapes', 'text', 'images'], 'emoji'),

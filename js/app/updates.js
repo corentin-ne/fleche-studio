@@ -23,12 +23,11 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Nouveau jeu : Murdoku, une enquête en diorama 3D peint (place les suspects, démasque le coupable), jouable et exportable',
+    'Studio et jeu séparés : une page de jeu à part et une Salle de jeu dans le tableau de bord',
+    'Multicolore : lettres, cases, définitions et mots de plusieurs couleurs (arc-en-ciel, pastel, néon…, couleurs au choix)',
     'Version de l\'application affichée dans le menu « Plus », avec vérification des mises à jour',
-    '18 packs à thème de 25 mots, tous proposés à la création (6 nouveaux : fruits, espace, transports…)',
-    'Rappel de sauvegarde et stockage durable : tes grilles sont mieux protégées',
-    'Mode jeu : meilleur temps enregistré, écran gardé allumé sur téléphone',
-    'Export : PDF de tout un lot, envoi de l\'image depuis le téléphone',
-    'Définitions : description Wikidata pour les noms propres',
+    '18 packs à thème de 25 mots, rappel de sauvegarde, meilleur temps en mode jeu',
   ];
 
   /** Version installée : « 4.4.0 · 1a2b3c4 ». */

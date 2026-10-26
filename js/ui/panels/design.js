@@ -35,7 +35,7 @@ MF.panels.design = (() => {
   const palette = (families, current, attr) => `<div class="swatch-palette">${families.map(([name, colors]) => `
       <div class="sp-row"><span class="sp-name">${esc(name)}</span><div class="swatches">${colors.map(x => `<button type="button" class="swatch-btn ${x === current ? 'active' : ''}" ${attr}="${x}" style="--c:${x}" aria-label="${x}" title="${x}"></button>`).join('')}</div></div>`).join('')}</div>`;
 
-  function colorsTab(d, C) {
+  function colorsTab(d, C, game) {
     const c = (k, label) => ui.colorField(`colors.${k}`, label, d.colors[k], { auto: true, resolved: C[k] });
     return group(t('Couleur principale'), `${palette(MF.palettes.ACCENTS, d.accent, 'data-accent')}
         <div class="row palette-tools">
@@ -44,8 +44,37 @@ MF.panels.design = (() => {
           <span class="palette-current"><i style="--c:${d.accent}"></i><code>${esc(d.accent)}</code></span>
         </div>
         <p class="field-hint">${t('Le cadre, les flèches et les cases définitions suivent cette couleur. Les textes restent toujours lisibles (contraste automatique).')}</p>`)
+      + multiGroup(d, game)
       + group('', ui.advanced('colors-detail', t('Couleur de chaque élément'), `<div class="color-grid">${c('frame', t('Cadre & cases noires'))}${c('line', t('Traits'))}${c('letter', t('Cases lettres'))}${c('clue', t('Cases définitions'))}${c('clueInk', t('Texte des définitions'))}${c('arrow', t('Flèches'))}${c('solution', t('Lettres solution'))}${c('ink', t('Numéros & lettres'))}${c('void', t('Cases vides claires'))}</div>
         <button type="button" class="btn btn-sm btn-ghost" data-reset-colors>${ic('refresh')}${t('Tout en automatique')}</button>`));
+  }
+
+  /** Multicolore : plusieurs couleurs dans la grille (lettres, cases, définitions, mots). */
+  function multiGroup(d, game) {
+    const mu = d.multi, M = MF.design;
+    const toggle = `<label class="check mc-switch"><input type="checkbox" data-toggle="multi.on" ${mu.on ? 'checked' : ''}> ${t('Plusieurs couleurs dans la grille')}</label>`;
+    const strip = (list, cls = '') => `<span class="mc-strip ${cls}">${list.map(x => `<i style="--c:${esc(x)}"></i>`).join('')}</span>`;
+    if (!mu.on) return group(t('Multicolore'), `${toggle}${strip(M.presetColors('rainbow'), 'mc-teaser')}<p class="field-hint">${t('Les lettres, les cases ou les mots de toutes les couleurs : arc-en-ciel, pastel, néon… ou ta propre palette.')}</p>`);
+    const targets = [
+      ['letters', game === 'meles' ? t('Lettres') : t('Lettres de la solution')],
+      ['cells', t('Fond des cases lettres')],
+      ...(game === 'fleches' ? [['clues', t('Fond des définitions')], ['words', t('Flèches (une couleur par mot)')]] : []),
+      ...(game === 'meles' ? [['words', t('Mots entourés et liste')]] : []),
+    ];
+    const n = mu.palette.length;
+    const presets = Object.entries(M.MULTI_PRESETS).map(([id, p]) => `<button type="button" class="mc-preset ${mu.preset === id ? 'active' : ''}" data-multi-preset="${id}" title="${esc(p.label)}">${strip(M.presetColors(id, undefined, d.accent))}<span>${esc(p.label)}</span></button>`).join('');
+    const swatches = mu.palette.map((x, i) => `<span class="mc-swatch"><label class="color-swatch" style="--c:${esc(x)}" title="${esc(t('Couleur {n}', { n: i + 1 }))}"><input type="color" data-multi-color="${i}" value="${esc(x)}" aria-label="${esc(t('Couleur {n}', { n: i + 1 }))}"></label>${n > M.MULTI_MIN ? `<button type="button" class="mc-remove" data-multi-remove="${i}" aria-label="${esc(t('Retirer cette couleur'))}" title="${esc(t('Retirer cette couleur'))}">${ic('x')}</button>` : ''}</span>`).join('');
+    const add = n < M.MULTI_MAX ? `<button type="button" class="mc-add" data-multi-add aria-label="${esc(t('Ajouter une couleur'))}" title="${esc(t('Ajouter une couleur'))}">${ic('plus')}</button>` : '';
+    return group(t('Multicolore'), `${toggle}
+        <div class="field"><span>${t('Ce qui change de couleur')}</span><div class="mc-targets">${targets.map(([k, l]) => `<label class="check"><input type="checkbox" data-toggle="multi.targets.${k}" ${mu.targets[k] ? 'checked' : ''}> ${esc(l)}</label>`).join('')}</div></div>
+        <div class="field"><span>${t('Répartition')}</span>${ui.segmented('multi.mode', Object.entries(M.MULTI_MODES), mu.mode)}</div>
+        ${mu.mode === 'random' ? `<button type="button" class="btn btn-sm" data-multi-shuffle>${ic('dice')}${t('Autre tirage')}</button>` : ''}
+        <div class="field"><span>${t('Palette')}</span><div class="mc-presets">${presets}</div></div>
+        <label class="slider-field"><span>${t('Nombre de couleurs')}<output>${n}</output></span>
+          <input type="range" data-multi-count min="${M.MULTI_MIN}" max="${M.MULTI_MAX}" step="1" value="${n}"></label>
+        <div class="mc-swatches">${swatches}${add}</div>
+        <div class="row"><button type="button" class="btn btn-sm btn-ghost" data-multi-reverse>${ic('flip')}${t('Inverser l\'ordre')}</button></div>
+        <p class="field-hint">${t('Les textes restent lisibles : les couleurs trop claires ou trop sombres pour leur case sont ajustées automatiquement.')}</p>`);
   }
 
   function backgroundTab(d) {
@@ -121,7 +150,7 @@ MF.panels.design = (() => {
     const d = puzzle.design;
     const C = MF.design.resolve(d);
     const tab = TABS.some(([k]) => k === view.designTab) ? view.designTab : 'theme';
-    const content = { theme: () => themeTab(d, MF.themes.MOODS[view.themeFilter] ? view.themeFilter : 'all'), colors: () => colorsTab(d, C), background: () => backgroundTab(d), cells: () => cellsTab(d, C, puzzle.game), text: () => textTab(d, puzzle.game), page: () => pageTab(d) }[tab]();
+    const content = { theme: () => themeTab(d, MF.themes.MOODS[view.themeFilter] ? view.themeFilter : 'all'), colors: () => colorsTab(d, C, puzzle.game), background: () => backgroundTab(d), cells: () => cellsTab(d, C, puzzle.game), text: () => textTab(d, puzzle.game), page: () => pageTab(d) }[tab]();
     root.innerHTML = `<div class="design-panel">
       <nav class="subtabs" id="design-tabs">${TABS.map(([k, l, i]) => `<button type="button" data-dtab="${k}" class="${k === tab ? 'active' : ''}">${ic(i)}<span>${l}</span></button>`).join('')}</nav>
       <div class="subtab-body">${content}</div>
@@ -142,15 +171,34 @@ MF.panels.design = (() => {
     return all[Math.floor(Math.random() * all.length)];
   }
 
+  /**
+   * Palette multicolore ramenée à n couleurs : une palette prête à l'emploi est
+   * ré-échantillonnée ; une palette perso garde ses couleurs (on retire les
+   * dernières, ou on ajoute des teintes bien distinctes).
+   */
+  function resizePalette(d, n, custom = false) {
+    const mu = d.multi, M = MF.design;
+    n = Math.max(M.MULTI_MIN, Math.min(M.MULTI_MAX, n));
+    if (!custom && mu.preset !== 'custom') return M.presetColors(mu.preset, n, d.accent);
+    if (n <= mu.palette.length) return mu.palette.slice(0, n);
+    // Couleur ajoutée : la teinte du cercle chromatique la plus éloignée des couleurs déjà là
+    const wheel = [...M.presetColors('rainbow', 12), '#ff4d8d', '#00bfa5', '#795548', '#455a64'];
+    const dist = (x, y) => { const [a, b] = [MF.util.hexToRgb(x), MF.util.hexToRgb(y)]; return Math.hypot(a[0] - b[0], a[1] - b[1], a[2] - b[2]); };
+    const out = [...mu.palette];
+    while (out.length < n) out.push(wheel.reduce((best, c) => (Math.min(...out.map(o => dist(o, c))) > Math.min(...out.map(o => dist(o, best))) ? c : best)));
+    return out;
+  }
+
   function bind(root, puzzle, actions, view) {
     const set = (path, value, live) => actions.setDesignPath(path, value, { live });
+    const setMulti = (patch, live = false) => actions.setDesign({ multi: patch }, { live });
     root.querySelector('#design-tabs').addEventListener('click', e => {
       const b = e.target.closest('[data-dtab]');
       if (b) { view.designTab = b.dataset.dtab; actions.refreshSide(); }
     });
     const layout = root.querySelector('#layout-box');
     if (layout) MF.layoutControls.bind(layout, (patch, live) => actions.setDesign({ poster: patch }, { live }), () => {});
-    root.addEventListener('click', e => {
+    root.querySelector('.design-panel').addEventListener('click', e => {
       const t = e.target.closest('button');
       if (!t || t.closest('#layout-box') || t.closest('#design-tabs')) return;
       if (t.dataset.dtab) { view.designTab = t.dataset.dtab; actions.refreshSide(); } // raccourci vers un autre onglet
@@ -185,6 +233,35 @@ MF.panels.design = (() => {
     ui.bindAdvanced(root);
     root.querySelector('[data-accent-input]')?.addEventListener('input', MF.util.debounce(e => actions.setDesign({ accent: e.target.value }, { live: true }), 60));
     root.querySelector('[data-accent-input]')?.addEventListener('change', e => actions.setDesign({ accent: e.target.value }));
+    // Multicolore : écouteur posé sur le panneau (recréé à chaque rendu), pour qu'un clic
+    // n'ajoute ou ne retire jamais deux couleurs d'un coup
+    root.querySelector('.design-panel').addEventListener('click', e => {
+      const b = e.target.closest('button');
+      const mu = puzzle.design.multi;
+      if (!b) return;
+      if (b.dataset.multiPreset) setMulti({ preset: b.dataset.multiPreset, palette: MF.design.presetColors(b.dataset.multiPreset, mu.palette.length, puzzle.design.accent) });
+      else if (b.dataset.multiRemove) setMulti({ preset: 'custom', palette: mu.palette.filter((_, i) => i !== +b.dataset.multiRemove) });
+      else if (b.hasAttribute('data-multi-add')) setMulti({ preset: 'custom', palette: resizePalette(puzzle.design, mu.palette.length + 1, true) });
+      else if (b.hasAttribute('data-multi-reverse')) setMulti({ palette: [...mu.palette].reverse(), preset: 'custom' });
+      else if (b.hasAttribute('data-multi-shuffle')) setMulti({ seed: (mu.seed + 1 + Math.floor(Math.random() * 997)) % 99999 });
+    });
+    const count = root.querySelector('[data-multi-count]');
+    if (count) {
+      const out = count.closest('.slider-field').querySelector('output');
+      const apply = live => { out.textContent = count.value; setMulti({ palette: resizePalette(puzzle.design, +count.value) }, live); };
+      count.addEventListener('input', () => apply(true));
+      count.addEventListener('change', () => apply(false));
+    }
+    root.querySelectorAll('[data-multi-color]').forEach(inp => {
+      const pick = live => {
+        inp.parentElement.style.setProperty('--c', inp.value);
+        const palette = [...puzzle.design.multi.palette];
+        palette[+inp.dataset.multiColor] = inp.value;
+        setMulti({ palette, preset: 'custom' }, live);
+      };
+      inp.addEventListener('input', MF.util.debounce(() => pick(true), 60));
+      inp.addEventListener('change', () => pick(false));
+    });
     root.querySelector('#bg-file').addEventListener('change', e => {
       const f = e.target.files[0];
       e.target.value = '';

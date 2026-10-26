@@ -221,3 +221,62 @@
 @keyframes logoIn { from { opacity: 0; transform: scale(.4) rotate(-20deg); } }
 @keyframes logoFloat { to { transform: translateY(-6px) rotate(3deg); } }.lang-btn { gap: 5px; padding: 0 9px; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
 .lang-btn .ic { width: 16px; height: 16px; }
+
+/* ---------- Page de jeu (séparée du studio) ---------- */
+.play-title { display: none; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.arcade-btn { gap: 6px; font-weight: 600; }
+.arcade-btn .ic { color: var(--accent); }
+.show-home.dash-play .arcade-btn, .show-play .arcade-btn { background: rgba(var(--accent-rgb), .14); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .4); }
+.no-puzzle .arcade-btn { display: none; }
+.show-play .workspace { grid-template-columns: minmax(0, 1fr); }
+.show-play .side, .show-play .grid-head, .show-play #stale-bar, .show-play .puzzle-tabs, .show-play .phone-nav,
+.show-play #btn-undo, .show-play #btn-redo { display: none !important; }
+.show-play .play-title { display: block; flex: 1; }
+.show-play .play-bar { padding-top: 10px; }
+.show-play .grid-card { max-width: 1100px; width: 100%; margin: 0 auto; }
+@media (max-width: 760px) {
+  .arcade-btn .lbl { display: none; }
+  .show-play .app { padding-bottom: max(6px, var(--safe-b)); }
+  #btn-play-exit .lbl { display: none; }
+}
+
+/* ---------- Murdoku : plateau et énoncé ---------- */
+.game-murdoku .zoom, .game-murdoku #btn-shuffle, .game-murdoku .play-tip { display: none; }
+.mdk-stage { display: grid; grid-template-columns: minmax(0, 1fr) minmax(260px, 340px); gap: 16px; flex: 1; min-width: 0; align-items: start; align-self: flex-start; }
+[data-mode="play"] .mdk-sheet .mdk-cast { display: none; }
+.mdk-board { position: relative; aspect-ratio: 1; width: min(100%, calc(100vh - 190px)); margin: 0 auto; border-radius: var(--r-lg); overflow: hidden; background: color-mix(in srgb, #f6f0e4 82%, transparent); color: #3b2f2a; display: grid; place-items: center; }
+.mdk-board > svg, .mdk-board > canvas, .mdk-host { width: 100%; height: 100%; display: block; }
+.mdk-board .mdk-cell { cursor: pointer; }
+[data-mode="play"] .mdk-board .mdk-cell:hover { filter: brightness(.94); }
+.mdk-loading { display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: var(--fs-sm); }
+.mdk-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.mdk-sheet { display: flex; flex-direction: column; gap: 12px; }
+.mdk-cast { display: flex; flex-wrap: wrap; gap: 6px; }
+.mdk-person { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; border-radius: var(--r-pill); background: var(--glass-bg-soft); border: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 600; }
+.mdk-person i, .mdk-tool i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--p); color: #fff; font-style: normal; font-weight: 800; font-size: 12px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.7); }
+.mdk-person small { color: var(--text-3); font-weight: 500; }
+.mdk-clues { margin: 0; padding: 0; list-style: none; counter-reset: clue; display: flex; flex-direction: column; gap: 6px; }
+.mdk-clues li { counter-increment: clue; }
+.mdk-clues label { display: flex; align-items: flex-start; gap: 8px; padding: 8px 10px; border-radius: var(--r-md); background: var(--glass-bg-soft); border: 1px solid var(--line); font-size: var(--fs-sm); line-height: 1.4; cursor: pointer; }
+.mdk-clues label::before { content: counter(clue); flex: none; min-width: 20px; height: 20px; border-radius: 6px; display: grid; place-items: center; font-size: 11px; font-weight: 800; color: var(--on-accent); background: var(--accent); }
+.mdk-clues input { order: 2; margin: 2px 0 0 auto; accent-color: var(--accent); }
+.mdk-clues input:checked + span { opacity: .45; text-decoration: line-through; }
+[data-mode="studio"] .mdk-clues input { display: none; }
+.mdk-verdict { margin: 0; padding: 10px 12px; border-radius: var(--r-md); font-weight: 700; color: #fff; background: #b5523b; display: flex; align-items: center; gap: 8px; }
+.mdk-rules summary { cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
+.mdk-rules ul { margin: 8px 0; padding-left: 18px; font-size: var(--fs-sm); color: var(--text-2); display: flex; flex-direction: column; gap: 4px; }
+.mdk-tools, .mdk-accuse { display: flex; flex-wrap: wrap; gap: 6px; }
+.mdk-tool { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--glass-bg-soft); color: var(--text); font: 600 var(--fs-sm) var(--font-sans); cursor: pointer; }
+.mdk-tool.active { border-color: var(--p, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--p, var(--accent)) 60%, transparent); }
+.mdk-tool.placed { opacity: .7; }
+.mdk-tool.cross i { background: #b3261e; }
+.mdk-tool .ic-xs { color: var(--ok); }
+.mdk-accuse .mdk-tool { padding: 8px 14px 8px 8px; font-size: var(--fs-md, 15px); }
+.mdk-panel { display: flex; flex-direction: column; gap: var(--sp-4, 14px); }
+.mdk-new { width: 100%; justify-content: center; }
+.mdk-summary { margin: -6px 0 0; display: flex; align-items: center; gap: 6px; }
+.mdk-names { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+@media (max-width: 900px) {
+  .mdk-stage { grid-template-columns: 1fr; }
+  .mdk-board { width: 100%; }
+}

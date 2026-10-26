@@ -12,7 +12,7 @@ MF.shortcuts = (() => {
   /**
    * @param {any} c  contexte :
    *   c.view, c.actions        état de vue et actions de l'application
-   *   c.showHome(on), c.openExport(), c.setMode(mode), c.cellPx()
+   *   c.showHome(on), c.openExport(), c.setMode(mode), c.openPlay(), c.closePlay(), c.cellPx()
    */
   function bind(c) {
     const store = MF.store;
@@ -57,7 +57,11 @@ MF.shortcuts = (() => {
       if (!pz) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } return; }
       if (e.key === 'h') { c.showHome(!view.home); return; }
       if (view.home) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } if (e.key === 'Escape') c.showHome(false); return; }
-      if (view.selected && store.get().ui.mode !== 'play') {
+      if (view.play) {
+        if (e.key === 'Escape' || e.key === 'p') { e.preventDefault(); c.closePlay(); }
+        return;
+      }
+      if (view.selected) {
         const step = e.shiftKey ? 0.02 : 0.004;
         const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
         if (moves[e.key]) { e.preventDefault(); actions.nudgeSticker(view.selected, ...moves[e.key]); return; }
@@ -67,7 +71,7 @@ MF.shortcuts = (() => {
       if (e.key === 'n') { e.preventDefault(); store.update(s => { s.ui.tab = 'words'; }, 'ui'); requestAnimationFrame(() => $('#add-form [name=text]')?.focus()); }
       if (e.key === 'm') $('#btn-shuffle').click();
       if (e.key === 'e') c.openExport();
-      if (e.key === 'p') c.setMode(store.get().ui.mode === 'play' ? 'solution' : 'play');
+      if (e.key === 'p') c.openPlay();
       if (e.key === '?') MF.help.open();
       if (/^[1-5]$/.test(e.key)) store.update(s => { s.ui.tab = TABS[+e.key - 1]; }, 'ui');
     });

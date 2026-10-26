@@ -18,7 +18,8 @@ MF.panels.settings = (() => {
     const fr = MF.paper.frame(puzzle.design.poster);
     const fmt = MF.design.FORMATS[puzzle.design.poster.format] || MF.design.FORMATS.fit;
     const pageLabel = `${fmt.label}${fmt.mm || !fmt.ratio ? ` · ${MF.paper.isLandscape(fr) ? t('Paysage') : t('Portrait')}` : ''}`;
-    const TABS = [['game', t('Jeu'), 'grid'], ['shape', t('Forme'), 'heart'], ['size', t('Taille'), 'page-portrait'], ['data', t('Données'), 'shield']];
+    // Murdoku : ni forme ni taille de grille de mots (réglées dans « Enquête »)
+    const TABS = [['game', t('Jeu'), 'grid'], ['shape', t('Forme'), 'heart'], ['size', t('Taille'), 'page-portrait'], ['data', t('Données'), 'shield']].filter(([k]) => puzzle.game !== 'murdoku' || k === 'game' || k === 'data');
     const tab = TABS.some(([k]) => k === view.settingsTab) ? view.settingsTab : 'game';
     const S = (id, title, icon, html) => (id === tab || (id === 'fill' && tab === 'size') ? `<div class="pgroup">${id === 'fill' ? `<div class="pgroup-title">${esc(title)}</div>` : ''}${html}</div>` : '');
     const builder = game.engine === 'builder';

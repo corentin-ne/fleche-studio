@@ -78,7 +78,7 @@ MF.createActions = app => {
       for (const [page, pg] of (pz.layout?.pages || []).entries()) {
         const slot = pg.words.findIndex(w => w.wid === id);
         if (slot < 0) continue;
-        if (store.get().ui.mode === 'play') app.setMode('solution');
+        if (view.play) app.closePlay();
         if (page !== view.page) { view.page = page; app.renderAll(); }
         const w = pg.words[slot];
         MF.gridView.highlight(pg.engine === 'meles' ? `W${slot}` : MF.gridModel.slotKey(w));
@@ -193,7 +193,7 @@ MF.createActions = app => {
       if (base.kind === 'text') base.ar = MF.stickers.textAspect(base);
       const s = S.sticker(base);
       if (!s) return;
-      if (store.get().ui.mode === 'play') app.setMode('solution');
+      if (view.play) app.closePlay();
       view.selected = s.id;
       mutate(p => p.stickers.push(s), 'stickers');
     },
@@ -261,23 +261,26 @@ MF.createActions = app => {
       const res = await MF.welcome.wizard(defaults);
       if (!res) return;
       const pack = res.start.startsWith('pack:') ? MF.lexicon.packs(res.lang)[res.start.slice(5)] : null;
-      const pz = store.makePuzzle({ name: res.name || pack?.label || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang } });
+      const mdk = res.game === 'murdoku' ? { size: +res.mdkSize, difficulty: res.mdkDifficulty, seed: MF.util.randomSeed() % 2147483647 } : undefined;
+      const pz = store.makePuzzle({ name: res.name || pack?.label || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang, murdoku: mdk } });
       await MF.lexicon.ensure(res.lang).catch(() => {}); // tirage au hasard : dictionnaire de la langue choisie
       MF.dictionary.use(res.lang);
       pz.design = MF.themes.apply(pz.design, res.theme);
       let words = [];
-      if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
+      if (mdk) words = [];
+      else if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
       else if (pack) words = pack.words.map(([text, clue]) => ({ text, clue }));
       pz.words = words.map(S.word).filter(Boolean);
-      view.page = 0; view.selected = null; view.filter = ''; view.home = false;
+      view.page = 0; view.selected = null; view.filter = ''; view.home = false; view.play = false;
       store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; }, 'puzzles');
+      if (mdk) { app.regenerate(pz.id); return; }
       if (!words.length) requestAnimationFrame(() => /** @type {HTMLInputElement | null} */ (document.querySelector('#add-form [name=text]'))?.focus());
     },
     quickStart(game) {
-      return actions.newPuzzle({ game, start: 'random', theme: game === 'meles' ? 'candy' : game === 'codes' ? 'minimal' : game === 'croises' ? 'print' : 'violet' });
+      return actions.newPuzzle({ game, start: 'random', theme: game === 'meles' ? 'candy' : game === 'codes' ? 'minimal' : game === 'croises' ? 'print' : game === 'murdoku' ? 'kraft' : 'violet' });
     },
     switchPuzzle(id) {
-      if (view.home) { view.home = false; if (id === store.get().activeId) { app.renderAll(); return; } }
+      if (view.home || view.play) { view.home = false; view.play = false; if (id === store.get().activeId) { app.renderAll(); return; } }
       if (id === store.get().activeId) return;
       view.filter = ''; view.draft = {}; view.page = 0; view.selected = null;
       store.update(s => { s.activeId = id; }, 'active');

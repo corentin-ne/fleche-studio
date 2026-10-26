@@ -50,7 +50,74 @@ MF.schema = (() => {
       density: oneOf(o.density, ['airy', 'normal', 'dense'], D.density),
       // Langue des mots de la grille (les anciennes grilles, sans langue, sont en français)
       lang: oneOf(o.lang, MF.lexicon.ids, D.lang),
+      murdoku: murdokuOptions(o.murdoku),
     };
+  }
+
+  /* ---------------- Murdoku ---------------- */
+  const MDK_LOOKS = ['print', 'gouache', 'film', 'pixel', 'clean'];
+  const MDK_MOODS = ['day', 'golden', 'dusk', 'night'];
+  /** Réglages d'une enquête (génération et rendu). */
+  function murdokuOptions(o) {
+    o = obj(o);
+    return {
+      size: int(o.size, 5, 8, 6),
+      difficulty: oneOf(o.difficulty, ['easy', 'medium', 'hard'], 'medium'),
+      rooms: oneOf(o.rooms, ['few', 'normal', 'many'], 'normal'),
+      density: oneOf(o.density, ['sparse', 'normal', 'full'], 'normal'),
+      names: (Array.isArray(o.names) ? o.names : []).slice(0, 8).map(n => str(n, 16)),
+      victim: str(o.victim, 16),
+      look: oneOf(o.look, MDK_LOOKS, 'print'),
+      mood: oneOf(o.mood, MDK_MOODS, 'day'),
+      camera: oneOf(o.camera, ['iso', 'top'], 'iso'),
+      labels: bool(o.labels, true),
+      render: oneOf(o.render, ['3d', '2d'], '3d'),
+      seed: int(o.seed, 0, 2147483647, 0),
+    };
+  }
+
+  /**
+   * Énigme Murdoku (lien partagé = donnée externe) : structure, bornes et cohérence vérifiées.
+   * Les indices gardent leurs seuls champs connus ; une énigme incohérente est rejetée (null).
+   */
+  function murdokuPage(p) {
+    if (!isObj(p)) return null;
+    const N = int(p.size, 5, 8, 0);
+    const M = MF.murdoku;
+    if (!N || !M || !Array.isArray(p.rooms) || !Array.isArray(p.cells) || p.cells.length !== N) return null;
+    const rooms = p.rooms.slice(0, N * N).map((r, i) => ({ id: i, type: oneOf(obj(r).type, M.ROOM_TYPES, 'hall') }));
+    const cells = p.cells.map(row => (Array.isArray(row) && row.length === N ? row.map(v => int(v, 0, rooms.length - 1, -1)) : null));
+    if (cells.some(row => !row || row.includes(-1))) return null;
+    const OBJ = M.OBJECTS;
+    const cellOk = (r, c) => Number.isInteger(r) && Number.isInteger(c) && r >= 0 && c >= 0 && r < N && c < N;
+    const objects = (Array.isArray(p.objects) ? p.objects : []).slice(0, N * N).map(obj)
+      .filter(o => OBJ[o.type] && cellOk(o.r, o.c)).map(o => ({ type: o.type, r: o.r, c: o.c }));
+    const people = (Array.isArray(p.people) ? p.people : []).slice(0, N).map(obj).map((x, i) => ({
+      id: /^[a-z0-9]{1,8}$/i.test(x.id) ? x.id : `p${i}`, name: str(x.name, 16) || '?', color: color(x.color, '#888888'),
+      role: x.role === 'victim' ? 'victim' : 'suspect', r: int(x.r, 0, N - 1, 0), c: int(x.c, 0, N - 1, 0),
+    }));
+    const ids = new Set(people.map(x => x.id));
+    if (people.length !== N || ids.size !== N || people.filter(x => x.role === 'victim').length !== 1) return null;
+    if (new Set(people.map(x => x.r)).size !== N || new Set(people.map(x => x.c)).size !== N) return null;
+    const ref = v => (ids.has(v) ? v : null);
+    // Indices : seuls les champs connus (voir docs/murdoku-format.md), puis vérification par le moteur
+    const clues = (Array.isArray(p.clues) ? p.clues : []).slice(0, 80).map(obj).filter(c => M.KINDS.includes(c.kind)).map(c => {
+      const out = { kind: c.kind };
+      for (const k of ['person', 'a', 'b']) if (c[k] !== undefined) out[k] = ref(c[k]);
+      if (c.room !== undefined) out.room = int(c.room, 0, rooms.length - 1, 0);
+      if (c.object !== undefined) out.object = OBJ[c.object] ? c.object : 'plant';
+      if (c.row !== undefined) out.row = int(c.row, 0, N - 1, 0);
+      if (c.col !== undefined) out.col = int(c.col, 0, N - 1, 0);
+      if (c.n !== undefined) out.n = int(c.n, 0, N, 0);
+      return out;
+    });
+    const out = {
+      engine: 'murdoku', v: 1, size: N, seed: int(p.seed, 0, 2 ** 32, 0), rooms, cells, objects, people,
+      victim: people.find(x => x.role === 'victim').id, lang: oneOf(p.lang, MF.lexicon.ids, 'fr'),
+      murderer: ref(p.murderer) || people[0].id, difficulty: oneOf(p.difficulty, ['easy', 'medium', 'hard'], 'medium'),
+    };
+    out.clues = clues.filter(c => M.validClue(c, out));
+    return out;
   }
 
   /* ---------------- Design ---------------- */
@@ -60,6 +127,8 @@ MF.schema = (() => {
     const fonts = Object.keys(MF.design.FONTS);
     const c = obj(d.colors), b = obj(d.background), f = obj(d.frame), ce = obj(d.cell), fo = obj(d.font);
     const ar = obj(d.arrows), po = obj(d.poster), ti = obj(d.title), li = obj(d.lists);
+    const mu = obj(d.multi), mt = obj(mu.targets), DM = D.multi;
+    const pal = (Array.isArray(mu.palette) ? mu.palette : []).slice(0, MF.design.MULTI_MAX).map(x => color(x, null)).filter(Boolean);
     return {
       theme: str(d.theme, 30, D.theme),
       accent: color(d.accent, D.accent),
@@ -113,6 +182,14 @@ MF.schema = (() => {
         align: oneOf(ti.align, ['left', 'center', 'right'], D.title.align),
       },
       lists: { font: oneOf(li.font, fonts, D.lists.font), size: num(li.size, 18, 60, D.lists.size), color: colorOrAuto(li.color) },
+      multi: {
+        on: bool(mu.on, DM.on),
+        targets: Object.fromEntries(Object.keys(DM.targets).map(k => [k, bool(mt[k], DM.targets[k])])),
+        mode: oneOf(mu.mode, Object.keys(MF.design.MULTI_MODES), DM.mode),
+        preset: oneOf(mu.preset, [...Object.keys(MF.design.MULTI_PRESETS), 'custom'], DM.preset),
+        palette: pal.length >= MF.design.MULTI_MIN ? pal : DM.palette.slice(),
+        seed: int(mu.seed, 0, 99999, DM.seed),
+      },
     };
   }
 
@@ -216,9 +293,9 @@ MF.schema = (() => {
   }
   function layout(l) {
     if (!isObj(l) || !Array.isArray(l.pages) || !l.pages.length || l.pages.length > 2) return null;
-    const engine = oneOf(l.engine, ['builder', 'meles'], null);
+    const engine = oneOf(l.engine, ['builder', 'meles', 'murdoku'], null);
     if (!engine) return null;
-    const pages = l.pages.map(engine === 'builder' ? builderPage : melesPage);
+    const pages = l.pages.slice(0, engine === 'murdoku' ? 1 : 2).map(engine === 'builder' ? builderPage : engine === 'meles' ? melesPage : murdokuPage);
     if (pages.some(p => !p)) return null;
     // Données de jeu propres à la grille (codes des mots codés)
     const extra = {};
@@ -261,5 +338,5 @@ MF.schema = (() => {
     };
   }
 
-  return { LIMITS, DEFAULT_OPTIONS, options, design, sticker, word, puzzle, layout, color, num, int, oneOf, str, bool, isObj, WORD };
+  return { LIMITS, DEFAULT_OPTIONS, options, murdokuOptions, murdokuPage, design, sticker, word, puzzle, layout, color, num, int, oneOf, str, bool, isObj, WORD };
 })();

@@ -38,7 +38,7 @@ MF.welcome = (() => {
 
   /** Assistant : renvoie { name, game, shape, theme, start } ou null. */
   function wizard(defaults = {}) {
-    const st = { game: 'fleches', shape: 'rect', theme: 'violet', start: 'empty', lang: MF.lexicon.preferred(), ...defaults };
+    const st = { game: 'fleches', shape: 'rect', theme: 'violet', start: 'empty', lang: MF.lexicon.preferred(), mdkSize: '6', mdkDifficulty: 'medium', ...defaults };
     // Tous les packs à thème de chaque langue, rendus d'avance : changer de langue bascule sur place
     const packCards = lang => Object.entries(MF.lexicon.packs(lang)).map(([id, p]) => `<button type="button" class="start-card" data-wz="start" data-v="pack:${id}" data-lang="${lang}" ${lang === st.lang ? '' : 'hidden'}><span class="pack-emoji">${p.emoji}</span><b>${esc(p.label)}</b><small>${plural(p.words.length, 'mot')}</small></button>`).join('');
     const themes = Object.entries(MF.themes.THEMES);
@@ -48,12 +48,15 @@ MF.welcome = (() => {
         <label class="field"><span>${t('Nom')}</span><input class="input input-lg" id="wz-name" maxlength="${MF.schema.LIMITS.name}" placeholder="${esc(t('ex : Anniversaire de Léa, Révisions CM2…'))}" autofocus></label>
         <div class="field"><span>${t('Jeu')}</span><div class="game-grid compact">${Object.entries(MF.games.GAMES).map(([id, g]) => `<button type="button" class="game-card ${id === st.game ? 'active' : ''}" data-wz="game" data-v="${id}">${ic(g.icon)}<b>${esc(g.label)}</b></button>`).join('')}</div></div>
         <div class="field"><span>${t('Langue des mots')}</span>${MF.ui.segmented('lang', MF.lexicon.ids.map(l => [l, MF.lexicon.LANGS[l].label]), st.lang, 'data-wz-lang')}</div>
-        <div class="field"><span>${t('Forme')}</span>${MF.shapePicker.html(st.shape, { compact: true, attrs: id => `data-wz="shape" data-v="${id}"` })}</div>
+        <div class="field wz-words"><span>${t('Forme')}</span>${MF.shapePicker.html(st.shape, { compact: true, attrs: id => `data-wz="shape" data-v="${id}"` })}</div>
+        <div class="field wz-mdk"><span>${t('Taille du plateau')}</span><div class="segmented">${[5, 6, 7, 8].map(n => `<button type="button" data-wz="mdkSize" data-v="${n}" class="${String(n) === st.mdkSize ? 'active' : ''}">${n} × ${n}</button>`).join('')}</div></div>
+        <div class="field wz-mdk"><span>${t('Difficulté')}</span><div class="segmented">${[['easy', t('Facile')], ['medium', t('Moyen')], ['hard', t('Difficile')]].map(([v, l]) => `<button type="button" data-wz="mdkDifficulty" data-v="${v}" class="${v === st.mdkDifficulty ? 'active' : ''}">${esc(l)}</button>`).join('')}</div>
+          <span class="field-hint">${t('Une enquête est créée tout de suite : tu pourras la régénérer et tout régler ensuite.')}</span></div>
         <div class="field"><span>${t('Style')} <span class="field-hint">${t('modifiable à tout moment dans Design')}</span></span><div class="theme-strip">${themes.map(([id, th]) => {
           const { bg, C } = MF.themes.swatch(id);
           return `<button type="button" class="theme-chip ${id === st.theme ? 'active' : ''}" data-wz="theme" data-v="${id}"><span style="background:${esc(bg)}"><i style="background:${C.frame}"></i><i style="background:${C.clue}"></i></span>${esc(th.label)}</button>`;
         }).join('')}</div></div>
-        <div class="field"><span>${t('Pour commencer')}</span><div class="start-grid">
+        <div class="field wz-words"><span>${t('Pour commencer')}</span><div class="start-grid">
           <button type="button" class="start-card ${st.start === 'empty' ? 'active' : ''}" data-wz="start" data-v="empty">${ic('edit')}<b>${t('Mes propres mots')}</b><small>${t('Liste vide')}</small></button>
           <button type="button" class="start-card ${st.start === 'random' ? 'active' : ''}" data-wz="start" data-v="random">${ic('dice')}<b>${t('Mots au hasard')}</b><small>${t('nombre au choix')}</small></button>
           ${MF.lexicon.ids.map(packCards).join('')}
@@ -66,6 +69,13 @@ MF.welcome = (() => {
       </div>`,
       onOpen: root => {
         MF.shapePicker.bind(root);
+        // Murdoku : ni forme ni liste de mots, mais une taille et une difficulté
+        const syncGame = () => {
+          const mdk = st.game === 'murdoku';
+          root.querySelectorAll('.wz-words').forEach(x => { x.hidden = mdk; });
+          root.querySelectorAll('.wz-mdk').forEach(x => { x.hidden = !mdk; });
+        };
+        syncGame();
         root.addEventListener('click', e => {
           const lb = e.target.closest('[data-wz-lang] [data-v]');
           if (lb) {
@@ -81,6 +91,7 @@ MF.welcome = (() => {
           st[b.dataset.wz] = b.dataset.v;
           root.querySelectorAll(`[data-wz="${b.dataset.wz}"]`).forEach(x => x.classList.toggle('active', x === b));
           root.querySelector('.wz-random').hidden = st.start !== 'random';
+          if (b.dataset.wz === 'game') syncGame();
         });
         root.querySelector('#wz-name').addEventListener('keydown', e => { if (e.key === 'Enter') root.querySelector('.modal-foot .btn-primary').click(); });
       },

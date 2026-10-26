@@ -11,7 +11,7 @@
   const store = MF.store;
   const ic = MF.icons.svg;
 
-  const view = { home: false, filter: '', sort: 'added', draft: {}, page: 0, selected: null, sections: {}, emojiCat: null, sideLocked: false, entries: {}, entriesFor: null, playStart: 0 };
+  const view = { home: false, filter: '', sort: 'added', draft: {}, page: 0, selected: null, sections: {}, emojiCat: null, sideLocked: false, entries: {}, entriesFor: null, playStart: 0, play: false, dashMode: 'create' };
   const jobs = new Map();
   let derivedCache = { key: null, value: null };
   let lastView = null;
@@ -19,6 +19,8 @@
   const fontsReady = new Set();
 
   const engineOf = pz => MF.games.get(pz.game).engine;
+  const isMurdoku = pz => pz?.game === 'murdoku';
+  let murdokuPlay = null; // Murdoku affiché : partie { check, reveal, clear }, null au studio, undefined pour un autre jeu
   const engine = pz => MF.games.engine(pz.game);
   const hashOf = pz => engine(pz).layoutHash(pz);
   const prepared = pz => engine(pz).prepare(pz.words);
@@ -31,6 +33,11 @@
   /* ---------------- Calcul dérivé (modèle de dessin, diagnostic) ---------------- */
   // Recalculé seulement quand le contenu change (révision du store), pas à chaque réglage de couleur
   function derive(pz) {
+    // Murdoku : pas de modèle de grille de mots, seulement l'énigme
+    if (isMurdoku(pz)) {
+      const puzzle = compatible(pz) ? pz.layout.pages[0] : null;
+      return { layout: puzzle, pages: puzzle ? [puzzle] : [], page: 0, pageOf: new Map(), model: { cols: puzzle?.size || 0, rows: puzzle?.size || 0, slots: new Map() }, issues: [], fillers: [] };
+    }
     const d = pz.design;
     const key = `${pz.id}|${store.rev()}|${view.page}|${MF.lexicon.ready(pz.options.lang)}|${MF.util.hash(JSON.stringify([d.font, d.cell]))}`;
     if (derivedCache.key === key) return derivedCache.value;
@@ -53,6 +60,7 @@
   async function regenerate(pzId) {
     const pz = store.puzzle(pzId);
     if (!pz) return;
+    if (isMurdoku(pz)) { regenerateMurdoku(pz); return; }
     if (!prepared(pz).length) { MF.ui.toast(t('Ajoute au moins un mot (2 lettres minimum).'), 'warn'); renderGrid(); return; }
     jobs.get(pzId)?.cancel();
     const job = { cancelled: false, run: null, live: null, cancel() { this.cancelled = true; this.run?.cancel(); } };
@@ -107,6 +115,17 @@
     const total = prepared(pz).length;
     const placed = pages.reduce((n, pg) => n + pg.words.filter(w => w.wid && (engine === 'meles' || w.src === 'theme')).length, 0);
     MF.ui.toast(t(pages.length > 1 ? '2 grilles prêtes : {placed} / {total} de tes mots placés' : 'Grille prête : {placed} / {total} de tes mots placés', { placed, total }), placed === total ? 'ok' : 'warn', 4000);
+  }
+
+  /** Murdoku : nouvelle énigme (calcul rapide, sur place). */
+  function regenerateMurdoku(pz) {
+    let puzzle;
+    try { puzzle = MF.murdokuView.generate(pz); } catch (e) { console.error(e); MF.ui.toast(t('Le calcul a échoué : {error}', { error: e.message }), 'err', 5000); return; }
+    view.page = 0;
+    store.update(s => {
+      const p = s.puzzles.find(x => x.id === pz.id);
+      if (p) p.layout = MF.schema.layout({ engine: 'murdoku', pages: [puzzle], hash: hashOf(p), at: Date.now() });
+    }, 'layout');
   }
 
   /** Construction en direct (chaque instantané est mis en file et rejoué à l'image par MF.liveBuild). */
@@ -213,13 +232,16 @@
       : '';
     $('#stale-bar').hidden = busy || !compatible(pz) || isFresh(pz);
 
-    $$('#mode-switch button').forEach(btn => { const on = btn.dataset.mode === s.ui.mode; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on); });
-    $('#play-bar').hidden = s.ui.mode !== 'play' || !d.model.cols;
+    // Le studio montre la solution ou la grille vierge ; le jeu a sa propre page (view.play)
+    const mode = view.play ? 'play' : s.ui.mode;
+    $$('#mode-switch button').forEach(btn => { const on = btn.dataset.mode === mode; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on); });
+    $('#play-title').textContent = view.play ? pz.name : '';
+    $('#play-bar').hidden = !view.play || !d.model.cols;
     MF.play.keepAwake(!$('#play-bar').hidden);
     $('#play-clue').hidden = $('#play-bar').hidden || !game.clues;
     $('#btn-fit').classList.toggle('active', !!s.ui.fit);
     $('#btn-hint-word').hidden = pz.game === 'meles';
-    $('#btn-hint').innerHTML = `${ic('bulb')}${t(pz.game === 'meles' ? 'Indice' : 'Lettre')}`;
+    $('#btn-hint').innerHTML = `${ic('bulb')}${t(pz.game === 'meles' || isMurdoku(pz) ? 'Indice' : 'Lettre')}`;
 
     const entriesFor = MF.play.keyOf(pz, d.page);
     if (view.entriesFor !== entriesFor) {
@@ -227,6 +249,9 @@
       $('#clue-text').textContent = t('Touche une case pour voir sa définition');
     }
     const box = $('#grid-scroll');
+    if (isMurdoku(pz)) { renderMurdoku(box, pz, mode, entriesFor); return; }
+    if (murdokuPlay !== undefined) MF.murdokuView.release();
+    murdokuPlay = undefined;
     if (busy) {
       // Pendant le calcul : la grille se construit en direct (remplace l'ancienne grille)
       lastView = null;
@@ -247,7 +272,7 @@
     const animate = view.shownGrid !== entriesFor;
     view.shownGrid = entriesFor;
     lastView = MF.gridView.render(box, d.model, pz, {
-      mode: s.ui.mode, cell, entries: view.entries, photoMarks: !!s.ui.photoMarks, assetUrl: MF.assets.url, animate,
+      mode, cell, entries: view.entries, photoMarks: !!s.ui.photoMarks, assetUrl: MF.assets.url, animate,
       onEntries: e => { view.entries = e; MF.play.save(entriesFor, e); },
       onMissing: key => editMissing(key),
       onComplete: () => celebrate(),
@@ -268,6 +293,26 @@
       onCommit: (id, patch) => actions.updateSticker(id, patch),
       onAction: (act, id) => actions.stickerAction(act, id),
     });
+  }
+
+  /** Murdoku : studio (solution / vierge) ou partie. */
+  function renderMurdoku(box, pz, mode, entriesFor) {
+    lastView = null;
+    view.shownGrid = null;
+    const puzzle = compatible(pz) ? pz.layout.pages[0] : null;
+    $('#grid-stats').innerHTML = puzzle ? `<span class="badge">${puzzle.size} × ${puzzle.size}</span><span class="badge ok"><span class="dot"></span>${plural(puzzle.clues.length, 'indice')}</span>` : '';
+    $('#btn-hint-word').hidden = true;
+    if (!puzzle) { MF.murdokuView.renderStudio(box, pz, mode); return; }
+    if (mode === 'play') {
+      murdokuPlay = MF.murdokuView.renderPlay(box, pz, {
+        entries: view.entries,
+        onEntries: e => { view.entries = e; MF.play.save(entriesFor, e); },
+        onComplete: () => celebrate(),
+      });
+    } else {
+      murdokuPlay = null;
+      MF.murdokuView.renderStudio(box, pz, mode);
+    }
   }
 
   /** Rendu groupé à l'image suivante : un curseur qu'on fait glisser ne redessine qu'une fois par image. */
@@ -305,12 +350,17 @@
     const body = $('#side-body');
     const scroll = body.scrollTop;
     const ctx = { puzzle: pz, derived: d, actions, state: s, view };
-    const panel = { diag: MF.panels.clues, design: MF.panels.design, decor: MF.panels.decor, settings: MF.panels.settings }[s.ui.tab] || MF.panels.words;
-    const sameTab = body.dataset.tab === s.ui.tab;
+    // Murdoku : « Enquête » remplace les mots ; ni définitions ni décor
+    const mdk = isMurdoku(pz);
+    document.body.classList.toggle('game-murdoku', mdk);
+    $('#side-tabs [data-tab="words"] .lbl').textContent = mdk ? t('Enquête') : t('Mots');
+    const tab = mdk && ['diag', 'decor'].includes(s.ui.tab) ? 'words' : s.ui.tab;
+    const panel = { diag: MF.panels.clues, design: MF.panels.design, decor: MF.panels.decor, settings: MF.panels.settings }[tab] || (mdk ? MF.panels.murdoku : MF.panels.words);
+    const sameTab = body.dataset.tab === `${tab}${mdk}`;
     // Animation d'entrée seulement quand on change d'onglet (pas à chaque réglage)
     body.classList.toggle('enter', !sameTab);
     panel(body, ctx);
-    body.dataset.tab = s.ui.tab;
+    body.dataset.tab = `${tab}${mdk}`;
     if (sameTab) body.scrollTop = scroll;
     MF.phoneNav.sync({ tab: s.ui.tab, panel: view.phonePanel });
   }
@@ -331,6 +381,8 @@
     const home = !pz || !!view.home;
     document.body.classList.toggle('no-puzzle', !pz);
     document.body.classList.toggle('show-home', home);
+    document.body.classList.toggle('show-play', !home && !!view.play);
+    document.body.classList.toggle('dash-play', home && view.dashMode === 'play');
     applyAccent(pz);
     renderTabs();
     renderToolbar();
@@ -349,7 +401,10 @@
     const s = store.get();
     MF.dashboard.render($('#welcome'), {
       puzzles: s.puzzles, activeId: s.activeId, view, accent: store.active()?.design.accent,
-      onOpen: id => actions.switchPuzzle(id),
+      mode: view.dashMode,
+      onMode: m => { view.dashMode = m; renderDashboard(); },
+      onOpen: id => (view.dashMode === 'play' ? openPlay(id) : actions.switchPuzzle(id)),
+      onPlay: id => openPlay(id),
       onNew: () => actions.newPuzzle(),
       onQuick: actions.quickStart,
       onDuplicate: id => actions.duplicatePuzzle(id),
@@ -360,9 +415,11 @@
     });
   }
 
-  function showHome(on = true) {
+  function showHome(on = true, dashMode) {
     if (!store.active()) return;
     view.home = on;
+    if (on) view.play = false;
+    if (dashMode) view.dashMode = dashMode;
     view.selected = null;
     renderAll();
     if (on) $('#welcome').scrollTop = 0;
@@ -370,9 +427,25 @@
 
   /* ---------------- Jeu ---------------- */
   function setMode(mode) {
+    if (mode === 'play') { openPlay(); return; }
     view.selected = null;
-    if (mode === 'play') view.playStart = Date.now();
     store.update(s => { s.ui.mode = mode; }, 'ui');
+  }
+
+  /** Page de jeu : la grille seule, plein écran, sans les outils du studio. */
+  function openPlay(id) {
+    const pz = id ? store.puzzle(id) : store.active();
+    if (!pz) return;
+    view.play = true; view.home = false; view.selected = null;
+    view.entriesFor = null; // progression relue, chronomètre relancé
+    if (pz.id !== store.get().activeId) { view.page = 0; store.update(s => { s.activeId = pz.id; }, 'active'); } else renderAll();
+    if (!compatible(pz) && prepared(pz).length && !jobs.has(pz.id)) regenerate(pz.id);
+  }
+  function closePlay() {
+    if (!view.play) return;
+    view.play = false;
+    MF.play.keepAwake(false);
+    renderAll();
   }
 
   setInterval(() => { if (!$('#play-bar').hidden) $('#play-time').textContent = MF.play.elapsed(view.playStart); }, 1000);
@@ -399,6 +472,7 @@
   }
   function openExport() {
     const pz = store.active();
+    if (isMurdoku(pz)) { if (compatible(pz)) MF.murdokuView.openExport(pz); else MF.ui.toast(t('Aucune grille à exporter.'), 'warn'); return; }
     const d = derive(pz);
     if (!d.model.cols) return MF.ui.toast(t('Aucune grille à exporter.'), 'warn');
     const missing = missingClues(pz, d);
@@ -413,12 +487,15 @@
   }
 
   /* ---------------- Événements globaux ---------------- */
-  const app = { view, regenerate, renderAll, renderSide, renderGrid, setMode, derive };
+  const app = { view, regenerate, renderAll, renderSide, renderGrid, setMode, openPlay, closePlay, derive };
   const actions = MF.createActions(app);
 
   function bind() {
     // Logo + nom : tableau de bord « Mes grilles » (re-clic : retour à la grille)
-    $('#btn-home').onclick = () => showHome(!view.home);
+    $('#btn-home').onclick = () => (view.home && view.dashMode === 'create' ? showHome(false) : showHome(true, 'create'));
+    $('#btn-arcade').onclick = () => (view.home && view.dashMode === 'play' ? showHome(false) : showHome(true, 'play'));
+    $('#btn-play').onclick = () => openPlay();
+    $('#btn-play-exit').onclick = () => closePlay();
     $('#puzzle-tabs').addEventListener('click', e => {
       const b = e.target.closest('.ptab');
       if (!b) return;
@@ -456,14 +533,15 @@
     document.addEventListener('click', e => { if (/** @type {Element} */ (e.target).closest('[data-regen]')) regenerate(store.active().id); });
     $('#btn-export').onclick = openExport;
     $('#btn-check').onclick = () => {
+      if (murdokuPlay) { murdokuPlay.check(); return; }
       const r = MF.gridView.check();
       if (!r) return;
       if (r.filled === r.total && !r.wrong) celebrate();
       else MF.ui.toast(store.active().game === 'meles' ? t('{filled} / {total} mots trouvés', r) : `${t('{filled}/{total} cases remplies', r)} · ${plural(r.wrong, 'erreur')}`, r.wrong ? 'warn' : 'info');
     };
-    $('#btn-hint').onclick = () => { if (!MF.gridView.reveal('letter')) MF.ui.toast(t('Clique d\'abord une case.'), 'info'); };
+    $('#btn-hint').onclick = () => { if (murdokuPlay) { if (!murdokuPlay.reveal()) MF.ui.toast(t('Tout le monde est déjà à sa place.'), 'info'); return; } if (!MF.gridView.reveal('letter')) MF.ui.toast(t('Clique d\'abord une case.'), 'info'); };
     $('#btn-hint-word').onclick = () => { if (!MF.gridView.reveal('word')) MF.ui.toast(t('Clique d\'abord une case du mot.'), 'info'); };
-    $('#btn-clear-play').onclick = () => { MF.gridView.clearEntries(); view.playStart = Date.now(); };
+    $('#btn-clear-play').onclick = () => { if (murdokuPlay) murdokuPlay.clear(); else MF.gridView.clearEntries(); view.playStart = Date.now(); };
 
     // Langue de l'interface : changer recharge la page dans la langue choisie
     $('#lang-code').textContent = MF.i18n.LANGS[MF.i18n.lang].short;
@@ -480,7 +558,7 @@
     $('#btn-about').onclick = () => MF.updates.about();
     $('#file-open').addEventListener('change', e => { const f = e.target.files[0]; e.target.value = ''; if (f) actions.openFile(f); });
 
-    MF.shortcuts.bind({ view, actions, showHome, openExport, setMode, cellPx: () => lastView?.cellPx || +$('#zoom').value });
+    MF.shortcuts.bind({ view, actions, showHome, openExport, setMode, openPlay, closePlay, cellPx: () => lastView?.cellPx || +$('#zoom').value });
 
     // Jeu : définition du mot en cours, mot précédent / suivant, changement de sens
     $('#clue-prev').onclick = () => MF.gridView.stepWord(-1);
@@ -568,7 +646,8 @@
       actions: [{ label: t('Non merci'), value: false }, { label: t('Jouer'), kind: 'primary', icon: 'play', value: true }],
     });
     if (!ok) return;
-    store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.mode = 'play'; }, 'puzzles');
+    view.play = true; view.home = false; view.entriesFor = null;
+    store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; }, 'puzzles');
   }
 
   /** Filet de sécurité : une erreur inattendue ne bloque jamais l'appli et reste discrète. */

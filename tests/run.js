@@ -403,6 +403,153 @@
     assert(!st.backupDue(7, now), 'grille toute neuve');
   });
 
+  /* ---------------- Murdoku ---------------- */
+  /** Contrat d'un puzzle Murdoku (docs/murdoku-format.md) : renvoie la liste des violations. */
+  function checkMurdoku(pz) {
+    const M = MF.murdoku, errs = [];
+    const N = pz.size;
+    if (pz.engine !== 'murdoku' || pz.v !== 1) errs.push('en-tête');
+    if (!(N >= 5 && N <= 8) || pz.cells.length !== N || pz.cells.some(row => row.length !== N)) errs.push('taille');
+    pz.rooms.forEach((r, i) => { if (r.id !== i || !M.ROOMS[r.type]) errs.push(`pièce ${i}`); });
+    // Pièces contiguës, toutes utilisées
+    for (const room of pz.rooms) {
+      const cells = [];
+      pz.cells.forEach((row, r) => row.forEach((v, c) => { if (v === room.id) cells.push([r, c]); }));
+      if (!cells.length) { errs.push(`pièce ${room.id} vide`); continue; }
+      const seen = new Set([cells[0].join()]), todo = [cells[0]];
+      while (todo.length) {
+        const [r, c] = todo.pop();
+        for (const [y, x] of [[r - 1, c], [r + 1, c], [r, c - 1], [r, c + 1]]) {
+          if (pz.cells[y]?.[x] === room.id && !seen.has(`${y},${x}`)) { seen.add(`${y},${x}`); todo.push([y, x]); }
+        }
+      }
+      if (seen.size !== cells.length) errs.push(`pièce ${room.id} non contiguë`);
+      if (room.type === 'garden' && !cells.some(([r, c]) => !r || !c || r === N - 1 || c === N - 1)) errs.push('jardin loin du bord');
+    }
+    const objAt = new Map();
+    for (const o of pz.objects) {
+      if (!M.OBJECTS[o.type]) errs.push(`objet ${o.type}`);
+      if (objAt.has(`${o.r},${o.c}`)) errs.push(`deux objets en ${o.r},${o.c}`);
+      objAt.set(`${o.r},${o.c}`, o.type);
+    }
+    // Solution : une personne par ligne et par colonne, jamais sur un objet bloquant
+    eq(pz.people.length, N, 'nombre de personnes');
+    if (new Set(pz.people.map(p => p.r)).size !== N || new Set(pz.people.map(p => p.c)).size !== N) errs.push('ligne ou colonne en double');
+    for (const p of pz.people) {
+      const t = objAt.get(`${p.r},${p.c}`);
+      if (t && !M.OBJECTS[t].occupiable) errs.push(`${p.id} sur ${t}`);
+      if (!MF.util.HEX.test(p.color) || !p.name) errs.push(`${p.id} : nom ou couleur`);
+    }
+    const victims = pz.people.filter(p => p.role === 'victim');
+    if (victims.length !== 1 || victims[0].id !== pz.victim) errs.push('victime');
+    if (new Set(pz.people.map(p => p.name)).size !== N) errs.push('prénoms en double');
+    // Le coupable est le seul suspect seul avec la victime
+    const roomOf = p => pz.cells[p.r][p.c];
+    const withVictim = pz.people.filter(p => p.role === 'suspect' && roomOf(p) === roomOf(victims[0]));
+    if (withVictim.length !== 1 || withVictim[0].id !== pz.murderer) errs.push('coupable pas seul avec la victime');
+    const placement = Object.fromEntries(pz.people.map(p => [p.id, { r: p.r, c: p.c }]));
+    if (M.murdererOf(pz, placement) !== pz.murderer) errs.push('murdererOf');
+    if (!M.isSolved(pz, placement)) errs.push('isSolved');
+    // Indices vrais, bien formés, sans désigner directement le coupable
+    for (const cl of pz.clues) {
+      if (!M.validClue(cl, pz)) errs.push(`indice mal formé ${JSON.stringify(cl)}`);
+      else if (!M.holds(pz, cl, placement)) errs.push(`indice faux ${JSON.stringify(cl)}`);
+      const pair = [cl.a, cl.b];
+      if (cl.kind === 'withPerson' && pair.includes(pz.murderer) && pair.includes(pz.victim)) errs.push('indice : coupable avec la victime');
+      if (cl.kind === 'inRoom' && cl.person === pz.murderer && cl.room === roomOf(victims[0])) errs.push('indice : coupable dans la pièce de la victime');
+      const text = M.clueText(cl, pz);
+      if (!text || /[{}]|undefined/.test(text)) errs.push(`texte : ${text}`);
+    }
+    // Solution unique, égale à celle du puzzle
+    const sols = M.solve(pz);
+    if (sols.length !== 1) errs.push(`${sols.length} solutions`);
+    else if (JSON.stringify(sols[0]) !== JSON.stringify(placement)) errs.push('solution différente');
+    return errs;
+  }
+  test('murdoku : puzzles conformes, solution unique, coupable seul avec la victime', () => {
+    const times = [];
+    for (const size of [5, 6, 7, 8]) {
+      for (const difficulty of ['easy', 'medium', 'hard']) {
+        for (const seed of [1, 77, 4242]) {
+          const opts = { size, difficulty, rooms: ['few', 'normal', 'many'][seed % 3], density: ['sparse', 'normal', 'full'][size % 3] };
+          const t0 = performance.now();
+          const pz = MF.murdoku.generate(opts, seed * 1000 + size);
+          times.push(performance.now() - t0);
+          assert(pz, `aucun puzzle ${JSON.stringify(opts)}`);
+          const errs = checkMurdoku(pz);
+          assert(!errs.length, `${size}×${size} ${difficulty} graine ${seed} : ${errs.slice(0, 5).join(' ; ')}`);
+        }
+      }
+    }
+    const avg = times.reduce((a, b) => a + b, 0) / times.length;
+    assert(avg < 300, `génération trop lente : ${Math.round(avg)} ms en moyenne`);
+    assert(Math.max(...times) < 2500, `génération trop lente : ${Math.round(Math.max(...times))} ms au pire`);
+  });
+  test('murdoku : même graine, même puzzle', () => {
+    for (const size of [5, 8]) {
+      const a = MF.murdoku.generate({ size, difficulty: 'hard' }, 99);
+      const b = MF.murdoku.generate({ size, difficulty: 'hard' }, 99);
+      eq(JSON.stringify(a), JSON.stringify(b), 'déterminisme');
+      assert(JSON.stringify(a) !== JSON.stringify(MF.murdoku.generate({ size, difficulty: 'hard' }, 100)), 'graines différentes');
+    }
+  });
+  test('murdoku : options (prénoms, victime, types de pièces, sortes d\'indices)', () => {
+    const pz = MF.murdoku.generate({ size: 6, names: ['Zorro', 'Alice', 'alice', ' '], victimName: 'Hector', roomTypes: ['kitchen', 'garden', 'bedroom', 'office'], clueKinds: ['inRoom', 'besideObject', 'above', 'leftOf', 'roomCount'], lang: 'en' }, 3);
+    eq(checkMurdoku(pz), [], 'contrat');
+    eq(pz.people.slice(0, 2).map(p => p.name), ['Zorro', 'Alice'], 'prénoms donnés');
+    eq(pz.people.find(p => p.role === 'victim').name, 'Hector', 'victime');
+    assert(pz.rooms.every(r => ['kitchen', 'garden', 'bedroom', 'office'].includes(r.type)), 'types de pièces');
+    assert(pz.clues.every(cl => ['inRoom', 'besideObject', 'above', 'leftOf', 'roomCount'].includes(cl.kind)), 'sortes d\'indices');
+    // Sorte d'indice insuffisante seule : repli sur les lignes et colonnes, solution toujours unique
+    const lone = MF.murdoku.generate({ size: 5, clueKinds: ['onObject'] }, 8);
+    eq(checkMurdoku(lone), [], 'repli');
+  });
+  test('murdoku : solveur, vérification et textes', () => {
+    const M = MF.murdoku;
+    const pz = M.generate({ size: 6, difficulty: 'medium' }, 2024);
+    assert(M.solve(pz, [], 2).length === 2, 'sans indice : plusieurs solutions');
+    const sol = M.solve(pz)[0];
+    const wrong = { ...sol, [pz.victim]: { r: sol[pz.victim].r, c: (sol[pz.victim].c + 1) % pz.size } };
+    assert(!M.isSolved(pz, wrong), 'disposition fausse acceptée');
+    assert(!M.isSolved(pz, {}), 'disposition vide acceptée');
+    eq(M.solve(pz, [...pz.clues, { kind: 'inRoom', person: 'nobody', room: 0 }]).length, 1, 'indice mal formé ignoré');
+    // Chaque sorte d'indice a un texte, en français forcé comme dans la langue de l'interface
+    const p = pz.people;
+    const all = [
+      { kind: 'inRoom', person: p[0].id, room: 0 }, { kind: 'notInRoom', person: p[0].id, room: 0 },
+      { kind: 'onObject', person: p[0].id, object: 'chair' }, { kind: 'onObject', person: p[0].id, object: 'table' },
+      { kind: 'besideObject', person: p[0].id, object: 'plant' }, { kind: 'row', person: p[0].id, row: 2 },
+      { kind: 'column', person: p[0].id, col: 1 }, { kind: 'sameRow', person: p[0].id, object: 'bed' },
+      { kind: 'sameColumn', person: p[0].id, object: 'tv' }, { kind: 'alone', person: p[0].id },
+      { kind: 'withPerson', a: p[0].id, b: p[1].id }, { kind: 'notWith', a: p[0].id, b: p[1].id },
+      { kind: 'above', a: p[0].id, b: p[1].id }, { kind: 'below', a: p[0].id, b: p[1].id },
+      { kind: 'leftOf', a: p[0].id, b: p[1].id }, { kind: 'rightOf', a: p[0].id, b: p[1].id },
+      { kind: 'roomCount', room: 0, n: 1 }, { kind: 'roomCount', room: 0, n: 3 }, { kind: 'emptyRoom', room: 0 },
+    ];
+    eq([...new Set(all.map(c => c.kind))].sort(), [...M.KINDS].sort(), 'toutes les sortes');
+    for (const cl of all) {
+      for (const lang of [undefined, 'fr']) {
+        const s = M.clueText(cl, pz, lang);
+        assert(s && !/[{}]|undefined/.test(s), `${cl.kind} : ${s}`);
+      }
+    }
+    eq(M.clueText({ kind: 'column', person: p[0].id, col: 1 }, pz, 'fr'), `${p[0].name} était sur la colonne B.`);
+    eq(M.clueText({ kind: 'leftOf', a: p[0].id, b: p[1].id }, { ...pz, people: [{ id: p[0].id, name: 'Bruno' }, { id: p[1].id, name: 'Alice' }] }, 'fr'), "Bruno était plus à gauche qu'Alice.");
+    assert(M.rulesText().length >= 3 && M.rulesText().every(s => s.length > 10), 'règles');
+    for (const t of M.ROOM_TYPES) assert(M.roomLabel(t) && M.roomLabel(t) !== t, `pièce ${t}`);
+    for (const t of Object.keys(M.OBJECTS)) assert(M.objectLabel(t) && M.objectLabel(t) !== t, `objet ${t}`);
+  });
+
+  test('murdoku : énigme intacte après validation (lien partagé), énigme trafiquée rejetée', () => {
+    const pz = MF.murdoku.generate({ size: 6, difficulty: 'medium' }, 4242);
+    const back = MF.schema.layout({ engine: 'murdoku', pages: [pz], hash: 'x', at: 1 }).pages[0];
+    eq(back.clues, pz.clues, 'indices');
+    eq([back.cells, back.people, back.murderer], [pz.cells, pz.people, pz.murderer], 'plateau');
+    eq(MF.murdoku.solve(back).length, 1, 'solution unique');
+    assert(!MF.schema.layout({ engine: 'murdoku', pages: [{ ...pz, people: pz.people.slice(1) }] }), 'personne manquante acceptée');
+    assert(!MF.schema.layout({ engine: 'murdoku', pages: [{ ...pz, cells: pz.cells.slice(1) }] }), 'plateau tronqué accepté');
+  });
+
   /* ---------------- Traductions ---------------- */
   test('traductions : chaque texte de l\'interface existe en anglais', async () => {
     const lit = String.raw`'((?:[^'\\]|\\.)*)'`;
