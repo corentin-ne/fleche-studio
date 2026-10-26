@@ -22,7 +22,8 @@ concurrency:
 jobs:
   check:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # Marge pour l'installation du navigateur (paquets système), parfois lente côté GitHub
+    timeout-minutes: 30
     steps:
       # Actions épinglées par commit (une étiquette de version peut être déplacée, pas un SHA)
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -43,8 +44,10 @@ jobs:
       - name: Types (fichiers // @ts-check)
         run: npm run typecheck
 
+      # Chromium sans interface (headless shell) : téléchargement et dépendances plus légers
       - name: Navigateur de test
-        run: npx playwright install --with-deps chromium
+        timeout-minutes: 20
+        run: npx playwright install --with-deps --only-shell chromium
 
       - name: Tests et essai de l'application
         run: npm test
