@@ -60,6 +60,7 @@
   /* En train de jouer, clavier ouvert : seules la définition et la grille restent visibles */
   body.kb-open .grid-head, body.kb-open .stale-bar, body.kb-open .play-bar { display: none; }
   body.kb-open .play-clue { margin-top: 8px; }
+  body.kb-open .only-kb { display: inline-flex; }
 
   /* Cibles tactiles confortables (≈ 36-44 px) */
   .btn-sm { min-height: 34px; }

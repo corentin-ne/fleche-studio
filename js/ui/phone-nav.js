@@ -34,14 +34,34 @@ MF.phoneNav = (() => {
     preventFocusZoom();
   }
 
-  /** Clavier virtuel ouvert (champ de saisie actif) : la barre du bas s'efface pour laisser la place. */
+  /**
+   * Clavier virtuel réellement affiché : la barre du bas s'efface pour laisser la place.
+   * Un champ actif ne suffit pas (sur Android, fermer le clavier laisse le focus dans le
+   * champ) : on vérifie aussi que la zone visible de l'écran a rétréci.
+   */
   function watchKeyboard() {
-    const typing = el => el?.matches?.('input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]), textarea, select, [contenteditable="true"]');
-    const update = () => document.body.classList.toggle('kb-open', query.matches && typing(document.activeElement));
-    addEventListener('focusin', update);
+    const typing = el => el?.matches?.('input:not([type=range]):not([type=checkbox]):not([type=radio]):not([type=color]), textarea, [contenteditable="true"]');
+    const vv = window.visualViewport;
+    let full = vv ? vv.height : 0; // hauteur sans clavier (pour l'orientation courante)
+    let open = false;
+    const update = () => {
+      if (vv) full = Math.max(full, vv.height);
+      const shrunk = vv ? vv.height < full * 0.8 : true;
+      const now = query.matches && typing(document.activeElement) && shrunk;
+      // Clavier refermé (bouton retour du téléphone) : on quitte aussi le champ, l'interface revient
+      if (open && !now && shrunk === false && typing(document.activeElement)) document.activeElement.blur();
+      open = now;
+      document.body.classList.toggle('kb-open', now);
+    };
+    addEventListener('focusin', () => setTimeout(update, 300)); // le clavier met un instant à s'ouvrir
     // focusout précède le focusin suivant : on attend la fin du changement de champ
     addEventListener('focusout', () => setTimeout(update, 60));
+    vv?.addEventListener('resize', update);
+    addEventListener('orientationchange', () => setTimeout(() => { full = vv ? vv.height : 0; update(); }, 400));
   }
+
+  /** Ferme le clavier (quitte le champ actif). */
+  const closeKeyboard = () => document.activeElement?.blur?.();
 
   /**
    * Les navigateurs mobiles zooment la page sur les petits champs (cases du jeu), ce qui
@@ -95,5 +115,5 @@ MF.phoneNav = (() => {
 
   const isPhone = () => query.matches;
 
-  return { init, sync, isPhone, menu };
+  return { init, sync, isPhone, menu, closeKeyboard };
 })();

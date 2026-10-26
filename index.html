@@ -18,15 +18,15 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=JetBrains+Mono:wght@400;500;600;700&family=Nunito:wght@600;700;800&family=Baloo+2:wght@500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=Playfair+Display:wght@600;700&family=Caveat:wght@600;700&family=Patrick+Hand&family=Permanent+Marker&display=swap" rel="stylesheet">
 
   <!-- ?v=… : à changer à chaque mise à jour, sinon le navigateur peut garder d'anciens fichiers en cache -->
-  <link rel="stylesheet" href="css/tokens.css?v=3.7.0">
-  <link rel="stylesheet" href="css/base.css?v=3.7.0">
-  <link rel="stylesheet" href="css/glass.css?v=3.7.0">
-  <link rel="stylesheet" href="css/components.css?v=3.7.0">
-  <link rel="stylesheet" href="css/app.css?v=3.7.0">
-  <link rel="stylesheet" href="css/panels.css?v=3.7.0">
-  <link rel="stylesheet" href="css/live.css?v=3.7.0">
-  <link rel="stylesheet" href="css/mobile.css?v=3.7.0">
-  <link rel="stylesheet" href="css/print.css?v=3.7.0">
+  <link rel="stylesheet" href="css/tokens.css?v=3.7.1">
+  <link rel="stylesheet" href="css/base.css?v=3.7.1">
+  <link rel="stylesheet" href="css/glass.css?v=3.7.1">
+  <link rel="stylesheet" href="css/components.css?v=3.7.1">
+  <link rel="stylesheet" href="css/app.css?v=3.7.1">
+  <link rel="stylesheet" href="css/panels.css?v=3.7.1">
+  <link rel="stylesheet" href="css/live.css?v=3.7.1">
+  <link rel="stylesheet" href="css/mobile.css?v=3.7.1">
+  <link rel="stylesheet" href="css/print.css?v=3.7.1">
 </head>
 <body>
   <div class="bg-ambient" aria-hidden="true"></div>
@@ -98,6 +98,7 @@
           <button class="btn btn-icon btn-ghost" id="clue-prev" title="Mot précédent" aria-label="Mot précédent"><span data-icon="chevronRight"></span></button>
           <button class="pc-text" id="clue-text" type="button" title="Changer de sens">Touche une case pour voir sa définition</button>
           <button class="btn btn-icon btn-ghost" id="clue-next" title="Mot suivant" aria-label="Mot suivant"><span data-icon="chevronRight"></span></button>
+          <button class="btn btn-icon btn-primary only-kb" id="clue-done" title="Fermer le clavier" aria-label="Fermer le clavier"><span data-icon="check"></span></button>
         </div>
         <div class="grid-scroll" id="grid-scroll"></div>
       </section>
@@ -126,61 +127,61 @@
   <div class="toasts" id="toasts" aria-live="polite"></div>
 
   <!-- Noyau -->
-  <script src="js/core/utils.js?v=3.7.0"></script>
-  <script src="js/core/text.js?v=3.7.0"></script>
-  <script src="js/engine/design.js?v=3.7.0"></script>
-  <script src="js/engine/shapes.js?v=3.7.0"></script>
-  <script src="js/engine/backgrounds.js?v=3.7.0"></script>
-  <script src="js/engine/games.js?v=3.7.0"></script>
-  <script src="js/data/stickers.js?v=3.7.0"></script>
-  <script src="js/core/schema.js?v=3.7.0"></script>
-  <script src="js/core/assets.js?v=3.7.0"></script>
-  <script src="js/core/store.js?v=3.7.0"></script>
-  <script src="js/core/zip.js?v=3.7.0"></script>
-  <script src="js/core/share.js?v=3.7.0"></script>
+  <script src="js/core/utils.js?v=3.7.1"></script>
+  <script src="js/core/text.js?v=3.7.1"></script>
+  <script src="js/engine/design.js?v=3.7.1"></script>
+  <script src="js/engine/shapes.js?v=3.7.1"></script>
+  <script src="js/engine/backgrounds.js?v=3.7.1"></script>
+  <script src="js/engine/games.js?v=3.7.1"></script>
+  <script src="js/data/stickers.js?v=3.7.1"></script>
+  <script src="js/core/schema.js?v=3.7.1"></script>
+  <script src="js/core/assets.js?v=3.7.1"></script>
+  <script src="js/core/store.js?v=3.7.1"></script>
+  <script src="js/core/zip.js?v=3.7.1"></script>
+  <script src="js/core/share.js?v=3.7.1"></script>
 
   <!-- Données : dictionnaire, packs de mots, thèmes -->
-  <script src="js/data/clues-fr.js?v=3.7.0"></script>
-  <script src="js/data/clues-fr-extra.js?v=3.7.0"></script>
-  <script src="js/data/packs.js?v=3.7.0"></script>
-  <script src="js/data/themes.js?v=3.7.0"></script>
+  <script src="js/data/clues-fr.js?v=3.7.1"></script>
+  <script src="js/data/clues-fr-extra.js?v=3.7.1"></script>
+  <script src="js/data/packs.js?v=3.7.1"></script>
+  <script src="js/data/themes.js?v=3.7.1"></script>
 
   <!-- Services -->
-  <script src="js/services/dictionary.js?v=3.7.0"></script>
-  <script src="js/services/wiki.js?v=3.7.0"></script>
-  <script src="js/services/importer.js?v=3.7.0"></script>
+  <script src="js/services/dictionary.js?v=3.7.1"></script>
+  <script src="js/services/wiki.js?v=3.7.1"></script>
+  <script src="js/services/importer.js?v=3.7.1"></script>
 
   <!-- Moteur -->
-  <script src="js/engine/paper.js?v=3.7.0"></script>
-  <script src="js/engine/builder.js?v=3.7.0"></script>
-  <script src="js/engine/wordsearch.js?v=3.7.0"></script>
-  <script src="js/engine/generator.js?v=3.7.0"></script>
-  <script src="js/engine/grid-model.js?v=3.7.0"></script>
-  <script src="js/engine/diagnostics.js?v=3.7.0"></script>
-  <script src="js/engine/renderers.js?v=3.7.0"></script>
-  <script src="js/engine/scene.js?v=3.7.0"></script>
+  <script src="js/engine/paper.js?v=3.7.1"></script>
+  <script src="js/engine/builder.js?v=3.7.1"></script>
+  <script src="js/engine/wordsearch.js?v=3.7.1"></script>
+  <script src="js/engine/generator.js?v=3.7.1"></script>
+  <script src="js/engine/grid-model.js?v=3.7.1"></script>
+  <script src="js/engine/diagnostics.js?v=3.7.1"></script>
+  <script src="js/engine/renderers.js?v=3.7.1"></script>
+  <script src="js/engine/scene.js?v=3.7.1"></script>
 
   <!-- Interface -->
-  <script src="js/ui/components.js?v=3.7.0"></script>
-  <script src="js/ui/phone-nav.js?v=3.7.0"></script>
-  <script src="js/ui/pinch-zoom.js?v=3.7.0"></script>
-  <script src="js/ui/brand.js?v=3.7.0"></script>
-  <script src="js/ui/grid-view.js?v=3.7.0"></script>
-  <script src="js/ui/live-build.js?v=3.7.0"></script>
-  <script src="js/ui/sticker-editor.js?v=3.7.0"></script>
-  <script src="js/ui/previews.js?v=3.7.0"></script>
-  <script src="js/ui/layout-controls.js?v=3.7.0"></script>
-  <script src="js/ui/pickers.js?v=3.7.0"></script>
-  <script src="js/ui/panels/words.js?v=3.7.0"></script>
-  <script src="js/ui/panels/clues.js?v=3.7.0"></script>
-  <script src="js/ui/panels/design.js?v=3.7.0"></script>
-  <script src="js/ui/panels/decor.js?v=3.7.0"></script>
-  <script src="js/ui/panels/settings.js?v=3.7.0"></script>
-  <script src="js/ui/exporter.js?v=3.7.0"></script>
-  <script src="js/ui/welcome.js?v=3.7.0"></script>
-  <script src="js/ui/dashboard.js?v=3.7.0"></script>
+  <script src="js/ui/components.js?v=3.7.1"></script>
+  <script src="js/ui/phone-nav.js?v=3.7.1"></script>
+  <script src="js/ui/pinch-zoom.js?v=3.7.1"></script>
+  <script src="js/ui/brand.js?v=3.7.1"></script>
+  <script src="js/ui/grid-view.js?v=3.7.1"></script>
+  <script src="js/ui/live-build.js?v=3.7.1"></script>
+  <script src="js/ui/sticker-editor.js?v=3.7.1"></script>
+  <script src="js/ui/previews.js?v=3.7.1"></script>
+  <script src="js/ui/layout-controls.js?v=3.7.1"></script>
+  <script src="js/ui/pickers.js?v=3.7.1"></script>
+  <script src="js/ui/panels/words.js?v=3.7.1"></script>
+  <script src="js/ui/panels/clues.js?v=3.7.1"></script>
+  <script src="js/ui/panels/design.js?v=3.7.1"></script>
+  <script src="js/ui/panels/decor.js?v=3.7.1"></script>
+  <script src="js/ui/panels/settings.js?v=3.7.1"></script>
+  <script src="js/ui/exporter.js?v=3.7.1"></script>
+  <script src="js/ui/welcome.js?v=3.7.1"></script>
+  <script src="js/ui/dashboard.js?v=3.7.1"></script>
 
-  <script src="js/app/actions.js?v=3.7.0"></script>
-  <script src="js/app.js?v=3.7.0"></script>
+  <script src="js/app/actions.js?v=3.7.1"></script>
+  <script src="js/app.js?v=3.7.1"></script>
 </body>
 </html>

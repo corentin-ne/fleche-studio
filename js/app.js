@@ -562,6 +562,7 @@
     $('#clue-prev').onclick = () => MF.gridView.stepWord(-1);
     $('#clue-next').onclick = () => MF.gridView.stepWord(1);
     $('#clue-text').onclick = () => { if (!MF.gridView.toggleDir()) MF.gridView.stepWord(0); };
+    $('#clue-done').onclick = () => MF.phoneNav.closeKeyboard();
     // Les boutons ne prennent pas le focus : la case active (et le clavier du téléphone) reste ouverte
     $$('#play-clue button').forEach(b => b.addEventListener('mousedown', e => e.preventDefault()));
 
