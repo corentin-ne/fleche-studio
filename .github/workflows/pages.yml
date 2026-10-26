@@ -2,13 +2,12 @@
 #   1. check  : lint, types, tests du moteur et essai de l'application dans Chromium ;
 #   2. build  : site assemblé (liste blanche) et version de déploiement inscrite dans les fichiers ;
 #   3. deploy : mise en ligne, seulement si tout ce qui précède a réussi.
-# Les pull requests passent aussi par « check » (sans publication).
+# Tout se fait sur main : pas de branches ni de pull requests, une seule exécution par push.
 name: Vérification et déploiement GitHub Pages
 
 on:
   push:
     branches: [main]
-  pull_request:
   workflow_dispatch:
 
 # Droits minimaux : lecture du code, écriture sur Pages uniquement
@@ -54,7 +53,6 @@ jobs:
 
   build:
     needs: check
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -92,7 +90,6 @@ jobs:
 
   deploy:
     needs: build
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
