@@ -62,7 +62,7 @@ MF.wordsearch = (() => {
     return { grid, mask, placed, unplaced };
   }
 
-  async function generate(words, opts = {}, { seed = Date.now(), signal, onProgress } = {}) {
+  async function generate(words, opts = {}, { seed = Date.now(), signal, onProgress, onSnapshot } = {}) {
     const items = prepare(words);
     if (!items.length) return null;
     const dirs = DIRS[opts.directions] || DIRS.normal;
@@ -89,13 +89,22 @@ MF.wordsearch = (() => {
     }
 
     let best = null;
+    let attempts = 0;
     const t0 = performance.now();
-    for (const [fi, frame] of frames.entries()) {
+    // Aperçu en direct (construit seulement si l'appelant l'affiche)
+    const show = trial => onSnapshot?.(() => ({
+      engine: 'meles', phase: 'themes', frame: best.frame, attempts, placed: best.placed.length, total: items.length,
+      words: best.placed.map(p => ({ r: p.r, c: p.c, dr: p.dr, dc: p.dc, len: p.len, word: p.word, src: 'theme' })),
+      ghost: trial === best || trial.frame !== best.frame ? [] : trial.placed.map(p => ({ r: p.r, c: p.c, dr: p.dr, dc: p.dc, word: p.word })),
+    }));
+    for (const frame of frames) {
       const tEnd = performance.now() + (opts.size === 'fixed' ? budget : budget / 3);
       do {
-        const res = attempt(frame, items, dirs, rnd);
+        const res = { ...attempt(frame, items, dirs, rnd), frame };
+        attempts++;
         const score = res.placed.length * 100 + res.placed.filter(p => items.find(i => i.id === p.wid)?.priority).length * 1000;
-        if (!best || score > best.score) best = { ...res, frame, score };
+        if (!best || score > best.score) best = { ...res, score };
+        show(best.grid === res.grid ? best : res);
         if (!res.unplaced.length) break;
       } while (performance.now() < tEnd);
       onProgress?.(Math.min(0.95, (performance.now() - t0) / budget));

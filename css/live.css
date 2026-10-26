@@ -1,0 +1,182 @@
+/* =========================================================================
+   Construction en direct (js/ui/live-build.js) : la grille se dessine
+   pendant le calcul. Halo d'accent, balayage lumineux, lettres en cascade.
+   ========================================================================= */
+
+.live-build {
+  --lb-accent-2: color-mix(in oklab, var(--accent) 55%, #3fd0ff);
+  --cs: 28px;
+  position: relative;
+  flex: 1; min-height: 100%;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 22px;
+  padding: 10px 0 6px;
+  isolation: isolate;
+  animation: viewIn var(--t-med) var(--ease);
+}
+
+/* ---------- Scène ---------- */
+.lb-stage { position: relative; display: grid; place-items: center; }
+
+/* Halo d'accent qui dérive lentement derrière la grille */
+.lb-aura { position: absolute; inset: -18% -22%; z-index: -1; pointer-events: none; filter: blur(48px); opacity: .55; }
+.lb-aura i { position: absolute; width: 55%; aspect-ratio: 1; border-radius: 50%; background: var(--accent); mix-blend-mode: screen; animation: lbDrift 9s ease-in-out infinite alternate; }
+.lb-aura i:nth-child(1) { left: 0; top: 10%; }
+.lb-aura i:nth-child(2) { right: 0; bottom: 0; background: var(--lb-accent-2); animation-duration: 11s; animation-delay: -4s; }
+.lb-aura i:nth-child(3) { left: 30%; top: 35%; width: 40%; background: color-mix(in oklab, var(--accent) 40%, #ff5fb0); opacity: .7; animation-duration: 13s; animation-delay: -7s; }
+:root[data-theme="light"] .lb-aura { opacity: .35; }
+:root[data-theme="light"] .lb-aura i { mix-blend-mode: multiply; }
+@keyframes lbDrift {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  50% { transform: translate3d(12%, -8%, 0) scale(1.15); }
+  100% { transform: translate3d(-8%, 10%, 0) scale(.92); }
+}
+
+.lb-board {
+  position: relative;
+  padding: calc(var(--cs) * .35);
+  border-radius: calc(var(--cs) * .45 + 6px);
+  background: linear-gradient(160deg, var(--glass-bg-strong), var(--glass-bg));
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow), 0 0 0 1px rgba(var(--accent-rgb), .12), 0 30px 80px -30px rgba(var(--accent-rgb), .55);
+  backdrop-filter: blur(18px) saturate(1.4);
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  overflow: hidden;
+}
+/* Liseré d'accent qui tourne autour de la grille */
+.lb-board::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 1.5px; pointer-events: none;
+  background: conic-gradient(from var(--lb-angle, 0deg), transparent 0 70%, var(--accent) 82%, var(--lb-accent-2) 90%, transparent 100%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: lbSpin 3.2s linear infinite;
+}
+@property --lb-angle { syntax: "<angle>"; initial-value: 0deg; inherits: false; }
+@keyframes lbSpin { to { --lb-angle: 360deg; } }
+
+/* Balayage lumineux vertical */
+.lb-scan {
+  position: absolute; left: 0; right: 0; top: 0; height: 28%; pointer-events: none;
+  background: linear-gradient(180deg, transparent, rgba(var(--accent-rgb), .16) 70%, rgba(var(--accent-rgb), .45) 99%, transparent);
+  mix-blend-mode: plus-lighter;
+  animation: lbScan 2.6s cubic-bezier(.45, 0, .55, 1) infinite;
+}
+:root[data-theme="light"] .lb-scan { mix-blend-mode: multiply; opacity: .5; }
+.live-build.filling .lb-scan { animation-duration: 1.6s; }
+@keyframes lbScan { from { transform: translateY(-100%); } to { transform: translateY(360%); } }
+
+/* Grille terminée : le balayage s'arrête, un éclat parcourt la grille */
+.live-build.done .lb-scan { animation: none; opacity: 0; }
+.live-build.done .lb-board::before { animation-duration: 1.2s; }
+.live-build.done .lb-board::after {
+  content: ""; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .45) 50%, transparent 70%);
+  transform: translateX(-100%);
+  animation: lbShine .9s var(--ease) .15s forwards;
+}
+@keyframes lbShine { to { transform: translateX(100%); } }
+.live-build.done .lb-ring .bar { stroke: var(--ok); filter: drop-shadow(0 0 5px color-mix(in oklab, var(--ok) 70%, transparent)); }
+.live-build.done .lb-live { color: var(--ok); background: color-mix(in oklab, var(--ok) 16%, transparent); }
+
+/* ---------- Grille ---------- */
+.lb-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--w), var(--cs));
+  grid-auto-rows: var(--cs);
+  gap: max(1px, calc(var(--cs) * .06));
+  font-family: var(--font-sans);
+}
+.lb-grid > i {
+  display: grid; place-items: center;
+  font-style: normal; font-weight: 800; line-height: 1;
+  font-size: calc(var(--cs) * .56);
+  color: var(--text);
+  border-radius: calc(var(--cs) * .2);
+  background: var(--glass-bg-soft);
+  box-shadow: inset 0 0 0 1px var(--line);
+  transition: background var(--t-med) var(--ease), color var(--t-med) var(--ease), box-shadow var(--t-med) var(--ease);
+  will-change: transform, opacity;
+}
+.lb-grid > i.out { background: transparent; box-shadow: none; }
+.lb-grid > i.band { background: repeating-linear-gradient(135deg, transparent 0 5px, var(--line) 5px 6px); box-shadow: none; opacity: .7; }
+
+/* Mot courant (remplissage) */
+.lb-grid > i.L {
+  background: linear-gradient(180deg, var(--glass-hover), var(--glass-bg-soft));
+  box-shadow: inset 0 0 0 1px var(--line-strong), inset 0 1px 0 var(--glass-highlight);
+}
+/* Mot perso : accent lumineux */
+.lb-grid > i.L.t {
+  color: var(--on-accent, #fff);
+  background: linear-gradient(150deg, color-mix(in oklab, var(--accent) 88%, #fff), var(--accent) 55%, color-mix(in oklab, var(--accent) 70%, #000));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, .35), 0 0 calc(var(--cs) * .45) rgba(var(--accent-rgb), .55);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, .25);
+}
+/* Case définition */
+.lb-grid > i.C {
+  gap: 0; align-content: center;
+  color: var(--accent);
+  font-size: calc(var(--cs) * .42); font-weight: 700;
+  background: rgba(var(--accent-rgb), .14);
+  box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .45);
+}
+.lb-grid > i.C span { display: block; line-height: .95; }
+/* Filigrane : l'essai en cours d'exploration */
+.lb-grid > i.G { color: rgba(var(--accent-rgb), .55); font-weight: 600; box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .25); }
+
+/* Avant le premier instantané : grille fantôme qui scintille */
+.live-build.waiting .lb-grid > i { animation: lbShimmer 1.6s ease-in-out var(--d) infinite; }
+@keyframes lbShimmer { 50% { background: rgba(var(--accent-rgb), .22); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .4); } }
+
+/* ---------- Panneau d'état ---------- */
+.lb-hud {
+  display: flex; align-items: center; gap: 16px;
+  max-width: min(720px, 100%);
+  padding: 12px 14px 12px 12px;
+  border-radius: var(--r-lg);
+  animation: popIn var(--t-med) var(--ease-spring) both;
+}
+.lb-ring { position: relative; flex: none; width: 52px; height: 52px; display: grid; place-items: center; }
+.lb-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
+.lb-ring circle { fill: none; stroke-width: 4; }
+.lb-ring .track { stroke: var(--line-strong); }
+.lb-ring .bar { stroke: url(#lb-grad); stroke-linecap: round; transition: stroke-dashoffset .35s var(--ease); filter: drop-shadow(0 0 4px rgba(var(--accent-rgb), .6)); }
+.lb-pct { font-size: var(--fs-xs); font-weight: 800; font-variant-numeric: tabular-nums; }
+
+.lb-info { display: flex; flex-direction: column; gap: 7px; min-width: 0; }
+.lb-title { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: var(--fs-md); }
+.lb-phase { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lb-live {
+  display: inline-flex; align-items: center; gap: 6px; flex: none;
+  padding: 2px 8px; border-radius: var(--r-pill);
+  font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--accent); background: rgba(var(--accent-rgb), .14);
+}
+.lb-live i { width: 6px; height: 6px; border-radius: 50%; background: currentColor; animation: lbPulse 1.2s ease-in-out infinite; }
+@keyframes lbPulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(var(--accent-rgb), .6); } 50% { box-shadow: 0 0 0 5px rgba(var(--accent-rgb), 0); opacity: .6; } }
+
+.lb-stats { display: flex; flex-wrap: wrap; gap: 6px; min-height: 22px; }
+.lb-chip {
+  display: inline-flex; align-items: baseline; gap: 3px;
+  padding: 3px 9px; border-radius: var(--r-pill);
+  font-size: var(--fs-xs); color: var(--text-2); font-variant-numeric: tabular-nums;
+  background: var(--glass-bg-soft); border: 1px solid var(--line);
+}
+.lb-chip b { color: var(--text); font-weight: 700; }
+.lb-chip.ok { border-color: color-mix(in oklab, var(--ok) 50%, transparent); }
+.lb-chip.ok b { color: var(--ok); }
+.lb-chip.page { color: var(--accent); border-color: rgba(var(--accent-rgb), .4); font-weight: 600; }
+
+.lb-steps { display: flex; gap: 6px; margin: 0; padding: 0; list-style: none; font-size: 11px; color: var(--text-3); }
+.lb-steps li { display: inline-flex; align-items: center; gap: 6px; }
+.lb-steps li + li::before { content: ""; width: 14px; height: 1px; background: var(--line-strong); }
+.lb-steps li.on { color: var(--text); font-weight: 600; }
+.lb-steps li.done { color: var(--ok); }
+.lb-steps li.on::after { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: lbPulse 1.2s ease-in-out infinite; order: -1; }
+
+.lb-stop { flex: none; margin-left: auto; }
+
+@media (max-width: 700px) {
+  .lb-hud { flex-wrap: wrap; }
+  .lb-steps { display: none; }
+}

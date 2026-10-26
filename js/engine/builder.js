@@ -214,7 +214,8 @@ MF.builder = (() => {
 
   const DENSITY = { airy: { rounds: 70, islands: false }, normal: { rounds: 400, islands: true }, dense: { rounds: 600, islands: true } };
 
-  function fillGaps(board, rnd, used, deadline, density = 'normal') {
+  /** `tick` (facultatif) est appelé après chaque mot posé : construction visible en direct. */
+  function fillGaps(board, rnd, used, deadline, density = 'normal', tick) {
     const index = fillers();
     const dz = DENSITY[density] || DENSITY.normal;
     for (let round = 0; round < dz.rounds && performance.now() < deadline; round++) {
@@ -243,13 +244,14 @@ MF.builder = (() => {
       if (!best) break;
       used.add(best.w);
       place(board, toPlacement(best.w, 'curated', undefined, best.ev));
+      tick?.();
     }
-    if (dz.islands) fillIslands(board, rnd, used, deadline);
+    if (dz.islands) fillIslands(board, rnd, used, deadline, tick);
   }
 
   /** Mots courants posés seuls dans les zones encore vides (les plus longs d'abord). */
   let byLength = null;
-  function fillIslands(board, rnd, used, deadline) {
+  function fillIslands(board, rnd, used, deadline, tick) {
     if (!byLength) {
       byLength = new Map();
       for (const w of Object.keys(MF.cluesFr || {})) {
@@ -282,6 +284,7 @@ MF.builder = (() => {
       if (!best) break;
       used.add(best.w);
       place(board, toPlacement(best.w, 'curated', undefined, best.ev));
+      tick?.();
     }
   }
 
@@ -338,6 +341,13 @@ MF.builder = (() => {
     return { engine: 'builder', frame: board.frame, rows, words, photos, unplaced: all.filter(it => !placed.has(it.id)).map(it => it.id), ...extra };
   }
 
+  /** Instantané léger (sérialisable) d'une grille en cours de construction, pour l'aperçu animé. */
+  function snapshot(board, all, extra) {
+    const words = board.placements.map(p => ({ r: p.r, c: p.c, dir: p.dir, len: p.len, word: p.word, sr: p.sr, sc: p.sc, arrow: p.arrow, src: p.src }));
+    const placed = new Set(board.placements.filter(p => p.src === 'theme').map(p => p.wid)).size;
+    return { engine: 'builder', frame: board.frame, words, placed, total: all.length, ...extra };
+  }
+
   /** Cadre aux proportions de la feuille (portrait ou paysage) de h lignes, dont `top` lignes de bande libre en haut. */
   // Une forme (cercle, cœur…) garde ses vraies proportions : sa zone utile est carrée
   const sheetFrame = (opts, h, top = 0) => ({ w: opts.shape && opts.shape !== 'rect' ? h - top : MF.paper.colsFor(h, opts), h, top, shape: opts.shape || 'rect' });
@@ -352,18 +362,22 @@ MF.builder = (() => {
    *  - Taille fixe : on place le maximum de mots perso dans le cadre demandé.
    * Ensuite, comblement des meilleures dispositions ; on garde celle qui laisse le moins de cases photo.
    */
-  async function generate(words, opts = {}, { seed = Date.now(), onProgress, signal, exclude = new Set(), banned = [] } = {}) {
+  async function generate(words, opts = {}, { seed = Date.now(), onProgress, onSnapshot, signal, exclude = new Set(), banned = [] } = {}) {
     if (!prepare(words).length) return null;
     const all = prepare(words);
     const budget = EFFORT_MS[opts.effort] || EFFORT_MS.normal;
     const t0 = performance.now();
     let n = 0;
+    // Aperçu en direct : l'appelant reçoit une fonction et ne construit l'instantané que s'il l'affiche.
+    // `every` : chaque étape compte (remplissage, très rapide) et ne doit pas être sautée.
+    const show = (board, phase, extra, every = false) => onSnapshot?.(() => snapshot(board, all, { phase, attempts: n, ...extra }), every);
 
     /** Tirages de dispositions de mots perso dans un cadre ; garde les 3 meilleures. */
     async function search(frame, ms, stopWhenAll) {
       const fits = all.filter(it => it.norm.length <= Math.max(frame.w, frame.h - (frame.top || 0)));
       const top = [];
       const tStart = performance.now();
+      let trial = null; // dernier essai, montré en filigrane derrière le meilleur
       while (performance.now() - tStart < ms || !top.length) {
         const sliceEnd = performance.now() + 30;
         do {
@@ -374,6 +388,7 @@ MF.builder = (() => {
             .sort((a, b) => b.k - a.k)
             .map(x => x.it);
           const { board } = placeThemes(frame, ordered, rnd);
+          trial = board;
           const score = themeScore(board, all);
           if (top.length < 3 || score > top[top.length - 1].score) {
             top.push({ board, score, placed: board.placements.length });
@@ -382,6 +397,7 @@ MF.builder = (() => {
           }
         } while (performance.now() < sliceEnd);
         onProgress?.(Math.min(0.7, (performance.now() - t0) / budget));
+        show(top[0].board, 'themes', { ghost: trial === top[0].board ? [] : trial.placements.map(p => ({ r: p.r, c: p.c, dir: p.dir, word: p.word })) });
         await MF.util.nextFrame();
         if (signal?.cancelled) return null;
         if (stopWhenAll && top[0].placed === all.length) break;
@@ -431,7 +447,9 @@ MF.builder = (() => {
       const board = cand.board.clone();
       // Mots déjà utilisés ailleurs ou bannis par l'utilisateur : jamais proposés en remplissage
       const used = new Set([...exclude, ...banned, ...board.placements.map(p => p.word)]);
-      if (withFillers) fillGaps(board, MF.util.rng((seed + i * 104729) >>> 0), used, performance.now() + Math.max(400, (budget * 0.3) / top.length), opts.density);
+      const tick = () => show(board, 'fill', { variant: i + 1, variants: top.length }, true);
+      tick();
+      if (withFillers) fillGaps(board, MF.util.rng((seed + i * 104729) >>> 0), used, performance.now() + Math.max(400, (budget * 0.3) / top.length), opts.density, tick);
       const res = summarize(board, all, { seed, attempts: n });
       res.score = cand.score * 10 - res.photos;
       if (!best || res.score > best.score) best = res;

@@ -41,7 +41,8 @@
 @media (max-width: 1500px) { #mode-switch .lbl, #btn-shuffle .lbl { display: none; } }
 
 .gen-bar, .play-bar { display: flex; align-items: center; gap: 10px; padding: 0 12px 8px 16px; font-size: var(--fs-xs); color: var(--text-2); flex-wrap: wrap; }
-.gen-bar .progress { flex: 1; max-width: 340px; }
+/* Fin liseré de progression (le détail est dans la construction en direct) */
+.gen-bar .progress { flex: 1; height: 3px; }
 .play-time { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; color: var(--text); padding: 4px 10px; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .14); }
 .play-time .ic { width: 15px; height: 15px; color: var(--accent); }
 @media (max-width: 900px) { .play-tip { display: none; } }

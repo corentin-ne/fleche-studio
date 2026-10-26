@@ -49,7 +49,7 @@
     if (!pz) return;
     if (!prepared(pz).length) { MF.ui.toast('Ajoute au moins un mot (2 lettres minimum).', 'warn'); renderGrid(); return; }
     jobs.get(pzId)?.cancel();
-    const job = { cancelled: false, run: null, cancel() { this.cancelled = true; this.run?.cancel(); } };
+    const job = { cancelled: false, run: null, live: null, cancel() { this.cancelled = true; this.run?.cancel(); } };
     jobs.set(pzId, job);
     setBusy(true, 0);
     renderGrid();
@@ -61,15 +61,26 @@
     const pages = [];
     const exclude = new Set();
     let error = null;
-    // Calcul en arrière-plan (Web Worker) : l'interface reste utilisable pendant la recherche
+    const shown = () => !job.cancelled && store.get().activeId === pzId && !view.home;
+    // Calcul en arrière-plan (Web Worker) : l'interface reste utilisable pendant la recherche,
+    // et la grille se construit sous les yeux de l'utilisateur
     for (const [i, group] of groups.entries()) {
+      job.live = { engine, page: i, pages: groups.length, progress: 0, snapshot: null };
+      if (shown()) renderLive(job);
       job.run = MF.generator.run(
         { engine, words: group, options: pz.options, seed: MF.util.randomSeed(), exclude: [...exclude], banned: pz.banned },
-        p => { if (!job.cancelled && store.get().activeId === pzId) setBusy(true, (i + p) / groups.length); },
+        p => {
+          job.live.progress = p;
+          if (shown()) { setBusy(true, (i + p) / groups.length); renderLive(job); }
+        },
+        snap => { job.live.snapshot = snap; if (shown()) renderLive(job); },
       );
       const out = await job.run.promise;
       if (job.cancelled || out.cancelled) return;
       if (out.error || !out.result) { error = out.error; break; }
+      // L'animation se termine sur la grille retenue avant le rendu final
+      if (shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, (engine === 'meles' ? MF.wordsearch : MF.builder).prepare(group).length);
+      if (job.cancelled) return;
       out.result.words.forEach(w => exclude.add(w.word));
       pages.push(out.result);
     }
@@ -90,6 +101,12 @@
     const total = prepared(pz).length;
     const placed = pages.reduce((n, pg) => n + pg.words.filter(w => w.wid && (engine === 'meles' || w.src === 'theme')).length, 0);
     MF.ui.toast(`${pages.length > 1 ? '2 grilles prêtes' : 'Grille prête'} : ${placed} / ${total} de tes mots placés`, placed === total ? 'ok' : 'warn', 4000);
+  }
+
+  /** Construction en direct (chaque instantané est mis en file et rejoué à l'image par MF.liveBuild). */
+  function renderLive(job) {
+    if (jobs.get(store.get().activeId) !== job || view.home) return;
+    MF.liveBuild.update($('#grid-scroll'), job.live, { onCancel: cancelGeneration });
   }
 
   function setBusy(on, p = 0) {
@@ -190,11 +207,16 @@
     const entriesFor = `${pz.id}@${pz.layout?.at}#${d.page}`;
     if (view.entriesFor !== entriesFor) { view.entries = loadEntries(entriesFor); view.entriesFor = entriesFor; view.playStart = Date.now(); }
     const box = $('#grid-scroll');
+    if (busy) {
+      // Pendant le calcul : la grille se construit en direct (remplace l'ancienne grille)
+      lastView = null;
+      view.shownGrid = null;
+      MF.liveBuild.update(box, jobs.get(pz.id).live || { engine: engineOf(pz) }, { onCancel: cancelGeneration });
+      return;
+    }
     if (!d.model.cols) {
       lastView = null;
-      box.innerHTML = busy
-        ? `<div class="empty"><span class="spinner"></span><h3>Construction de la grille…</h3><p>Placement de tes mots, puis remplissage.</p></div>`
-        : total
+      box.innerHTML = total
           ? `<div class="empty">${ic('grid')}<h3>Prêt à construire</h3><p>${plural(total, 'mot')} dans ta liste.</p><p><button class="btn btn-primary" data-regen>${ic('sparkle')}Construire la grille</button></p></div>`
           : `<div class="empty start-hint">${ic('edit')}<h3>Commence par ajouter des mots</h3><p>Tape-les dans le panneau « Mots », ou pioche dans la bibliothèque et les thèmes. La grille se construit toute seule.</p></div>`;
       return;
@@ -429,7 +451,6 @@
       if (key !== lastBox && store.get().ui.fit && store.active()) { lastBox = key; renderGrid(); }
     }, 120)).observe($('#grid-scroll'));
     $('#btn-shuffle').onclick = () => store.active() && regenerate(store.active().id);
-    $('#btn-cancel-gen').onclick = cancelGeneration;
     document.addEventListener('click', e => { if (e.target.closest('[data-regen]')) regenerate(store.active().id); });
     $('#btn-export').onclick = openExport;
     $('#btn-check').onclick = () => {
