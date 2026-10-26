@@ -10,6 +10,7 @@
 window.MF = window.MF || {};
 
 MF.shapes = (() => {
+  const { t } = MF.i18n;
   /** Point dans un polygone (règle pair-impair). */
   function inPoly(pts, x, y) {
     let inside = false;
@@ -108,37 +109,37 @@ MF.shapes = (() => {
 
   /* ---------------- Catalogue ---------------- */
   /** Familles du sélecteur, dans l'ordre d'affichage. */
-  const GROUPS = { basic: 'Formes', fun: 'Symboles', letters: 'Lettres', digits: 'Chiffres' };
+  const GROUPS = { basic: t('Formes'), fun: t('Symboles'), letters: t('Lettres'), digits: t('Chiffres') };
   const SHAPES = {
-    rect: { label: 'Rectangle', group: 'basic', test: () => true },
-    rounded: { label: 'Arrondi', group: 'basic', test: (u, v) => u ** 4 + v ** 4 <= 1 },
-    circle: { label: 'Cercle', group: 'basic', test: (u, v) => u * u + v * v <= 1 },
-    ring: { label: 'Anneau', group: 'basic', test: (u, v) => { const r = u * u + v * v; return r <= 1 && r >= 0.16; } },
-    triangle: { label: 'Triangle', group: 'basic', test: (u, v) => Math.abs(u) <= (v + 1) / 2 },
-    diamond: { label: 'Losange', group: 'basic', test: (u, v) => Math.abs(u) + Math.abs(v) <= 1.04 },
-    hexagon: { label: 'Hexagone', group: 'basic', test: (u, v) => Math.abs(v) <= 1 && Math.abs(u) <= 1 - Math.abs(v) * 0.5 },
-    octagon: { label: 'Octogone', group: 'basic', test: (u, v) => Math.abs(u) + Math.abs(v) <= 1.45 },
-    cross: { label: 'Croix', group: 'basic', test: (u, v) => Math.abs(u) <= 0.38 || Math.abs(v) <= 0.38 },
-    arrow: { label: 'Flèche', group: 'basic', test: (u, v) => inPoly(arrow, u, v) },
+    rect: { label: t('Rectangle'), group: 'basic', test: () => true },
+    rounded: { label: t('Arrondi'), group: 'basic', test: (u, v) => u ** 4 + v ** 4 <= 1 },
+    circle: { label: t('Cercle'), group: 'basic', test: (u, v) => u * u + v * v <= 1 },
+    ring: { label: t('Anneau'), group: 'basic', test: (u, v) => { const r = u * u + v * v; return r <= 1 && r >= 0.16; } },
+    triangle: { label: t('Triangle'), group: 'basic', test: (u, v) => Math.abs(u) <= (v + 1) / 2 },
+    diamond: { label: t('Losange'), group: 'basic', test: (u, v) => Math.abs(u) + Math.abs(v) <= 1.04 },
+    hexagon: { label: t('Hexagone'), group: 'basic', test: (u, v) => Math.abs(v) <= 1 && Math.abs(u) <= 1 - Math.abs(v) * 0.5 },
+    octagon: { label: t('Octogone'), group: 'basic', test: (u, v) => Math.abs(u) + Math.abs(v) <= 1.45 },
+    cross: { label: t('Croix'), group: 'basic', test: (u, v) => Math.abs(u) <= 0.38 || Math.abs(v) <= 0.38 },
+    arrow: { label: t('Flèche'), group: 'basic', test: (u, v) => inPoly(arrow, u, v) },
     heart: {
-      label: 'Cœur', group: 'fun',
+      label: t('Cœur'), group: 'fun',
       test: (u, v) => { const x = u * 1.14, y = -v * 1.13 + 0.12; return (x * x + y * y - 1) ** 3 - x * x * y ** 3 <= 0; },
     },
-    star: { label: 'Étoile', group: 'fun', test: (u, v) => inPoly(star, u, v) },
-    cloud: { label: 'Nuage', group: 'fun', test: (u, v) => cloud(u, v * 1.25 - 0.05) },
-    moon: { label: 'Lune', group: 'fun', test: (u, v) => disc(u, v, 0, 0, 1) && !disc(u, v, 0.55, -0.3, 0.78) },
-    drop: { label: 'Goutte', group: 'fun', test: (u, v) => { const x = u * 0.66; return disc(x, v, 0, 0.34, 0.66) || Math.abs(x) <= ((v + 1) / 1.2) * 0.58; } },
-    flower: { label: 'Fleur', group: 'fun', test: (u, v) => Math.hypot(u, v) <= 0.74 + 0.26 * Math.cos(5 * (Math.atan2(v, u) + Math.PI / 2)) },
-    egg: { label: 'Œuf', group: 'fun', test: (u, v) => (u / (0.8 + 0.2 * v)) ** 2 + v * v <= 1 },
-    cat: { label: 'Chat', group: 'fun', test: (u, v) => disc(u, v, 0, 0.16, 0.84) || catEars.some(p => inPoly(p, u, v)) },
-    crown: { label: 'Couronne', group: 'fun', test: (u, v) => inPoly(crown, u, v) },
-    shield: { label: 'Écusson', group: 'fun', test: (u, v) => v <= 0.05 || Math.abs(u) <= 1 - ((v - 0.05) / 0.95) ** 1.7 },
-    tree: { label: 'Sapin', group: 'fun', test: (u, v) => inPoly(tree, u, v) },
-    house: { label: 'Maison', group: 'fun', test: (u, v) => inPoly(house, u, v) },
+    star: { label: t('Étoile'), group: 'fun', test: (u, v) => inPoly(star, u, v) },
+    cloud: { label: t('Nuage'), group: 'fun', test: (u, v) => cloud(u, v * 1.25 - 0.05) },
+    moon: { label: t('Lune'), group: 'fun', test: (u, v) => disc(u, v, 0, 0, 1) && !disc(u, v, 0.55, -0.3, 0.78) },
+    drop: { label: t('Goutte'), group: 'fun', test: (u, v) => { const x = u * 0.66; return disc(x, v, 0, 0.34, 0.66) || Math.abs(x) <= ((v + 1) / 1.2) * 0.58; } },
+    flower: { label: t('Fleur'), group: 'fun', test: (u, v) => Math.hypot(u, v) <= 0.74 + 0.26 * Math.cos(5 * (Math.atan2(v, u) + Math.PI / 2)) },
+    egg: { label: t('Œuf'), group: 'fun', test: (u, v) => (u / (0.8 + 0.2 * v)) ** 2 + v * v <= 1 },
+    cat: { label: t('Chat'), group: 'fun', test: (u, v) => disc(u, v, 0, 0.16, 0.84) || catEars.some(p => inPoly(p, u, v)) },
+    crown: { label: t('Couronne'), group: 'fun', test: (u, v) => inPoly(crown, u, v) },
+    shield: { label: t('Écusson'), group: 'fun', test: (u, v) => v <= 0.05 || Math.abs(u) <= 1 - ((v - 0.05) / 0.95) ** 1.7 },
+    tree: { label: t('Sapin'), group: 'fun', test: (u, v) => inPoly(tree, u, v) },
+    house: { label: t('Maison'), group: 'fun', test: (u, v) => inPoly(house, u, v) },
   };
   for (const [ch, strokes] of Object.entries(GLYPHS)) {
     const digit = /\d/.test(ch);
-    SHAPES[digit ? `n${ch}` : `l${ch}`] = { label: digit ? `Chiffre ${ch}` : `Lettre ${ch}`, short: ch, group: digit ? 'digits' : 'letters', glyph: true, test: glyph(strokes) };
+    SHAPES[digit ? `n${ch}` : `l${ch}`] = { label: digit ? t('Chiffre {ch}', { ch }) : t('Lettre {ch}', { ch }), short: ch, group: digit ? 'digits' : 'letters', glyph: true, test: glyph(strokes) };
   }
   const get = id => SHAPES[id] || SHAPES.rect;
   const ids = Object.keys(SHAPES);

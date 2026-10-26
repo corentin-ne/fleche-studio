@@ -9,6 +9,7 @@ MF.panels = MF.panels || {};
 
 MF.panels.words = (() => {
   const { esc, normalize, plural } = MF.util;
+  const { t } = MF.i18n;
   const ic = MF.icons.svg;
   const D = MF.dictionary;
   let statusCtrl = null;
@@ -19,7 +20,7 @@ MF.panels.words = (() => {
     const q = normalize(view.filter);
     const sorters = {
       added: () => 0,
-      alpha: (a, b) => normalize(a.text).localeCompare(normalize(b.text)),
+      alpha: (a, b) => MF.i18n.compare(normalize(a.text), normalize(b.text)),
       length: (a, b) => normalize(b.text).length - normalize(a.text).length,
       missing: (a, b) => (a.clue ? 1 : 0) - (b.clue ? 1 : 0),
     };
@@ -29,63 +30,63 @@ MF.panels.words = (() => {
     const draft = view.draft;
 
     const status = w => {
-      if (normalize(w.text).length < 2) return ['err', 'Mot trop court'];
-      if (!hasGrid) return ['idle', 'Grille pas encore calculée'];
-      return derived.pageOf.has(w.id) ? ['ok', derived.pages.length > 1 ? `Grille ${derived.pageOf.get(w.id) + 1}` : 'Dans la grille'] : ['out', 'Pas dans la grille (recalcule ou agrandis-la)'];
+      if (normalize(w.text).length < 2) return ['err', t('Mot trop court')];
+      if (!hasGrid) return ['idle', t('Grille pas encore calculée')];
+      return derived.pageOf.has(w.id) ? ['ok', derived.pages.length > 1 ? t('Grille {n}', { n: derived.pageOf.get(w.id) + 1 }) : t('Dans la grille')] : ['out', t('Pas dans la grille (recalcule ou agrandis-la)')];
     };
 
     root.innerHTML = `
       <form class="composer glass-soft" id="add-form" autocomplete="off">
-        <label class="field"><span>Nouveau mot <span class="field-hint" id="norm-preview"></span></span>
-          <input class="input input-lg" name="text" placeholder="Tape un mot : autocomplétion et correction incluses" maxlength="${MF.schema.LIMITS.wordLen}" value="${esc(draft.text || '')}" spellcheck="false" autocapitalize="off"></label>
+        <label class="field"><span>${t('Nouveau mot')} <span class="field-hint" id="norm-preview"></span></span>
+          <input class="input input-lg" name="text" placeholder="${t('Tape un mot : autocomplétion et correction incluses')}" maxlength="${MF.schema.LIMITS.wordLen}" value="${esc(draft.text || '')}" spellcheck="false" autocapitalize="off"></label>
         <div class="word-status" id="word-status" aria-live="polite"></div>
-        ${game.clues ? `<label class="field"><span>Définition <span class="field-hint">courte, c'est mieux</span></span>
-          <div class="clue-wrap"><textarea class="textarea" name="clue" rows="2" maxlength="${MF.schema.LIMITS.clue}" placeholder="ex : Il galope dans le pré" spellcheck="true" lang="fr">${esc(draft.clue || '')}</textarea>
-          <button type="button" class="btn btn-sm btn-ghost find-def" id="btn-find-def" title="Chercher une définition (dictionnaire, Wiktionnaire, Wikipédia)">${ic('book')}Trouver</button></div></label>`
-        : `<p class="muted small game-note">${ic('info')}Pas besoin de définition pour les ${esc(game.label.toLowerCase())}.</p>`}
+        ${game.clues ? `<label class="field"><span>${t('Définition')} <span class="field-hint">${t('courte, c\'est mieux')}</span></span>
+          <div class="clue-wrap"><textarea class="textarea" name="clue" rows="2" maxlength="${MF.schema.LIMITS.clue}" placeholder="${t('ex : Il galope dans le pré')}" spellcheck="true" lang="${D.current()}">${esc(draft.clue || '')}</textarea>
+          <button type="button" class="btn btn-sm btn-ghost find-def" id="btn-find-def" title="${t('Chercher une définition (dictionnaire, Wiktionnaire, Wikipédia)')}">${ic('book')}${t('Trouver')}</button></div></label>`
+        : `<p class="muted small game-note">${ic('info')}${t('Pas besoin de définition pour les {game}.', { game: esc(game.label.toLowerCase()) })}</p>`}
         <div class="row">
-          <button class="btn btn-primary" type="submit">${ic('plus')}Ajouter</button>
+          <button class="btn btn-primary" type="submit">${ic('plus')}${t('Ajouter')}</button>
           <span class="spacer"></span>
-          <span class="muted small"><kbd>Entrée</kbd> pour ajouter</span>
+          <span class="muted small">${t('<kbd>Entrée</kbd> pour ajouter')}</span>
         </div>
       </form>
 
-      <div class="import-row" role="group" aria-label="Ajouter plusieurs mots">
-        <button type="button" class="import-btn" data-import="library" title="${D.size().toLocaleString('fr-FR')} mots déjà définis">${ic('book')}Bibliothèque</button>
-        <button type="button" class="import-btn" data-import="random" title="Choisis combien de mots et leur longueur">${ic('dice')}Hasard</button>
-        <button type="button" class="import-btn" data-import="themes" title="Packs prêts et thèmes du Wiktionnaire">${ic('sparkle')}Thèmes</button>
-        <button type="button" class="import-btn" data-import="paste" title="Texte ou colonnes de tableur">${ic('paste')}Coller</button>
-        <button type="button" class="import-btn" data-import="file" title="Excel, CSV, TXT, JSON">${ic('file')}Fichier</button>
+      <div class="import-row" role="group" aria-label="${t('Ajouter plusieurs mots')}">
+        <button type="button" class="import-btn" data-import="library" title="${t('{n} mots déjà définis', { n: MF.i18n.num(D.size()) })}">${ic('book')}${t('Bibliothèque')}</button>
+        <button type="button" class="import-btn" data-import="random" title="${t('Choisis combien de mots et leur longueur')}">${ic('dice')}${t('Hasard')}</button>
+        <button type="button" class="import-btn" data-import="themes" title="${t('Packs prêts et thèmes du Wiktionnaire')}">${ic('sparkle')}${t('Thèmes')}</button>
+        <button type="button" class="import-btn" data-import="paste" title="${t('Texte ou colonnes de tableur')}">${ic('paste')}${t('Coller')}</button>
+        <button type="button" class="import-btn" data-import="file" title="Excel, CSV, TXT, JSON">${ic('file')}${t('Fichier')}</button>
       </div>
 
       <div class="list-head">
-        <input class="input input-search" id="word-filter" placeholder="Filtrer…" value="${esc(view.filter)}">
-        <select class="select select-sm" id="word-sort" aria-label="Trier">
-          ${[['added', 'Ordre d\'ajout'], ['alpha', 'A → Z'], ['length', 'Les plus longs'], ['missing', 'Sans définition d\'abord']].map(([v, l]) => `<option value="${v}" ${view.sort === v ? 'selected' : ''}>${l}</option>`).join('')}
+        <input class="input input-search" id="word-filter" placeholder="${t('Filtrer…')}" value="${esc(view.filter)}">
+        <select class="select select-sm" id="word-sort" aria-label="${t('Trier')}">
+          ${[['added', t('Ordre d\'ajout')], ['alpha', t('A → Z')], ['length', t('Les plus longs')], ['missing', t('Sans définition d\'abord')]].map(([v, l]) => `<option value="${v}" ${view.sort === v ? 'selected' : ''}>${l}</option>`).join('')}
         </select>
       </div>
       <div class="list-meta small muted">
         <span>${plural(puzzle.words.length, 'mot')}${stars ? ` · ${ic('star', 'ic-inline')} ${stars}` : ''}</span>
         <span class="spacer"></span>
-        ${noClue ? `<button type="button" class="btn btn-sm btn-ghost" id="btn-autodef">${ic('wand')}Définir les ${noClue} manquants</button>` : ''}
-        ${puzzle.words.length ? `<button type="button" class="btn btn-sm btn-ghost btn-danger" id="btn-clear-words" title="Supprimer tous les mots">${ic('trash')}</button>` : ''}
+        ${noClue ? `<button type="button" class="btn btn-sm btn-ghost" id="btn-autodef">${ic('wand')}${t('Définir les {n} manquants', { n: noClue })}</button>` : ''}
+        ${puzzle.words.length ? `<button type="button" class="btn btn-sm btn-ghost btn-danger" id="btn-clear-words" title="${t('Supprimer tous les mots')}">${ic('trash')}</button>` : ''}
       </div>
       <ul class="word-list" id="word-list">
         ${list.map(w => {
           const [st, label] = status(w);
           const norm = normalize(w.text);
           return `<li class="word-item ${st === 'out' ? 'is-out' : ''}" data-id="${w.id}" tabindex="0">
-            <button class="star ${w.priority ? 'on' : ''}" data-act="star" title="${w.priority ? 'Retirer la priorité' : 'Prioritaire : placé en premier'}" aria-pressed="${w.priority}">${ic('star')}</button>
+            <button class="star ${w.priority ? 'on' : ''}" data-act="star" title="${w.priority ? t('Retirer la priorité') : t('Prioritaire : placé en premier')}" aria-pressed="${w.priority}">${ic('star')}</button>
             <div class="wi-main">
               <div class="wi-word"><span class="status-dot ${st}" title="${label}"></span><span class="mono">${esc(norm || w.text)}</span><small>${norm.length}</small>${derived.pages.length > 1 && derived.pageOf.has(w.id) ? `<span class="chip page">G${derived.pageOf.get(w.id) + 1}</span>` : ''}</div>
-              ${game.clues ? `<div class="wi-clue">${w.clue ? esc(w.clue) : '<button type="button" class="link-btn" data-act="def">+ ajouter une définition</button>'}</div>` : ''}
+              ${game.clues ? `<div class="wi-clue">${w.clue ? esc(w.clue) : `<button type="button" class="link-btn" data-act="def">${t('+ ajouter une définition')}</button>`}</div>` : ''}
             </div>
             <div class="wi-actions">
-              <button class="btn btn-sm btn-icon btn-ghost" data-act="edit" title="Modifier" aria-label="Modifier">${ic('edit')}</button>
-              <button class="btn btn-sm btn-icon btn-ghost btn-danger" data-act="del" title="Supprimer" aria-label="Supprimer">${ic('trash')}</button>
+              <button class="btn btn-sm btn-icon btn-ghost" data-act="edit" title="${t('Modifier')}" aria-label="${t('Modifier')}">${ic('edit')}</button>
+              <button class="btn btn-sm btn-icon btn-ghost btn-danger" data-act="del" title="${t('Supprimer')}" aria-label="${t('Supprimer')}">${ic('trash')}</button>
             </div>
           </li>`;
-        }).join('') || (puzzle.words.length ? '<li class="empty small">Aucun mot ne correspond.</li>' : `<li class="empty-words">${ic('sparkle')}<b>Ta liste est vide</b><span>Tape un mot ci-dessus, ou pioche dans la bibliothèque et les thèmes.</span></li>`)}
+        }).join('') || (puzzle.words.length ? `<li class="empty small">${t('Aucun mot ne correspond.')}</li>` : `<li class="empty-words">${ic('sparkle')}<b>${t('Ta liste est vide')}</b><span>${t('Tape un mot ci-dessus, ou pioche dans la bibliothèque et les thèmes.')}</span></li>`)}
       </ul>
       <input type="file" id="words-file" accept="${MF.importer.ACCEPT}" hidden>`;
 
@@ -151,7 +152,7 @@ MF.panels.words = (() => {
     };
     const updatePreview = () => {
       const n = normalize(text.value);
-      preview.textContent = n ? `→ ${n} · ${n.length} lettre${n.length > 1 ? 's' : ''}` : '';
+      preview.textContent = n ? `→ ${n} · ${plural(n.length, 'lettre')}` : '';
     };
 
     /* Correction : dictionnaire local d'abord, puis Wiktionnaire (recherche floue) */
@@ -159,28 +160,28 @@ MF.panels.words = (() => {
       statusCtrl?.abort();
       const raw = text.value.trim(), n = normalize(raw);
       if (n.length < 2) { setStatus(''); return; }
-      if (existing.has(n)) { setStatus(`<span class="st warn">${ic('alert')}Déjà dans ta liste</span>`); return; }
+      if (existing.has(n)) { setStatus(`<span class="st warn">${ic('alert')}${t('Déjà dans ta liste')}</span>`); return; }
       const local = D.clue(n);
       if (local) {
-        setStatus(`<span class="st ok">${ic('check')}Mot du dictionnaire</span>${clue && !clue.value.trim() ? `<button type="button" class="chip chip-btn" data-fill="${esc(local)}">${ic('plus', 'ic-xs')}« ${esc(local)} »</button>` : ''}`);
+        setStatus(`<span class="st ok">${ic('check')}${t('Mot du dictionnaire')}</span>${clue && !clue.value.trim() ? `<button type="button" class="chip chip-btn" data-fill="${esc(local)}">${ic('plus', 'ic-xs')}${t('« {clue} »', { clue: esc(local) })}</button>` : ''}`);
         return;
       }
       const near = D.suggest(raw);
       const chips = list => list.map(s => `<button type="button" class="chip chip-btn" data-use="${esc(s)}">${esc(typeof s === 'string' && s === s.toUpperCase() ? D.pretty(s) : s)}</button>`).join('');
-      setStatus(near.length ? `<span class="st">${ic('help')}Vouliez-vous dire</span>${chips(near)}` : `<span class="st muted"><span class="spinner xs"></span>Vérification…</span>`);
-      if (!MF.wiki.isOnline()) { if (!near.length) setStatus(`<span class="st muted">${ic('info')}Mot inconnu du dictionnaire (hors ligne)</span>`); return; }
+      setStatus(near.length ? `<span class="st">${ic('help')}${t('Vouliez-vous dire')}</span>${chips(near)}` : `<span class="st muted"><span class="spinner xs"></span>${t('Vérification…')}</span>`);
+      if (!MF.wiki.isOnline()) { if (!near.length) setStatus(`<span class="st muted">${ic('info')}${t('Mot inconnu du dictionnaire (hors ligne)')}</span>`); return; }
       statusCtrl = new AbortController();
       try {
         const r = await MF.wiki.suggest(raw, { signal: statusCtrl.signal });
         if (text.value.trim() !== raw) return;
-        if (r.exists) setStatus(`<span class="st ok">${ic('globe')}Mot du Wiktionnaire</span>${game.clues ? `<button type="button" class="chip chip-btn" data-finddef>${ic('book', 'ic-xs')}Voir ses définitions</button>` : ''}`);
+        if (r.exists) setStatus(`<span class="st ok">${ic('globe')}${t('Mot du Wiktionnaire')}</span>${game.clues ? `<button type="button" class="chip chip-btn" data-finddef>${ic('book', 'ic-xs')}${t('Voir ses définitions')}</button>` : ''}`);
         else {
           const seen = new Set();
           const all = [...near.map(D.pretty), ...r.suggestions].filter(s => !seen.has(normalize(s)) && seen.add(normalize(s))).slice(0, 5);
           const proper = /^[A-ZÀ-Ý]/.test(raw);
           setStatus(all.length
-            ? `<span class="st">${ic('help')}Vouliez-vous dire</span>${chips(all)}${proper ? '<span class="st muted">ou nom propre : ok !</span>' : ''}`
-            : `<span class="st muted">${ic('info')}${proper ? 'Nom propre ou mot perso : parfait pour une grille perso !' : 'Mot inconnu : vérifie l\'orthographe (ou garde-le, c\'est ta grille !)'}</span>`);
+            ? `<span class="st">${ic('help')}${t('Vouliez-vous dire')}</span>${chips(all)}${proper ? `<span class="st muted">${t('ou nom propre : ok !')}</span>` : ''}`
+            : `<span class="st muted">${ic('info')}${proper ? t('Nom propre ou mot perso : parfait pour une grille perso !') : t('Mot inconnu : vérifie l\'orthographe (ou garde-le, c\'est ta grille !)')}</span>`);
         }
       } catch { if (!near.length) setStatus(''); }
     }, 350);
@@ -200,19 +201,19 @@ MF.panels.words = (() => {
     /* Autocomplétion : suggestions locales tout de suite, puis Wiktionnaire */
     MF.ui.autocomplete(text, {
       source: async (q, signal, show) => {
-        const local = D.complete(q, 6).map(x => ({ value: D.pretty(x.word), label: D.pretty(x.word), hint: x.clue, badge: 'dico', clue: x.clue }));
+        const local = D.complete(q, 6).map(x => ({ value: D.pretty(x.word), label: D.pretty(x.word), hint: x.clue, badge: t('dico'), clue: x.clue }));
         show(local);
         if (!MF.wiki.isOnline()) return;
         const online = await MF.wiki.complete(q, { signal });
         const seen = new Set(local.map(x => normalize(x.value)));
-        show([...local, ...online.filter(t => !seen.has(normalize(t)) && seen.add(normalize(t))).slice(0, 5).map(t => ({ value: t, label: t, badge: 'wiki' }))]);
+        show([...local, ...online.filter(s => !seen.has(normalize(s)) && seen.add(normalize(s))).slice(0, 5).map(s => ({ value: s, label: s, badge: 'wiki' }))]);
       },
       onPick: it => useWord(it.value, it.clue),
     });
 
     root.querySelector('#btn-find-def')?.addEventListener('click', async () => {
       const w = text.value.trim();
-      if (normalize(w).length < 2) { MF.ui.toast('Tape d\'abord un mot.', 'warn'); text.focus(); return; }
+      if (normalize(w).length < 2) { MF.ui.toast(t('Tape d\'abord un mot.'), 'warn'); text.focus(); return; }
       const def = await MF.pickers.chooseDefinition(w, clue.value);
       if (def) { clue.value = def; view.draft.clue = def; clue.focus(); }
     });
@@ -220,7 +221,7 @@ MF.panels.words = (() => {
     form.addEventListener('submit', e => {
       e.preventDefault();
       const data = { text: text.value.trim(), clue: clue?.value.trim() || '' };
-      if (normalize(data.text).length < 2) { MF.ui.toast('Le mot doit contenir au moins 2 lettres.', 'err'); text.focus(); return; }
+      if (normalize(data.text).length < 2) { MF.ui.toast(t('Le mot doit contenir au moins 2 lettres.'), 'err'); text.focus(); return; }
       actions.addWords([data]);
     });
     clue?.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); form.requestSubmit(); } });
@@ -230,12 +231,12 @@ MF.panels.words = (() => {
   /* ---------------- Modifier un mot ---------------- */
   async function editWord(w, actions, game) {
     const res = await MF.ui.modal({
-      title: 'Modifier le mot', icon: 'edit',
+      title: t('Modifier le mot'), icon: 'edit',
       body: `<div class="stack">
-        <label class="field"><span>Mot</span><input class="input" name="text" value="${esc(w.text)}" maxlength="${MF.schema.LIMITS.wordLen}" autofocus></label>
-        ${game.clues ? `<label class="field"><span>Définition</span><textarea class="textarea" name="clue" rows="3" maxlength="${MF.schema.LIMITS.clue}" spellcheck="true" lang="fr">${esc(w.clue)}</textarea></label>
-        <button type="button" class="btn btn-sm" id="edit-find">${ic('book')}Chercher une définition</button>` : ''}
-        <label class="check"><input type="checkbox" name="priority" ${w.priority ? 'checked' : ''}> Mot prioritaire (placé en premier)</label>
+        <label class="field"><span>${t('Mot')}</span><input class="input" name="text" value="${esc(w.text)}" maxlength="${MF.schema.LIMITS.wordLen}" autofocus></label>
+        ${game.clues ? `<label class="field"><span>${t('Définition')}</span><textarea class="textarea" name="clue" rows="3" maxlength="${MF.schema.LIMITS.clue}" spellcheck="true" lang="${D.current()}">${esc(w.clue)}</textarea></label>
+        <button type="button" class="btn btn-sm" id="edit-find">${ic('book')}${t('Chercher une définition')}</button>` : ''}
+        <label class="check"><input type="checkbox" name="priority" ${w.priority ? 'checked' : ''}> ${t('Mot prioritaire (placé en premier)')}</label>
       </div>`,
       onOpen: root => root.querySelector('#edit-find')?.addEventListener('click', async () => {
         const ta = root.querySelector('[name=clue]');
@@ -243,10 +244,10 @@ MF.panels.words = (() => {
         if (def) ta.value = def;
       }),
       actions: [
-        { label: 'Annuler', value: null },
+        { label: t('Annuler'), value: null },
         {
-          label: 'Enregistrer', kind: 'primary',
-          validate: root => normalize(root.querySelector('[name=text]').value).length >= 2 || (MF.ui.toast('Mot trop court.', 'err'), false),
+          label: t('Enregistrer'), kind: 'primary',
+          validate: root => normalize(root.querySelector('[name=text]').value).length >= 2 || (MF.ui.toast(t('Mot trop court.'), 'err'), false),
           value: root => ({
             text: root.querySelector('[name=text]').value.trim(),
             clue: root.querySelector('[name=clue]')?.value.trim() ?? w.clue,

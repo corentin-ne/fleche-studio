@@ -20,7 +20,7 @@ MF.share = (() => {
       const { done, value } = await reader.read();
       if (done) break;
       total += value.length;
-      if (total > max) { reader.cancel(); throw new Error('Lien trop volumineux'); }
+      if (total > max) { reader.cancel(); throw new Error(MF.i18n.t('Lien trop volumineux')); }
       chunks.push(value);
     }
     const out = new Uint8Array(total);
@@ -42,7 +42,7 @@ MF.share = (() => {
   }
 
   async function link(pz) {
-    if (!supported) throw new Error('Navigateur trop ancien pour créer un lien');
+    if (!supported) throw new Error(MF.i18n.t('Navigateur trop ancien pour créer un lien'));
     const json = new TextEncoder().encode(JSON.stringify(payload(pz)));
     const packed = await pipe(json, new CompressionStream('deflate-raw'));
     const url = new URL(location.href);
@@ -55,12 +55,12 @@ MF.share = (() => {
   async function read(hash = location.hash) {
     if (!hash.startsWith(PREFIX) || !supported) return null;
     const raw = hash.slice(PREFIX.length);
-    if (raw.length > MAX_BYTES * 1.4) throw new Error('Lien trop volumineux');
+    if (raw.length > MAX_BYTES * 1.4) throw new Error(MF.i18n.t('Lien trop volumineux'));
     const bytes = await pipe(MF.util.b64urlToBytes(raw), new DecompressionStream('deflate-raw'), MAX_BYTES);
     const data = JSON.parse(new TextDecoder().decode(bytes));
-    if (!MF.schema.isObj(data) || data.v !== 1) throw new Error('Lien invalide');
+    if (!MF.schema.isObj(data) || data.v !== 1) throw new Error(MF.i18n.t('Lien invalide'));
     const pz = MF.store.makePuzzle({ ...data, id: null, stickers: data.stickers });
-    if (!pz.layout) throw new Error('Grille manquante dans le lien');
+    if (!pz.layout) throw new Error(MF.i18n.t('Grille manquante dans le lien'));
     return pz;
   }
 

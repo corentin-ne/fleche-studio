@@ -44,7 +44,7 @@ MF.gridModel = (() => {
   /** Définition d'un mot : mot perso -> sa définition ; sinon celle écrite par l'utilisateur, sinon celle du dictionnaire. */
   function clueText(w, puzzle, wordsById = new Map(puzzle.words.map(x => [x.id, x]))) {
     if (w.src === 'theme') return wordsById.get(w.wid)?.clue || '';
-    return (puzzle.fillerClues || {})[w.word] ?? (MF.cluesFr || {})[w.word] ?? '';
+    return (puzzle.fillerClues || {})[w.word] ?? MF.lexicon.get(puzzle.options?.lang)[w.word] ?? '';
   }
 
   /** Codes des mots codés : une permutation 1…26 et les lettres données, reproductibles pour une grille. */

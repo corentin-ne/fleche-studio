@@ -216,4 +216,5 @@
   animation: logoIn .7s var(--ease-spring) backwards, logoFloat 5s 1s ease-in-out infinite alternate;
 }
 @keyframes logoIn { from { opacity: 0; transform: scale(.4) rotate(-20deg); } }
-@keyframes logoFloat { to { transform: translateY(-6px) rotate(3deg); } }
+@keyframes logoFloat { to { transform: translateY(-6px) rotate(3deg); } }.lang-btn { gap: 5px; padding: 0 9px; font-size: 12px; font-weight: 700; letter-spacing: .04em; }
+.lang-btn .ic { width: 16px; height: 16px; }

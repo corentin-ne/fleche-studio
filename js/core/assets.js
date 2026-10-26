@@ -41,11 +41,11 @@ MF.assets = (() => {
 
   /** Décode, réduit si besoin et ré-encode une image. Renvoie { blob, w, h }. */
   async function sanitize(file) {
-    if (!(file instanceof Blob)) throw new Error('Fichier invalide');
-    if (file.size > MAX_INPUT) throw new Error('Image trop lourde (25 Mo maximum)');
-    if (file.type && !ACCEPT.includes(file.type)) throw new Error('Format non pris en charge (PNG, JPEG, WebP, GIF)');
+    if (!(file instanceof Blob)) throw new Error(MF.i18n.t('Fichier invalide'));
+    if (file.size > MAX_INPUT) throw new Error(MF.i18n.t('Image trop lourde (25 Mo maximum)'));
+    if (file.type && !ACCEPT.includes(file.type)) throw new Error(MF.i18n.t('Format non pris en charge (PNG, JPEG, WebP, GIF)'));
     let bmp;
-    try { bmp = await createImageBitmap(file); } catch { throw new Error('Image illisible'); }
+    try { bmp = await createImageBitmap(file); } catch { throw new Error(MF.i18n.t('Image illisible')); }
     const k = Math.min(1, MAX_SIDE / Math.max(bmp.width, bmp.height));
     const w = Math.max(1, Math.round(bmp.width * k)), h = Math.max(1, Math.round(bmp.height * k));
     const cv = document.createElement('canvas');
@@ -57,7 +57,7 @@ MF.assets = (() => {
     let blob = await new Promise(r => cv.toBlob(r, 'image/webp', 0.9));
     if (!blob || blob.type !== 'image/webp') blob = await new Promise(r => cv.toBlob(r, 'image/png'));
     cv.width = cv.height = 0;
-    if (!blob) throw new Error('Conversion impossible');
+    if (!blob) throw new Error(MF.i18n.t('Conversion impossible'));
     return { blob, w, h };
   }
 

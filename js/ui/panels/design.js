@@ -12,21 +12,22 @@ MF.panels.design = (() => {
   const { esc } = MF.util;
   const ic = MF.icons.svg;
   const ui = MF.ui;
-  const TABS = [['theme', 'Style', 'sparkle'], ['colors', 'Couleurs', 'palette'], ['background', 'Fond', 'image'], ['cells', 'Cases', 'grid'], ['text', 'Texte', 'type'], ['page', 'Page', 'frame']];
+  const { t } = MF.i18n;
+  const TABS = [['theme', t('Style'), 'sparkle'], ['colors', t('Couleurs'), 'palette'], ['background', t('Fond'), 'image'], ['cells', t('Cases'), 'grid'], ['text', t('Texte'), 'type'], ['page', t('Page'), 'frame']];
 
   const fontOptions = value => Object.entries(MF.design.FONTS).map(([id, f]) => `<option value="${id}" ${id === value ? 'selected' : ''} style="font-family:${esc(f.css)}">${esc(f.label)}</option>`).join('');
   const group = (title, content) => `<div class="pgroup">${title ? `<div class="pgroup-title">${esc(title)}</div>` : ''}${content}</div>`;
 
   /** Thèmes filtrés sur place par ambiance (aucun nouveau rendu). */
   function themeTab(d, filter = 'all') {
-    const filters = [['all', 'Tous'], ...Object.entries(MF.themes.MOODS)];
+    const filters = [['all', t('Tous')], ...Object.entries(MF.themes.MOODS)];
     const quick = MF.palettes.ACCENTS[0][1];
-    return group('Couleur', `<div class="swatches quick-colors">${quick.map(x => `<button type="button" class="swatch-btn ${x === d.accent ? 'active' : ''}" data-accent="${x}" style="--c:${x}" aria-label="${x}" title="${x}"></button>`).join('')}
-        <button type="button" class="btn btn-sm btn-ghost more-colors" data-dtab="colors">${quick.includes(d.accent) ? '' : `<i class="dot" style="--c:${d.accent}"></i>`}Plus de couleurs${ic('chevronRight')}</button></div>`)
-      + `<div class="pgroup"><div class="pgroup-title">Thème</div><div class="chips theme-filters" role="toolbar" aria-label="Filtrer les thèmes">${filters.map(([k, l]) => `<button type="button" class="chip chip-btn ${k === filter ? 'active' : ''}" data-theme-filter="${k}">${esc(l)}</button>`).join('')}</div>
-      <div class="theme-grid">${Object.entries(MF.themes.THEMES).map(([id, t]) => `
-      <button type="button" class="theme-card ${d.theme === id ? 'active' : ''}" data-theme-id="${id}" data-moods="${esc(t.moods.join(' '))}" ${filter === 'all' || t.moods.includes(filter) ? '' : 'hidden'} title="${esc(t.label)}">
-        <span class="theme-thumb">${MF.previews.theme(id)}</span><span class="theme-name">${esc(t.label)}</span></button>`).join('')}</div></div>`;
+    return group(t('Couleur'),`<div class="swatches quick-colors">${quick.map(x => `<button type="button" class="swatch-btn ${x === d.accent ? 'active' : ''}" data-accent="${x}" style="--c:${x}" aria-label="${x}" title="${x}"></button>`).join('')}
+        <button type="button" class="btn btn-sm btn-ghost more-colors" data-dtab="colors">${quick.includes(d.accent) ? '' : `<i class="dot" style="--c:${d.accent}"></i>`}${t('Plus de couleurs')}${ic('chevronRight')}</button></div>`)
+      + `<div class="pgroup"><div class="pgroup-title">${t('Thème')}</div><div class="chips theme-filters" role="toolbar" aria-label="${t('Filtrer les thèmes')}">${filters.map(([k, l]) => `<button type="button" class="chip chip-btn ${k === filter ? 'active' : ''}" data-theme-filter="${k}">${esc(l)}</button>`).join('')}</div>
+      <div class="theme-grid">${Object.entries(MF.themes.THEMES).map(([id, th]) => `
+      <button type="button" class="theme-card ${d.theme === id ? 'active' : ''}" data-theme-id="${id}" data-moods="${esc(th.moods.join(' '))}" ${filter === 'all' || th.moods.includes(filter) ? '' : 'hidden'} title="${esc(th.label)}">
+        <span class="theme-thumb">${MF.previews.theme(id)}</span><span class="theme-name">${esc(th.label)}</span></button>`).join('')}</div></div>`;
   }
 
   /** Nuancier rangé par familles ; `attr` porte la valeur (ex. data-accent="#e8212b"). */
@@ -35,84 +36,84 @@ MF.panels.design = (() => {
 
   function colorsTab(d, C) {
     const c = (k, label) => ui.colorField(`colors.${k}`, label, d.colors[k], { auto: true, resolved: C[k] });
-    return group('Couleur principale', `${palette(MF.palettes.ACCENTS, d.accent, 'data-accent')}
+    return group(t('Couleur principale'), `${palette(MF.palettes.ACCENTS, d.accent, 'data-accent')}
         <div class="row palette-tools">
-          <label class="btn btn-sm palette-custom" title="Choisir n'importe quelle couleur"><span class="swatch-btn custom" style="--c:${d.accent}"><input type="color" data-accent-input value="${d.accent}" aria-label="Couleur personnalisée"></span>Sur mesure</label>
-          <button type="button" class="btn btn-sm" data-random-accent>${ic('dice')}Au hasard</button>
+          <label class="btn btn-sm palette-custom" title="${esc(t('Choisir n\'importe quelle couleur'))}"><span class="swatch-btn custom" style="--c:${d.accent}"><input type="color" data-accent-input value="${d.accent}" aria-label="${t('Couleur personnalisée')}"></span>${t('Sur mesure')}</label>
+          <button type="button" class="btn btn-sm" data-random-accent>${ic('dice')}${t('Au hasard')}</button>
           <span class="palette-current"><i style="--c:${d.accent}"></i><code>${esc(d.accent)}</code></span>
         </div>
-        <p class="field-hint">Le cadre, les flèches et les cases définitions suivent cette couleur. Les textes restent toujours lisibles (contraste automatique).</p>`)
-      + group('', ui.advanced('colors-detail', 'Couleur de chaque élément', `<div class="color-grid">${c('frame', 'Cadre & cases noires')}${c('line', 'Traits')}${c('letter', 'Cases lettres')}${c('clue', 'Cases définitions')}${c('clueInk', 'Texte des définitions')}${c('arrow', 'Flèches')}${c('solution', 'Lettres solution')}${c('ink', 'Numéros & lettres')}${c('void', 'Cases vides claires')}</div>
-        <button type="button" class="btn btn-sm btn-ghost" data-reset-colors>${ic('refresh')}Tout en automatique</button>`));
+        <p class="field-hint">${t('Le cadre, les flèches et les cases définitions suivent cette couleur. Les textes restent toujours lisibles (contraste automatique).')}</p>`)
+      + group('', ui.advanced('colors-detail', t('Couleur de chaque élément'), `<div class="color-grid">${c('frame', t('Cadre & cases noires'))}${c('line', t('Traits'))}${c('letter', t('Cases lettres'))}${c('clue', t('Cases définitions'))}${c('clueInk', t('Texte des définitions'))}${c('arrow', t('Flèches'))}${c('solution', t('Lettres solution'))}${c('ink', t('Numéros & lettres'))}${c('void', t('Cases vides claires'))}</div>
+        <button type="button" class="btn btn-sm btn-ghost" data-reset-colors>${ic('refresh')}${t('Tout en automatique')}</button>`));
   }
 
   function backgroundTab(d) {
     const b = d.background;
-    const types = [['solid', 'Uni'], ['gradient', 'Dégradé'], ['radial', 'Halo'], ['mesh', 'Aurore'], ['pattern', 'Motif'], ['image', 'Image'], ['none', 'Aucun']];
+    const types = [['solid', t('Uni')], ['gradient', t('Dégradé')], ['radial', t('Halo')], ['mesh', t('Aurore')], ['pattern', t('Motif')], ['image', t('Image')], ['none', t('Aucun')]];
     const col = (k, label) => ui.colorField(`background.${k}`, label, b[k]);
     let extra = '';
-    if (b.type === 'solid') extra = `${palette(MF.palettes.BACKGROUNDS, b.c1, 'data-bg-color')}<div class="color-row">${col('c1', 'Sur mesure')}</div>`;
-    if (b.type === 'gradient') extra = `<div class="color-row">${col('c1', 'Début')}${col('c2', 'Milieu')}${col('c3', 'Fin')}</div>${ui.slider('background.angle', 'Angle', b.angle, 0, 360, 5, '°')}`;
-    if (b.type === 'radial') extra = `<div class="color-row">${col('c1', 'Centre')}${col('c2', 'Bords')}</div>`;
-    if (b.type === 'mesh') extra = `<div class="color-row">${col('c1', 'Fond')}${col('c2', 'Lueur 1')}${col('c3', 'Lueur 2')}</div><button type="button" class="btn btn-sm" data-random-palette>${ic('dice')}Couleurs au hasard</button>`;
+    if (b.type === 'solid') extra = `${palette(MF.palettes.BACKGROUNDS, b.c1, 'data-bg-color')}<div class="color-row">${col('c1', t('Sur mesure'))}</div>`;
+    if (b.type === 'gradient') extra = `<div class="color-row">${col('c1', t('Début'))}${col('c2', t('Milieu'))}${col('c3', t('Fin'))}</div>${ui.slider('background.angle', t('Angle'), b.angle, 0, 360, 5, '°')}`;
+    if (b.type === 'radial') extra = `<div class="color-row">${col('c1', t('Centre'))}${col('c2', t('Bords'))}</div>`;
+    if (b.type === 'mesh') extra = `<div class="color-row">${col('c1', t('Fond'))}${col('c2', t('Lueur 1'))}${col('c3', t('Lueur 2'))}</div><button type="button" class="btn btn-sm" data-random-palette>${ic('dice')}${t('Couleurs au hasard')}</button>`;
     if (b.type === 'pattern') {
       extra = `<div class="pattern-grid">${Object.entries(MF.backgrounds.PATTERNS).map(([id, p]) => `<button type="button" class="pattern-btn ${b.pattern === id ? 'active' : ''}" data-pattern="${id}" title="${esc(p.label)}" style="background:${esc(MF.backgrounds.thumb(id, b.c1, b.c2, b.c3))} 0 0 / 34px auto"><span>${esc(p.label)}</span></button>`).join('')}</div>
-        <div class="color-row">${col('c1', 'Fond')}${col('c2', 'Motif')}${col('c3', 'Motif 2')}</div>${ui.slider('background.scale', 'Taille du motif', b.scale, 0.3, 4, 0.1, '×')}`;
+        <div class="color-row">${col('c1', t('Fond'))}${col('c2', t('Motif'))}${col('c3', t('Motif 2'))}</div>${ui.slider('background.scale', t('Taille du motif'), b.scale, 0.3, 4, 0.1, '×')}`;
     }
     if (b.type === 'image') {
       const has = b.imageId && MF.assets.has(b.imageId);
       extra = `<div class="bg-image-row">
           ${has ? `<span class="bg-thumb" style="background-image:url('${esc(MF.assets.url(b.imageId))}')"></span>` : `<span class="bg-thumb empty">${ic('image')}</span>`}
-          <div class="stack grow"><button type="button" class="btn btn-sm btn-primary" data-upload-bg>${ic('upload')}${has ? 'Changer l\'image' : 'Choisir une image'}</button>
-          <span class="field-hint">Nettoyée (métadonnées retirées) et gardée dans ton navigateur.</span></div></div>
-        <div class="field"><span>Ajustement</span>${ui.segmented('background.fit', [['cover', 'Remplir'], ['contain', 'Entière'], ['tile', 'Mosaïque']], b.fit)}</div>
-        ${ui.slider('background.imageOpacity', 'Opacité de l\'image', b.imageOpacity, 0, 1, 0.05)}
-        <div class="color-row">${col('c1', 'Couleur dessous')}${col('overlay', 'Voile')}</div>
-        ${ui.slider('background.overlayOpacity', 'Voile coloré', b.overlayOpacity, 0, 0.9, 0.05)}`;
+          <div class="stack grow"><button type="button" class="btn btn-sm btn-primary" data-upload-bg>${ic('upload')}${has ? t('Changer l\'image') : t('Choisir une image')}</button>
+          <span class="field-hint">${t('Nettoyée (métadonnées retirées) et gardée dans ton navigateur.')}</span></div></div>
+        <div class="field"><span>${t('Ajustement')}</span>${ui.segmented('background.fit', [['cover', t('Remplir')], ['contain', t('Entière')], ['tile', t('Mosaïque')]], b.fit)}</div>
+        ${ui.slider('background.imageOpacity', t('Opacité de l\'image'), b.imageOpacity, 0, 1, 0.05)}
+        <div class="color-row">${col('c1', t('Couleur dessous'))}${col('overlay', t('Voile'))}</div>
+        ${ui.slider('background.overlayOpacity', t('Voile coloré'), b.overlayOpacity, 0, 0.9, 0.05)}`;
     }
-    if (b.type === 'none') extra = '<p class="field-hint">Fond transparent : idéal pour poser la grille dans Canva, Word ou sur une photo.</p>';
+    if (b.type === 'none') extra = `<p class="field-hint">${t('Fond transparent : idéal pour poser la grille dans Canva, Word ou sur une photo.')}</p>`;
     return group('', `${ui.segmented('background.type', types, b.type)}<div class="stack">${extra}</div>`);
   }
 
   function cellsTab(d, C, game) {
     const styles = Object.entries(MF.design.CELL_STYLES);
-    return group('Style', `<div class="cell-styles">${styles.map(([id, s]) => {
+    return group(t('Style'), `<div class="cell-styles">${styles.map(([id, s]) => {
       const { label, ...vals } = s;
       return `<button type="button" class="cell-style ${d.cell.style === id ? 'active' : ''}" data-cell-style="${id}"><span class="cs-thumb">${MF.previews.design(MF.design.merge(d, { cell: { ...vals, style: id } }))}</span><span>${esc(label)}</span></button>`;
     }).join('')}</div>`)
-      + group('', ui.advanced('cells-fine', 'Réglages fins des cases', `${ui.slider('cell.gap', 'Espace entre les cases', d.cell.gap, 0, 24, 1)}
-        ${ui.slider('cell.radius', 'Arrondi', d.cell.radius, 0, 50, 1)}
-        ${ui.slider('cell.line', 'Épaisseur des traits', d.cell.line, 0, 12, 0.5)}
-        <div class="row"><div class="field"><span>Cases lettres</span>${ui.segmented('cell.letterShape', [['square', 'Carrées'], ['circle', 'Rondes']], d.cell.letterShape)}</div>
-        <label class="check"><input type="checkbox" data-toggle="cell.shadow" ${d.cell.shadow ? 'checked' : ''}> Ombre</label></div>
-        <div class="field"><span>Cases vides</span>${ui.segmented('voids', Object.entries(MF.design.VOIDS).map(([k, v]) => [k, v.split(' (')[0]]), d.voids)}</div>`))
-      + (game === 'fleches' ? group('Flèches', `${ui.segmented('arrows.style', Object.entries(MF.design.ARROWS), d.arrows.style)}${ui.slider('arrows.size', 'Taille', d.arrows.size, 0.6, 1.8, 0.05, '×')}`) : '')
-      + group('Cadre', `${ui.slider('frame.width', 'Épaisseur', d.frame.width, 0, 80, 1)}${ui.slider('frame.radius', 'Arrondi', d.frame.radius, 0, 120, 1)}`);
+      + group('', ui.advanced('cells-fine', t('Réglages fins des cases'), `${ui.slider('cell.gap', t('Espace entre les cases'), d.cell.gap, 0, 24, 1)}
+        ${ui.slider('cell.radius', t('Arrondi'), d.cell.radius, 0, 50, 1)}
+        ${ui.slider('cell.line', t('Épaisseur des traits'), d.cell.line, 0, 12, 0.5)}
+        <div class="row"><div class="field"><span>${t('Cases lettres')}</span>${ui.segmented('cell.letterShape', [['square', t('Carrées')], ['circle', t('Rondes')]], d.cell.letterShape)}</div>
+        <label class="check"><input type="checkbox" data-toggle="cell.shadow" ${d.cell.shadow ? 'checked' : ''}> ${t('Ombre')}</label></div>
+        <div class="field"><span>${t('Cases vides')}</span>${ui.segmented('voids', Object.entries(MF.design.VOIDS).map(([k, v]) => [k, v.split(' (')[0]]), d.voids)}</div>`))
+      + (game === 'fleches' ? group(t('Flèches'), `${ui.segmented('arrows.style', Object.entries(MF.design.ARROWS), d.arrows.style)}${ui.slider('arrows.size', t('Taille'), d.arrows.size, 0.6, 1.8, 0.05, '×')}`) : '')
+      + group(t('Cadre'), `${ui.slider('frame.width', t('Épaisseur'), d.frame.width, 0, 80, 1)}${ui.slider('frame.radius', t('Arrondi'), d.frame.radius, 0, 120, 1)}`);
   }
 
   function textTab(d, game) {
-    const t = d.title;
-    return group('Grille', `<div class="two-col">
-        <label class="field"><span>Définitions</span><select class="select" data-select="font.clue">${fontOptions(d.font.clue)}</select></label>
-        <label class="field"><span>Lettres</span><select class="select" data-select="font.letter">${fontOptions(d.font.letter)}</select></label></div>
-        <div class="field"><span>Graisse</span>${ui.segmented('font.clueWeight', [[400, 'Normal'], [600, 'Semi-gras'], [800, 'Gras']], d.font.clueWeight)}</div>
-        ${ui.slider('font.clueSize', 'Taille max. des définitions', d.font.clueSize, 11, 26, 0.5)}
-        <label class="check"><input type="checkbox" data-toggle="font.upper" ${d.font.upper ? 'checked' : ''}> Définitions en MAJUSCULES</label>`)
-      + (game !== 'fleches' ? group('Listes sous la grille', `<label class="field"><span>Police</span><select class="select" data-select="lists.font">${fontOptions(d.lists.font)}</select></label>
-        ${ui.slider('lists.size', 'Taille', d.lists.size, 18, 60, 1)}
-        <div class="color-row">${ui.colorField('lists.color', 'Couleur', d.lists.color, { auto: true, resolved: MF.design.resolve(d).list })}</div>`) : '')
-      + group('Titre', `<label class="check"><input type="checkbox" data-toggle="title.show" ${t.show ? 'checked' : ''}> Afficher un titre au-dessus de la grille</label>
-        <div class="stack ${t.show ? '' : 'is-disabled'}">
-          <input class="input" data-text="title.text" value="${esc(t.text)}" maxlength="${MF.schema.LIMITS.title}" placeholder="Titre (ex : Joyeux anniversaire Léa !)" aria-label="Titre">
-          <input class="input" data-text="title.subtitle" value="${esc(t.subtitle)}" maxlength="${MF.schema.LIMITS.title}" placeholder="Sous-titre" aria-label="Sous-titre">
-          <div class="two-col"><select class="select" data-select="title.font" aria-label="Police du titre">${fontOptions(t.font)}</select>${ui.segmented('title.align', [['left', 'G'], ['center', 'C'], ['right', 'D']], t.align)}</div>
-          ${ui.slider('title.size', 'Taille', t.size, 40, 260, 2)}
-          <div class="color-row">${ui.colorField('title.color', 'Couleur du titre', t.color, { auto: true, resolved: MF.design.resolve(d).title })}</div>
+    const ti = d.title;
+    return group(t('Grille'), `<div class="two-col">
+        <label class="field"><span>${t('Définitions')}</span><select class="select" data-select="font.clue">${fontOptions(d.font.clue)}</select></label>
+        <label class="field"><span>${t('Lettres')}</span><select class="select" data-select="font.letter">${fontOptions(d.font.letter)}</select></label></div>
+        <div class="field"><span>${t('Graisse')}</span>${ui.segmented('font.clueWeight', [[400, t('Normal|graisse')], [600, t('Semi-gras')], [800, t('Gras')]], d.font.clueWeight)}</div>
+        ${ui.slider('font.clueSize', t('Taille max. des définitions'), d.font.clueSize, 11, 26, 0.5)}
+        <label class="check"><input type="checkbox" data-toggle="font.upper" ${d.font.upper ? 'checked' : ''}> ${t('Définitions en MAJUSCULES')}</label>`)
+      + (game !== 'fleches' ? group(t('Listes sous la grille'), `<label class="field"><span>${t('Police')}</span><select class="select" data-select="lists.font">${fontOptions(d.lists.font)}</select></label>
+        ${ui.slider('lists.size', t('Taille'), d.lists.size, 18, 60, 1)}
+        <div class="color-row">${ui.colorField('lists.color', t('Couleur'), d.lists.color, { auto: true, resolved: MF.design.resolve(d).list })}</div>`) : '')
+      + group(t('Titre'), `<label class="check"><input type="checkbox" data-toggle="title.show" ${ti.show ? 'checked' : ''}> ${t('Afficher un titre au-dessus de la grille')}</label>
+        <div class="stack ${ti.show ? '' : 'is-disabled'}">
+          <input class="input" data-text="title.text" value="${esc(ti.text)}" maxlength="${MF.schema.LIMITS.title}" placeholder="${esc(t('Titre (ex : Joyeux anniversaire Léa !)'))}" aria-label="${esc(t('Titre'))}">
+          <input class="input" data-text="title.subtitle" value="${esc(ti.subtitle)}" maxlength="${MF.schema.LIMITS.title}" placeholder="${esc(t('Sous-titre'))}" aria-label="${esc(t('Sous-titre'))}">
+          <div class="two-col"><select class="select" data-select="title.font" aria-label="${esc(t('Police du titre'))}">${fontOptions(ti.font)}</select>${ui.segmented('title.align', [['left', t('G')], ['center', t('C')], ['right', t('D')]], ti.align)}</div>
+          ${ui.slider('title.size', t('Taille'), ti.size, 40, 260, 2)}
+          <div class="color-row">${ui.colorField('title.color', t('Couleur du titre'), ti.color, { auto: true, resolved: MF.design.resolve(d).title })}</div>
         </div>`);
   }
 
   function pageTab(d) {
-    return `<div id="layout-box">${MF.layoutControls.html(d)}</div>${group('', ui.slider('poster.radius', 'Coins arrondis de l\'affiche', d.poster.radius, 0, 200, 5))}`;
+    return `<div id="layout-box">${MF.layoutControls.html(d)}</div>${group('', ui.slider('poster.radius', t('Coins arrondis de l\'affiche'), d.poster.radius, 0, 200, 5))}`;
   }
 
   function render(root, { puzzle, actions, view }) {

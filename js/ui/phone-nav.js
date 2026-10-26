@@ -6,22 +6,23 @@
 window.MF = window.MF || {};
 
 MF.phoneNav = (() => {
+  const { t } = MF.i18n;
   const query = matchMedia('(max-width: 760px)');
   const TABS = [
-    { id: 'grid', icon: 'grid', label: 'Grille' },
-    { id: 'words', icon: 'list', label: 'Mots', badge: 'count-words' },
-    { id: 'diag', icon: 'edit', label: 'Défs', badge: 'count-diag' },
-    { id: 'design', icon: 'palette', label: 'Design' },
-    { id: 'decor', icon: 'sticker', label: 'Décor', badge: 'count-decor' },
-    { id: 'settings', icon: 'sliders', label: 'Options' },
+    { id: 'grid', icon: 'grid', label: t('Grille') },
+    { id: 'words', icon: 'list', label: t('Mots'), badge: 'count-words' },
+    { id: 'diag', icon: 'edit', label: t('Défs'), badge: 'count-diag' },
+    { id: 'design', icon: 'palette', label: t('Design') },
+    { id: 'decor', icon: 'sticker', label: t('Décor'), badge: 'count-decor' },
+    { id: 'settings', icon: 'sliders', label: t('Options') },
   ];
   let root = null;
 
   /** @param el conteneur <nav> ; onSelect(id) : 'grid' ou un onglet du panneau */
   function init(el, { onSelect }) {
     root = el;
-    root.innerHTML = TABS.map(t => `<button type="button" data-ptab="${t.id}" aria-label="${t.label}">
-      <span data-icon="${t.icon}"></span><span class="pn-lbl">${t.label}</span>${t.badge ? `<span class="pn-badge" data-badge="${t.badge}" hidden></span>` : ''}</button>`).join('');
+    root.innerHTML = TABS.map(tab => `<button type="button" data-ptab="${tab.id}" aria-label="${tab.label}">
+      <span data-icon="${tab.icon}"></span><span class="pn-lbl">${tab.label}</span>${tab.badge ? `<span class="pn-badge" data-badge="${tab.badge}" hidden></span>` : ''}</button>`).join('');
     MF.icons.hydrate(root);
     root.addEventListener('click', e => {
       const b = e.target.closest('button[data-ptab]');
@@ -85,7 +86,7 @@ MF.phoneNav = (() => {
       return b && !b.disabled && !(noPuzzle && b.classList.contains('only-puzzle'));
     });
     MF.ui.modal({
-      title: 'Plus d\'actions', icon: 'more', actions: [],
+      title: t('Plus d\'actions'), icon: 'more', actions: [],
       body: `<div class="phone-menu">${available.map(it => `<button type="button" class="pm-item" data-target="${it.id}">${MF.icons.svg(it.icon)}<span>${it.label}</span></button>`).join('')}</div>`,
     });
     const scrim = [...document.querySelectorAll('.modal-scrim')].pop();

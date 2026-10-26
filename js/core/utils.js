@@ -122,7 +122,8 @@ MF.util = (() => {
     };
   }
 
-  const plural = (n, one, many) => `${n} ${n > 1 ? (many || one + 's') : one}`;
+  /** « 3 mots » : délègue aux langues (formes traduites par le catalogue). */
+  const plural = (n, one, many) => MF.i18n.plural(n, one, many);
 
   /* ---------------- Fichiers ---------------- */
   function downloadBlob(filename, blob) {
@@ -137,7 +138,7 @@ MF.util = (() => {
     downloadBlob(filename, new Blob([content], { type: type + ';charset=utf-8' }));
 
   function readFile(file, max = 25 * 1024 * 1024) {
-    if (file.size > max) return Promise.reject(new Error('Fichier trop volumineux'));
+    if (file.size > max) return Promise.reject(new Error(MF.i18n.t('Fichier trop volumineux')));
     return file.text();
   }
 
@@ -166,7 +167,7 @@ MF.util = (() => {
     return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
   }
   function b64urlToBytes(str) {
-    if (!/^[A-Za-z0-9_-]*$/.test(str)) throw new Error('Encodage invalide');
+    if (!/^[A-Za-z0-9_-]*$/.test(str)) throw new Error(MF.i18n.t('Encodage invalide'));
     const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((str.length + 3) % 4));
     const out = new Uint8Array(bin.length);
     for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
@@ -187,7 +188,7 @@ MF.util = (() => {
       const res = await fetch(url, { signal: ctrl.signal, credentials: 'omit', referrerPolicy: 'no-referrer', mode: 'cors', cache: 'default', headers: { Accept: 'application/json' } });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const text = await res.text();
-      if (text.length > maxBytes) throw new Error('Réponse trop volumineuse');
+      if (text.length > maxBytes) throw new Error(MF.i18n.t('Réponse trop volumineuse'));
       return JSON.parse(text);
     } finally {
       clearTimeout(timer);

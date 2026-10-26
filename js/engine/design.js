@@ -7,6 +7,7 @@ window.MF = window.MF || {};
 
 MF.design = (() => {
   const { tint, mix, onColor, luminance } = MF.util;
+  const { t } = MF.i18n;
 
   /** Polices proposées (chargées par Google Fonts dans index.html). */
   const FONTS = {
@@ -16,7 +17,7 @@ MF.design = (() => {
     grotesk: { label: 'Space Grotesk', css: '"Space Grotesk", "Segoe UI", Arial, sans-serif', weights: [500, 600, 700] },
     fraunces: { label: 'Fraunces', css: '"Fraunces", Georgia, serif', weights: [500, 600, 700] },
     playfair: { label: 'Playfair Display', css: '"Playfair Display", Georgia, serif', weights: [600, 700] },
-    caveat: { label: 'Caveat (manuscrite)', css: '"Caveat", "Segoe Print", cursive', weights: [600, 700] },
+    caveat: { label: t('Caveat (manuscrite)'), css: '"Caveat", "Segoe Print", cursive', weights: [600, 700] },
     patrick: { label: 'Patrick Hand', css: '"Patrick Hand", "Segoe Print", cursive', weights: [400] },
     marker: { label: 'Permanent Marker', css: '"Permanent Marker", "Segoe Print", cursive', weights: [400] },
     mono: { label: 'JetBrains Mono', css: '"JetBrains Mono", Consolas, monospace', weights: [400, 500, 600, 700] },
@@ -27,16 +28,16 @@ MF.design = (() => {
 
   /** Styles de cases : raccourcis qui règlent espacement, arrondi, trait et forme des lettres. */
   const CELL_STYLES = {
-    classic: { label: 'Classique', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false },
-    rounded: { label: 'Arrondies', gap: 0, radius: 18, line: 3, letterShape: 'square', shadow: false },
-    tiles: { label: 'Tuiles', gap: 9, radius: 14, line: 0, letterShape: 'square', shadow: true },
-    bubbles: { label: 'Bulles', gap: 6, radius: 22, line: 0, letterShape: 'circle', shadow: false },
-    thin: { label: 'Trait fin', gap: 0, radius: 0, line: 1.5, letterShape: 'square', shadow: false },
-    bold: { label: 'Trait épais', gap: 0, radius: 0, line: 7, letterShape: 'square', shadow: false },
+    classic: { label: t('Classique'), gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false },
+    rounded: { label: t('Arrondies'), gap: 0, radius: 18, line: 3, letterShape: 'square', shadow: false },
+    tiles: { label: t('Tuiles'), gap: 9, radius: 14, line: 0, letterShape: 'square', shadow: true },
+    bubbles: { label: t('Bulles'), gap: 6, radius: 22, line: 0, letterShape: 'circle', shadow: false },
+    thin: { label: t('Trait fin'), gap: 0, radius: 0, line: 1.5, letterShape: 'square', shadow: false },
+    bold: { label: t('Trait épais'), gap: 0, radius: 0, line: 7, letterShape: 'square', shadow: false },
   };
 
-  const ARROWS = { solid: 'Triangles', chevron: 'Chevrons', bold: 'Grosses flèches', dot: 'Pastilles' };
-  const VOIDS = { frame: 'Couleur du cadre', transparent: 'Transparentes (voir le fond)', light: 'Couleur claire', hatch: 'Hachurées' };
+  const ARROWS = { solid: t('Triangles'), chevron: t('Chevrons'), bold: t('Grosses flèches'), dot: t('Pastilles') };
+  const VOIDS = { frame: t('Couleur du cadre'), transparent: t('Transparentes (voir le fond)'), light: t('Couleur claire'), hatch: t('Hachurées') };
 
   /**
    * Formats d'affiche, par famille.
@@ -44,38 +45,38 @@ MF.design = (() => {
    *  - social / screen : formats en pixels, orientation fixe ;
    *  - fit : l'affiche épouse la grille ; custom : rapport libre.
    */
-  const FORMAT_GROUPS = { auto: 'Automatique', print: 'Impression', cards: 'Cartes', social: 'Réseaux sociaux', screen: 'Écrans', custom: 'Sur mesure' };
+  const FORMAT_GROUPS = { auto: t('Automatique'), print: t('Impression'), cards: t('Cartes'), social: t('Réseaux sociaux'), screen: t('Écrans'), custom: t('Sur mesure') };
   const FORMATS = {
-    fit: { label: 'Ajusté', hint: 'Épouse la grille', group: 'auto' },
+    fit: { label: t('Ajusté'), hint: t('Épouse la grille'), group: 'auto' },
     A6: { label: 'A6', hint: '105 × 148 mm', group: 'print', mm: [105, 148] },
     A5: { label: 'A5', hint: '148 × 210 mm', group: 'print', mm: [148, 210] },
     A4: { label: 'A4', hint: '210 × 297 mm', group: 'print', mm: [210, 297] },
     A3: { label: 'A3', hint: '297 × 420 mm', group: 'print', mm: [297, 420] },
     A2: { label: 'A2', hint: '420 × 594 mm', group: 'print', mm: [420, 594] },
-    letter: { label: 'US Letter', hint: '8,5 × 11 in', group: 'print', mm: [216, 279] },
-    legal: { label: 'US Legal', hint: '8,5 × 14 in', group: 'print', mm: [216, 356] },
-    tabloid: { label: 'Tabloïd', hint: '11 × 17 in', group: 'print', mm: [279, 432] },
-    photo: { label: 'Photo 10 × 15', hint: '102 × 152 mm', group: 'cards', mm: [102, 152] },
-    photo13: { label: 'Photo 13 × 18', hint: '130 × 180 mm', group: 'cards', mm: [130, 180] },
-    card57: { label: 'Carte 5 × 7', hint: '127 × 178 mm', group: 'cards', mm: [127, 178] },
-    cardSq: { label: 'Carte carrée', hint: '150 × 150 mm', group: 'cards', mm: [150, 150] },
-    dl: { label: 'Flyer DL', hint: '99 × 210 mm', group: 'cards', mm: [99, 210] },
-    bookmark: { label: 'Marque-page', hint: '50 × 180 mm', group: 'cards', mm: [50, 180] },
-    square: { label: 'Carré', hint: '1080 × 1080', group: 'social', px: [1080, 1080] },
+    letter: { label: 'US Letter', hint: t('8,5 × 11 in'), group: 'print', mm: [216, 279] },
+    legal: { label: 'US Legal', hint: t('8,5 × 14 in'), group: 'print', mm: [216, 356] },
+    tabloid: { label: t('Tabloïd'), hint: '11 × 17 in', group: 'print', mm: [279, 432] },
+    photo: { label: t('Photo 10 × 15'), hint: '102 × 152 mm', group: 'cards', mm: [102, 152] },
+    photo13: { label: t('Photo 13 × 18'), hint: '130 × 180 mm', group: 'cards', mm: [130, 180] },
+    card57: { label: t('Carte 5 × 7'), hint: '127 × 178 mm', group: 'cards', mm: [127, 178] },
+    cardSq: { label: t('Carte carrée'), hint: '150 × 150 mm', group: 'cards', mm: [150, 150] },
+    dl: { label: t('Flyer DL'), hint: '99 × 210 mm', group: 'cards', mm: [99, 210] },
+    bookmark: { label: t('Marque-page'), hint: '50 × 180 mm', group: 'cards', mm: [50, 180] },
+    square: { label: t('Carré'), hint: '1080 × 1080', group: 'social', px: [1080, 1080] },
     post: { label: 'Post 4:5', hint: '1080 × 1350', group: 'social', px: [1080, 1350] },
     story: { label: 'Story 9:16', hint: '1080 × 1920', group: 'social', px: [1080, 1920] },
-    pin: { label: 'Épingle 2:3', hint: '1000 × 1500', group: 'social', px: [1000, 1500] },
-    youtube: { label: 'Miniature vidéo', hint: '1280 × 720', group: 'social', px: [1280, 720] },
-    xpost: { label: 'Post paysage', hint: '1600 × 900', group: 'social', px: [1600, 900] },
-    linkedin: { label: 'Lien partagé', hint: '1200 × 627', group: 'social', px: [1200, 627] },
-    cover: { label: 'Bannière', hint: '1640 × 624', group: 'social', px: [1640, 624] },
-    wide: { label: 'Écran 16:9', hint: '1920 × 1080', group: 'screen', px: [1920, 1080] },
-    desk: { label: 'Écran 16:10', hint: '2560 × 1600', group: 'screen', px: [2560, 1600] },
-    ultra: { label: 'Ultra-large 21:9', hint: '3440 × 1440', group: 'screen', px: [3440, 1440] },
-    slide: { label: 'Diapo 4:3', hint: '1600 × 1200', group: 'screen', px: [1600, 1200] },
-    phone: { label: 'Fond téléphone', hint: '1170 × 2532', group: 'screen', px: [1170, 2532] },
-    tablet: { label: 'Fond tablette', hint: '1640 × 2360', group: 'screen', px: [1640, 2360] },
-    custom: { label: 'Personnalisé', hint: 'Largeur × hauteur', group: 'custom' },
+    pin: { label: t('Épingle 2:3'), hint: '1000 × 1500', group: 'social', px: [1000, 1500] },
+    youtube: { label: t('Miniature vidéo'), hint: '1280 × 720', group: 'social', px: [1280, 720] },
+    xpost: { label: t('Post paysage'), hint: '1600 × 900', group: 'social', px: [1600, 900] },
+    linkedin: { label: t('Lien partagé'), hint: '1200 × 627', group: 'social', px: [1200, 627] },
+    cover: { label: t('Bannière'), hint: '1640 × 624', group: 'social', px: [1640, 624] },
+    wide: { label: t('Écran 16:9'), hint: '1920 × 1080', group: 'screen', px: [1920, 1080] },
+    desk: { label: t('Écran 16:10'), hint: '2560 × 1600', group: 'screen', px: [2560, 1600] },
+    ultra: { label: t('Ultra-large 21:9'), hint: '3440 × 1440', group: 'screen', px: [3440, 1440] },
+    slide: { label: t('Diapo 4:3'), hint: '1600 × 1200', group: 'screen', px: [1600, 1200] },
+    phone: { label: t('Fond téléphone'), hint: '1170 × 2532', group: 'screen', px: [1170, 2532] },
+    tablet: { label: t('Fond tablette'), hint: '1640 × 2360', group: 'screen', px: [1640, 2360] },
+    custom: { label: t('Personnalisé'), hint: t('Largeur × hauteur'), group: 'custom' },
   };
   for (const f of Object.values(FORMATS)) {
     const [w, h] = f.mm || f.px || [];

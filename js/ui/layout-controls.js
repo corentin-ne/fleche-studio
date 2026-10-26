@@ -6,6 +6,7 @@ window.MF = window.MF || {};
 
 MF.layoutControls = (() => {
   const { esc } = MF.util;
+  const { t } = MF.i18n;
   const ic = MF.icons.svg;
   const F = MF.design.FORMATS;
 
@@ -34,21 +35,21 @@ MF.layoutControls = (() => {
     openGroup = open;
     const ids = g => Object.keys(F).filter(id => F[id].group === g);
     const groups = `<div class="fmt-row fmt-main">${card('fit', p)}${card('custom', p)}</div>
-      <div class="chips fmt-tabs" role="toolbar" aria-label="Familles de formats">${TABBED.map(g => `<button type="button" class="chip chip-btn ${g === open ? 'active' : ''}" data-fmt-tab="${g}">${esc(MF.design.FORMAT_GROUPS[g])}${g === current ? '<i class="chip-dot" aria-label="format choisi"></i>' : ''}<small>${ids(g).length}</small></button>`).join('')}</div>
+      <div class="chips fmt-tabs" role="toolbar" aria-label="${esc(t('Familles de formats'))}">${TABBED.map(g => `<button type="button" class="chip chip-btn ${g === open ? 'active' : ''}" data-fmt-tab="${g}">${esc(MF.design.FORMAT_GROUPS[g])}${g === current ? `<i class="chip-dot" aria-label="${esc(t('format choisi'))}"></i>` : ''}<small>${ids(g).length}</small></button>`).join('')}</div>
       ${TABBED.map(g => `<div class="fmt-row" data-fmt-panel="${g}" ${g === open ? '' : 'hidden'}>${ids(g).map(id => card(id, p)).join('')}</div>`).join('')}`;
     const fmt = F[p.format] || F.fit;
     const fixed = p.format !== 'fit';
     return `<div class="fmt-picker">${groups}</div>
       ${p.format === 'custom' ? `<div class="row custom-size">
-        <label class="field mini"><span class="field-hint">Largeur</span><input class="input" type="number" min="1" max="20000" data-custom="customW" value="${p.customW}"></label>
+        <label class="field mini"><span class="field-hint">${t('Largeur')}</span><input class="input" type="number" min="1" max="20000" data-custom="customW" value="${p.customW}"></label>
         <span class="muted">×</span>
-        <label class="field mini"><span class="field-hint">Hauteur</span><input class="input" type="number" min="1" max="20000" data-custom="customH" value="${p.customH}"></label>
-        <span class="field-hint">px, mm… seul le rapport compte</span></div>` : ''}
-      ${fmt.mm ? `<div class="field"><span>Orientation</span>${MF.ui.segmented('orientation', [['portrait', 'Portrait', 'page-portrait'], ['landscape', 'Paysage', 'page-landscape']], p.orientation, 'data-orient')}</div>` : ''}
+        <label class="field mini"><span class="field-hint">${t('Hauteur')}</span><input class="input" type="number" min="1" max="20000" data-custom="customH" value="${p.customH}"></label>
+        <span class="field-hint">${t('px, mm… seul le rapport compte')}</span></div>` : ''}
+      ${fmt.mm ? `<div class="field"><span>${t('Orientation')}</span>${MF.ui.segmented('orientation', [['portrait', t('Portrait'), 'page-portrait'], ['landscape', t('Paysage'), 'page-landscape']], p.orientation, 'data-orient')}</div>` : ''}
       ${fixed ? `<div class="place-row">
-          <div class="field"><span>Position</span><div class="anchor-grid">${MF.design.ANCHORS.map(a => `<button type="button" class="${p.anchor === a ? 'active' : ''}" data-anchor="${a}" aria-label="Position ${a}"><i></i></button>`).join('')}</div></div>
-          <div class="grow stack">${MF.ui.slider('scale', 'Taille de la grille', p.scale, 30, 100, 1, '%', { div: 100 })}${MF.ui.slider('padding', 'Marge', p.padding, 0, 400, 5)}</div>
-        </div>` : MF.ui.slider('padding', 'Marge autour de la grille', p.padding, 0, 400, 5)}`;
+          <div class="field"><span>${t('Position')}</span><div class="anchor-grid">${MF.design.ANCHORS.map(a => `<button type="button" class="${p.anchor === a ? 'active' : ''}" data-anchor="${a}" aria-label="${esc(t('Position {anchor}', { anchor: a }))}"><i></i></button>`).join('')}</div></div>
+          <div class="grow stack">${MF.ui.slider('scale', t('Taille de la grille'), p.scale, 30, 100, 1, '%', { div: 100 })}${MF.ui.slider('padding', t('Marge'), p.padding, 0, 400, 5)}</div>
+        </div>` : MF.ui.slider('padding', t('Marge autour de la grille'), p.padding, 0, 400, 5)}`;
   }
 
   /**

@@ -173,6 +173,32 @@
     for (const id of MF.shapes.ids) { const f = MF.shapes.fraction(id); assert(f > 0.25 && f <= 1, `${id} : ${f}`); }
   });
 
+  /* ---------------- Langues ---------------- */
+  test('langues : paramètres et repli sur le français', () => {
+    eq(MF.i18n.t('Texte absent du catalogue {n}', { n: 3 }), 'Texte absent du catalogue 3');
+    assert(['fr', 'en'].includes(MF.i18n.lang));
+  });
+  test('langues : les grilles sans langue restent en français', () => {
+    eq(MF.schema.options({}).lang, 'fr');
+    eq(MF.schema.options({ lang: 'en' }).lang, 'en');
+    eq(MF.schema.options({ lang: 'klingon' }).lang, 'fr');
+  });
+  test('dictionnaire anglais : mots propres et définis', () => {
+    const en = MF.lexicon.get('en');
+    const words = Object.keys(en);
+    assert(words.length > 3000, `${words.length} mots seulement`);
+    for (const w of words) assert(/^[A-Z]{2,9}$/.test(w) && en[w], `entrée invalide : ${w}`);
+  });
+  test('mots fléchés en anglais : remplissage avec le dictionnaire anglais', async () => {
+    const en = MF.lexicon.get('en');
+    const words = MF.util.shuffle(Object.keys(en).filter(w => w.length >= 3 && w.length <= 8), MF.util.rng(5)).slice(0, 15)
+      .map((w, i) => ({ id: `en${i}`, text: w, clue: en[w], priority: false }));
+    const page = await MF.builder.generate(words, MF.schema.options({ lang: 'en', effort: 'fast' }), { seed: 42 });
+    eq(checkBuilder(page), [], 'règles');
+    const fillers = page.words.filter(w => w.src !== 'theme');
+    assert(fillers.length > 0 && fillers.every(w => en[w.word]), 'mots de remplissage anglais');
+  });
+
   /* ---------------- Partage ---------------- */
   test('lien de partage : aller-retour', async () => {
     const words = randomWords(8, 21);

@@ -6,6 +6,7 @@ window.MF = window.MF || {};
 
 MF.dashboard = (() => {
   const { esc, plural, normalize } = MF.util;
+  const { t } = MF.i18n;
   const ic = MF.icons.svg;
   const thumbs = new Map(); // id -> { key, svg }
 
@@ -28,18 +29,18 @@ MF.dashboard = (() => {
   }
 
   /** « il y a 3 h », « hier », « 12 oct. » */
-  function ago(t) {
-    const s = (Date.now() - t) / 1000;
-    if (s < 60) return 'à l\'instant';
-    if (s < 3600) return `il y a ${Math.floor(s / 60)} min`;
-    if (s < 86400) return `il y a ${Math.floor(s / 3600)} h`;
-    if (s < 172800) return 'hier';
-    return new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+  function ago(time) {
+    const s = (Date.now() - time) / 1000;
+    if (s < 60) return t('à l\'instant');
+    if (s < 3600) return t('il y a {n} min', { n: Math.floor(s / 60) });
+    if (s < 86400) return t('il y a {n} h', { n: Math.floor(s / 3600) });
+    if (s < 172800) return t('hier');
+    return new Date(time).toLocaleDateString(MF.i18n.locale, { day: 'numeric', month: 'short' });
   }
 
   const SORTS = {
     recent: (a, b) => b.updatedAt - a.updatedAt,
-    name: (a, b) => a.name.localeCompare(b.name, 'fr'),
+    name: (a, b) => MF.i18n.compare(a.name, b.name),
     words: (a, b) => b.words.length - a.words.length,
   };
 
@@ -57,38 +58,38 @@ MF.dashboard = (() => {
     root.innerHTML = `<div class="dash">
       <header class="dash-head">
         <div class="dash-title"><span class="dash-logo">${MF.brand.svg(o.accent)}</span>
-          <div><h1>Mes grilles</h1><p class="muted small">${plural(o.puzzles.length, 'grille')} · ${plural(words, 'mot')}${byGame.length ? ` · ${byGame.map(([g, n]) => `${n} ${MF.games.get(g).short.toLowerCase()}`).join(', ')}` : ''}</p></div></div>
+          <div><h1>${t('Mes grilles')}</h1><p class="muted small">${plural(o.puzzles.length, 'grille')} · ${plural(words, 'mot')}${byGame.length ? ` · ${byGame.map(([g, n]) => `${n} ${MF.games.get(g).short.toLowerCase()}`).join(', ')}` : ''}</p></div></div>
         <div class="dash-actions">
-          <input class="input input-search" id="dash-q" placeholder="Rechercher une grille…" value="${esc(v.dashQuery || '')}">
-          <select class="select select-sm" id="dash-sort" aria-label="Trier">${[['recent', 'Récentes'], ['name', 'Nom'], ['words', 'Nombre de mots']].map(([k, l]) => `<option value="${k}" ${v.dashSort === k ? 'selected' : ''}>${l}</option>`).join('')}</select>
-          <button class="btn" id="dash-import" title="Ouvrir une sauvegarde ou une liste de mots">${ic('folder')}Ouvrir</button>
-          <button class="btn" id="dash-backup" title="Sauvegarder toutes mes grilles">${ic('download')}Sauvegarder</button>
-          <button class="btn btn-primary" id="dash-new">${ic('plus')}Nouvelle grille</button>
+          <input class="input input-search" id="dash-q" placeholder="${esc(t('Rechercher une grille…'))}" value="${esc(v.dashQuery || '')}">
+          <select class="select select-sm" id="dash-sort" aria-label="${esc(t('Trier'))}">${[['recent', t('Récentes')], ['name', t('Nom')], ['words', t('Nombre de mots')]].map(([k, l]) => `<option value="${k}" ${v.dashSort === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+          <button class="btn" id="dash-import" title="${esc(t('Ouvrir une sauvegarde ou une liste de mots'))}">${ic('folder')}${t('Ouvrir')}</button>
+          <button class="btn" id="dash-backup" title="${esc(t('Sauvegarder toutes mes grilles'))}">${ic('download')}${t('Sauvegarder')}</button>
+          <button class="btn btn-primary" id="dash-new">${ic('plus')}${t('Nouvelle grille')}</button>
         </div>
       </header>
 
-      <div class="dash-quick">${Object.entries(MF.games.GAMES).map(([id, g]) => `<button class="quick-chip" data-quick="${id}">${ic(g.icon)}<span><b>${esc(g.short)}</b><small>Créer</small></span></button>`).join('')}</div>
+      <div class="dash-quick">${Object.entries(MF.games.GAMES).map(([id, g]) => `<button class="quick-chip" data-quick="${id}">${ic(g.icon)}<span><b>${esc(g.short)}</b><small>${t('Créer')}</small></span></button>`).join('')}</div>
 
       <div class="dash-grid">
-        <button class="dash-card dash-new" id="dash-new-card">${ic('plus', 'ic-lg')}<b>Nouvelle grille</b><span class="muted small">Fléchés, croisés, mêlés ou codés</span></button>
+        <button class="dash-card dash-new" id="dash-new-card">${ic('plus', 'ic-lg')}<b>${t('Nouvelle grille')}</b><span class="muted small">${t('Fléchés, croisés, mêlés ou codés')}</span></button>
         ${list.map(p => {
           const g = MF.games.get(p.game);
           const svg = thumb(p);
-          return `<article class="dash-card ${p.id === o.activeId ? 'is-active' : ''}" data-id="${p.id}" style="--c:${p.design.accent}" tabindex="0" aria-label="Ouvrir ${esc(p.name)}">
-            <div class="dash-thumb">${svg || `<div class="dash-empty">${ic('grid', 'ic-lg')}<span>${p.words.length ? 'Pas encore calculée' : 'Aucun mot'}</span></div>`}</div>
+          return `<article class="dash-card ${p.id === o.activeId ? 'is-active' : ''}" data-id="${p.id}" style="--c:${p.design.accent}" tabindex="0" aria-label="${esc(t('Ouvrir {name}', { name: p.name }))}">
+            <div class="dash-thumb">${svg || `<div class="dash-empty">${ic('grid', 'ic-lg')}<span>${p.words.length ? t('Pas encore calculée') : t('Aucun mot')}</span></div>`}</div>
             <div class="dash-info">
               <div class="dash-name"><i class="dot"></i><b>${esc(p.name)}</b></div>
               <div class="dash-meta">${ic(g.icon, 'ic-xs')}${esc(g.short)}${p.options.shape !== 'rect' ? ` · ${esc(MF.shapes.SHAPES[p.options.shape].label)}` : ''} · ${plural(p.words.length, 'mot')} · ${ago(p.updatedAt)}</div>
             </div>
             <div class="dash-tools">
-              <button class="btn btn-sm btn-icon btn-ghost" data-act="dup" title="Dupliquer" aria-label="Dupliquer">${ic('copy')}</button>
-              <button class="btn btn-sm btn-icon btn-ghost btn-danger" data-act="del" title="Supprimer" aria-label="Supprimer">${ic('trash')}</button>
+              <button class="btn btn-sm btn-icon btn-ghost" data-act="dup" title="${esc(t('Dupliquer'))}" aria-label="${esc(t('Dupliquer'))}">${ic('copy')}</button>
+              <button class="btn btn-sm btn-icon btn-ghost btn-danger" data-act="del" title="${esc(t('Supprimer'))}" aria-label="${esc(t('Supprimer'))}">${ic('trash')}</button>
             </div>
           </article>`;
         }).join('')}
       </div>
-      ${q && !list.length ? '<p class="empty small">Aucune grille ne correspond.</p>' : ''}
-      <footer class="dash-foot muted small">${ic('lock', 'ic-inline')} Tout est enregistré dans ce navigateur, rien sur un serveur. Pense à sauvegarder de temps en temps.</footer>
+      ${q && !list.length ? `<p class="empty small">${t('Aucune grille ne correspond.')}</p>` : ''}
+      <footer class="dash-foot muted small">${ic('lock', 'ic-inline')} ${t('Tout est enregistré dans ce navigateur, rien sur un serveur. Pense à sauvegarder de temps en temps.')}</footer>
     </div>`;
 
     root.querySelector('#dash-new').onclick = o.onNew;

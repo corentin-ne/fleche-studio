@@ -82,7 +82,7 @@ MF.gridView = (() => {
       inp.autocomplete = 'off';
       inp.spellcheck = false;
       inp.setAttribute('autocapitalize', 'characters');
-      inp.setAttribute('aria-label', `Case ligne ${r + 1}, colonne ${c + 1}`);
+      inp.setAttribute('aria-label', MF.i18n.t('Case ligne {row}, colonne {col}', { row: r + 1, col: c + 1 }));
       inp.dataset.r = r; inp.dataset.c = c;
       const given = codes && ctx.model.givens.has(cell.ch);
       if (given) { inp.value = cell.ch; inp.readOnly = true; inp.classList.add('given'); } else inp.value = ctx.entries[key(r, c)] || '';

@@ -30,7 +30,7 @@ MF.schema = (() => {
   /* ---------------- Options de génération ---------------- */
   const DEFAULT_OPTIONS = {
     size: 'auto', pages: 1, fillers: true, cols: 15, rows: 19, effort: 'normal', photoBand: 0,
-    paper: 'A4', orientation: 'portrait', shape: 'rect', directions: 'normal', givens: 3, density: 'normal',
+    paper: 'A4', orientation: 'portrait', shape: 'rect', directions: 'normal', givens: 3, density: 'normal', lang: 'fr',
   };
   function options(o) {
     o = obj(o);
@@ -49,6 +49,8 @@ MF.schema = (() => {
       directions: oneOf(o.directions, ['easy', 'normal', 'hard'], D.directions),
       givens: int(o.givens, 0, 12, D.givens),
       density: oneOf(o.density, ['airy', 'normal', 'dense'], D.density),
+      // Langue des mots de la grille (les anciennes grilles, sans langue, sont en français)
+      lang: oneOf(o.lang, MF.lexicon.ids, D.lang),
     };
   }
 
@@ -239,7 +241,7 @@ MF.schema = (() => {
     const des = design(p.design || (legacyAccent ? { accent: legacyAccent, poster: { padding: 0 }, background: { type: 'none' } } : {}));
     return {
       id: id(p.id),
-      name: str(p.name, LIMITS.name) || 'Nouvelle grille',
+      name: str(p.name, LIMITS.name) || MF.i18n.t('Nouvelle grille'),
       game: oneOf(p.game, MF.games.ids, 'fleches'),
       createdAt: num(p.createdAt, 0, 1e15, Date.now()),
       updatedAt: num(p.updatedAt, 0, 1e15, Date.now()),

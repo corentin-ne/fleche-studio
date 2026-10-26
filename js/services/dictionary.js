@@ -1,17 +1,30 @@
 /* =========================================================================
-   Dictionnaire local (MF.cluesFr) : recherche, autocomplétion, correction,
+   Dictionnaire local (MF.lexicon) : recherche, autocomplétion, correction,
    tirages au hasard. Fonctionne hors ligne, instantanément.
+   Travaille dans la langue des mots de la grille ouverte (use(lang)).
    ========================================================================= */
 window.MF = window.MF || {};
 
 MF.dictionary = (() => {
   const { normalize, levenshtein } = MF.util;
+  let lang = 'fr';
+  let dict = {};      // mot -> définition, dans la langue courante
   let words = null;   // liste triée des mots (forme normalisée)
   let byFirst = null; // première lettre -> mots
 
+  /** Change la langue de travail (index reconstruit à la demande). */
+  function use(l) {
+    l = MF.lexicon.pick(l);
+    if (l === lang && words) return;
+    lang = l;
+    words = null;
+  }
+  const current = () => lang;
+
   function index() {
     if (words) return;
-    words = Object.keys(MF.cluesFr || {}).sort();
+    dict = MF.lexicon.get(lang);
+    words = Object.keys(dict).sort();
     byFirst = new Map();
     for (const w of words) {
       if (!byFirst.has(w[0])) byFirst.set(w[0], []);
@@ -20,8 +33,8 @@ MF.dictionary = (() => {
   }
 
   const size = () => (index(), words.length);
-  const has = text => !!(MF.cluesFr || {})[normalize(text)];
-  const clue = text => (MF.cluesFr || {})[normalize(text)] || '';
+  const has = text => (index(), !!dict[normalize(text)]);
+  const clue = text => (index(), dict[normalize(text)] || '');
 
   /** Mots qui commencent par la saisie (puis qui la contiennent). */
   function complete(text, limit = 8) {
@@ -31,7 +44,7 @@ MF.dictionary = (() => {
     const starts = [], contains = [];
     for (const w of byFirst.get(q[0]) || []) if (w.startsWith(q) && w !== q) starts.push(w);
     if (starts.length < limit && q.length >= 3) for (const w of words) if (!w.startsWith(q) && w.includes(q)) { contains.push(w); if (contains.length > limit) break; }
-    return [...starts.sort((a, b) => a.length - b.length), ...contains].slice(0, limit).map(w => ({ word: w, clue: MF.cluesFr[w] }));
+    return [...starts.sort((a, b) => a.length - b.length), ...contains].slice(0, limit).map(w => ({ word: w, clue: dict[w] }));
   }
 
   /** Mots proches (fautes de frappe) : distance d'édition 1 ou 2 selon la longueur. */
@@ -66,18 +79,18 @@ MF.dictionary = (() => {
     return words.filter(w => w.length >= min && w.length <= max
       && (!start || w[0] === start)
       && (!rx || rx.test(w))
-      && (!q || w.includes(nq) || MF.cluesFr[w].toLowerCase().includes(lq)));
+      && (!q || w.includes(nq) || dict[w].toLowerCase().includes(lq)));
   }
 
   /** n mots au hasard (entre min et max lettres), hors exclus. */
   function random(n, { min = 3, max = 9, exclude = new Set() } = {}) {
     index();
     const pool = words.filter(w => w.length >= min && w.length <= max && !exclude.has(w));
-    return MF.util.shuffle(pool).slice(0, n).map(w => ({ word: w, clue: MF.cluesFr[w] }));
+    return MF.util.shuffle(pool).slice(0, n).map(w => ({ word: w, clue: dict[w] }));
   }
 
   /** Présente un mot normalisé de façon lisible (CHEVAL -> Cheval). */
   const pretty = w => w.charAt(0) + w.slice(1).toLowerCase();
 
-  return { size, has, clue, complete, suggest, search, random, pretty };
+  return { use, current, size, has, clue, complete, suggest, search, random, pretty };
 })();

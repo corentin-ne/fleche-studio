@@ -107,7 +107,7 @@ MF.importer = (() => {
       const { done, value } = await reader.read();
       if (done) break;
       total += value.length;
-      if (total > max) { reader.cancel(); throw new Error('Fichier trop volumineux une fois décompressé'); }
+      if (total > max) { reader.cancel(); throw new Error(MF.i18n.t('Fichier trop volumineux une fois décompressé')); }
       chunks.push(value);
     }
     const out = new Uint8Array(total);
@@ -120,7 +120,7 @@ MF.importer = (() => {
     const dv = new DataView(buf), bytes = new Uint8Array(buf);
     let e = buf.byteLength - 22;
     while (e >= 0 && dv.getUint32(e, true) !== 0x06054b50) e--;
-    if (e < 0) throw new Error('Archive illisible');
+    if (e < 0) throw new Error(MF.i18n.t('Archive illisible'));
     const count = dv.getUint16(e + 10, true);
     let off = dv.getUint32(e + 16, true);
     const entries = new Map();
@@ -152,7 +152,7 @@ MF.importer = (() => {
     const ss = await zip.text('xl/sharedStrings.xml');
     if (ss) xml(ss).querySelectorAll('si').forEach(si => shared.push([...si.querySelectorAll('t')].map(t => t.textContent).join('')));
     const sheetName = zip.names.find(n => /^xl\/worksheets\/sheet1\.xml$/.test(n)) || zip.names.find(n => /^xl\/worksheets\/sheet\d+\.xml$/.test(n));
-    if (!sheetName) throw new Error('Aucune feuille trouvée');
+    if (!sheetName) throw new Error(MF.i18n.t('Aucune feuille trouvée'));
     const doc = xml(await zip.text(sheetName));
     const col = ref => [...ref.replace(/\d+/g, '')].reduce((s, ch) => s * 26 + ch.charCodeAt(0) - 64, 0) - 1;
     const rows = [];
@@ -172,9 +172,9 @@ MF.importer = (() => {
   /** Lit un fichier de mots. Renvoie [{ text, clue }]. */
   async function parseFile(file) {
     const name = (file.name || '').toLowerCase();
-    if (file.size > 20 * 1024 * 1024) throw new Error('Fichier trop volumineux (20 Mo maximum)');
+    if (file.size > 20 * 1024 * 1024) throw new Error(MF.i18n.t('Fichier trop volumineux (20 Mo maximum)'));
     if (/\.xlsx$/.test(name)) return parseXlsx(await file.arrayBuffer());
-    if (/\.(xls|ods|numbers|docx?)$/.test(name)) throw new Error('Ce format n\'est pas lu directement : enregistre-le en .xlsx ou .csv.');
+    if (/\.(xls|ods|numbers|docx?)$/.test(name)) throw new Error(MF.i18n.t('Ce format n\'est pas lu directement : enregistre-le en .xlsx ou .csv.'));
     const text = await file.text();
     if (/\.json$/.test(name)) return parseJson(JSON.parse(text));
     if (/\.(csv|tsv)$/.test(name)) return parseCsv(text);

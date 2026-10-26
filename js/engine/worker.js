@@ -7,7 +7,7 @@
 /* global importScripts */
 self.window = self;
 const v = self.location.search; // même version que la page (cache navigateur)
-importScripts(...['../core/utils.js', 'shapes.js', 'paper.js', '../data/clues-fr.js', '../data/clues-fr-extra.js', 'grid-model.js', 'builder.js', 'wordsearch.js'].map(f => f + v));
+importScripts(...['../core/i18n.js', '../core/utils.js', '../core/lexicon.js', 'shapes.js', 'paper.js', '../data/clues-fr.js', '../data/clues-fr-extra.js', '../data/clues-en.js', 'grid-model.js', 'builder.js', 'wordsearch.js'].map(f => f + v));
 
 self.onmessage = async e => {
   const { id, engine, words, options, seed, exclude, banned } = e.data || {};

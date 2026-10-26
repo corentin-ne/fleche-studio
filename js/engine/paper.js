@@ -46,7 +46,7 @@ MF.paper = (() => {
   /** Tailles fixes proposées : [{ cols, rows, label }]. */
   function presets(o) {
     const land = isLandscape(o);
-    return PRESETS[of(o).format].map(([c, r, label]) => (land ? { cols: r, rows: c, label } : { cols: c, rows: r, label }));
+    return PRESETS[of(o).format].map(([c, r, label]) => (land ? { cols: r, rows: c, label: MF.i18n.t(label) } : { cols: c, rows: r, label: MF.i18n.t(label) }));
   }
 
   /** Libellé court, ex. « A3 paysage ». */

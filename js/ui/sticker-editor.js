@@ -8,6 +8,8 @@ window.MF = window.MF || {};
 
 MF.stickerEditor = (() => {
   const ic = MF.icons.svg;
+  const { esc } = MF.util;
+  const { t } = MF.i18n;
   let st = null; // { view, opts, box }
 
   /**
@@ -53,12 +55,12 @@ MF.stickerEditor = (() => {
     });
     box.innerHTML = s.locked ? '' : `
       <i class="h nw" data-h="resize"></i><i class="h ne" data-h="resize"></i><i class="h sw" data-h="resize"></i><i class="h se" data-h="resize"></i>
-      <i class="h rot" data-h="rotate" title="Tourner"></i>`;
+      <i class="h rot" data-h="rotate" title="${esc(t('Tourner'))}"></i>`;
     const bar = document.createElement('div');
     bar.className = 'sel-bar';
     bar.style.transform = `rotate(${-g.rot}deg)`;
-    bar.innerHTML = [['dup', 'copy', 'Dupliquer'], ['front', 'bringFront', 'Premier plan / arrière-plan'], ['lock', s.locked ? 'lock' : 'unlock', s.locked ? 'Déverrouiller' : 'Verrouiller'], ['del', 'trash', 'Supprimer']]
-      .map(([a, i, t]) => `<button type="button" data-act="${a}" title="${t}" aria-label="${t}">${ic(i)}</button>`).join('');
+    bar.innerHTML = [['dup', 'copy', t('Dupliquer')], ['front', 'bringFront', t('Premier plan / arrière-plan')], ['lock', s.locked ? 'lock' : 'unlock', s.locked ? t('Déverrouiller') : t('Verrouiller')], ['del', 'trash', t('Supprimer')]]
+      .map(([a, i, label]) => `<button type="button" data-act="${a}" title="${esc(label)}" aria-label="${esc(label)}">${ic(i)}</button>`).join('');
     box.appendChild(bar);
     st.view.sheet.appendChild(box);
     st.box = box;

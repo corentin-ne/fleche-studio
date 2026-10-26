@@ -6,6 +6,7 @@ window.MF = window.MF || {};
 
 MF.createActions = app => {
   const { normalize, plural } = MF.util;
+  const { t } = MF.i18n;
   const store = MF.store;
   const { view } = app;
   const active = () => store.active();
@@ -43,14 +44,14 @@ MF.createActions = app => {
       const room = S.LIMITS.words - pz.words.length;
       const added = fresh.slice(0, Math.max(0, room));
       const skipped = list.length - added.length;
-      if (!added.length) { if (!silent) MF.ui.toast(skipped ? 'Déjà dans la liste.' : 'Rien à ajouter.', 'warn'); return 0; }
+      if (!added.length) { if (!silent) MF.ui.toast(t(skipped ? 'Déjà dans la liste.' : 'Rien à ajouter.'), 'warn'); return 0; }
       view.draft = {};
       mutate(p => p.words.push(...added.map(w => ({ ...w, id: MF.util.uid() }))), 'words');
       const game = MF.games.get(pz.game);
       const missing = game.clues ? added.filter(w => !w.clue).length : 0;
       if (!silent) {
-        MF.ui.toast(`${plural(added.length, 'mot ajouté', 'mots ajoutés')}${skipped ? ` (${skipped} ignoré${skipped > 1 ? 's' : ''})` : ''}${missing ? ` · ${missing} sans définition` : ''}`, 'ok', 4500,
-          missing && MF.wiki.isOnline() ? { label: 'Chercher en ligne', run: () => actions.autoDefine() } : null);
+        MF.ui.toast(`${plural(added.length, 'mot ajouté', 'mots ajoutés')}${skipped ? ` (${plural(skipped, 'ignoré')})` : ''}${missing ? ` · ${t('{n} sans définition', { n: missing })}` : ''}`, 'ok', 4500,
+          missing && MF.wiki.isOnline() ? { label: t('Chercher en ligne'), run: () => actions.autoDefine() } : null);
       }
       requestAnimationFrame(() => document.querySelector('#add-form [name=text]')?.focus());
       return added.length;
@@ -64,11 +65,11 @@ MF.createActions = app => {
       const w = active().words.find(x => x.id === id);
       if (!w) return;
       mutate(p => { p.words = p.words.filter(x => x.id !== id); }, 'words');
-      MF.ui.toast(`« ${w.text} » supprimé`, 'info', 4000, { label: 'Annuler', run: () => store.undo() });
+      MF.ui.toast(t('« {word} » supprimé', { word: w.text }), 'info', 4000, { label: t('Annuler|undo'), run: () => store.undo() });
     },
     async clearWords() {
       const pz = active();
-      if (!await MF.ui.confirm('Supprimer tous les mots ?', `Les ${pz.words.length} mots de « ${pz.name} » seront retirés (Ctrl+Z pour annuler).`, 'Tout supprimer')) return;
+      if (!await MF.ui.confirm(t('Supprimer tous les mots ?'), t('Les {n} mots de « {name} » seront retirés (Ctrl+Z pour annuler).', { n: pz.words.length, name: pz.name }), t('Tout supprimer'))) return;
       mutate(p => { p.words = []; }, 'words');
     },
     focusWord(id) {
@@ -82,7 +83,7 @@ MF.createActions = app => {
         MF.gridView.highlight(pg.engine === 'meles' ? `W${slot}` : MF.gridModel.slotKey(w));
         return;
       }
-      MF.ui.toast('Ce mot n\'est pas (encore) dans la grille.', 'warn');
+      MF.ui.toast(t('Ce mot n\'est pas (encore) dans la grille.'), 'warn');
     },
     setPage(i) { view.page = i; app.renderAll(); },
     focusSlot(key) { MF.gridView.highlight(key, { flash: false }); },
@@ -91,7 +92,7 @@ MF.createActions = app => {
     },
     banWord(word, on) {
       mutate(p => { p.banned = on ? [...new Set([...p.banned, word])] : p.banned.filter(w => w !== word); }, 'puzzle');
-      if (on) MF.ui.toast(`${word} ne sera plus utilisé (recalcule la grille).`, 'info', 4000, { label: 'Recalculer', run: () => app.regenerate(active().id) });
+      if (on) MF.ui.toast(t('{word} ne sera plus utilisé (recalcule la grille).', { word }), 'info', 4000, { label: t('Recalculer'), run: () => app.regenerate(active().id) });
     },
     setView(patch, keepFocus) {
       Object.assign(view, patch);
@@ -112,11 +113,11 @@ MF.createActions = app => {
     async importFile(file) {
       try {
         const list = await MF.importer.parseFile(file);
-        if (!list.length) { MF.ui.toast('Aucun mot trouvé dans ce fichier.', 'warn'); return; }
-        const picked = await MF.pickers.review(`Importer « ${MF.util.cleanText(file.name, 60)} »`, list, active(), `<p class="muted small">${plural(list.length, 'mot trouvé', 'mots trouvés')}. Décoche ceux que tu ne veux pas.</p>`);
+        if (!list.length) { MF.ui.toast(t('Aucun mot trouvé dans ce fichier.'), 'warn'); return; }
+        const picked = await MF.pickers.review(t('Importer « {name} »', { name: MF.util.cleanText(file.name, 60) }), list, active(), `<p class="muted small">${t('{n}. Décoche ceux que tu ne veux pas.', { n: plural(list.length, 'mot trouvé', 'mots trouvés') })}</p>`);
         if (picked?.length) afterImport(actions.addWords(picked, { silent: true }));
       } catch (e) {
-        MF.ui.toast(`Import impossible : ${e.message || 'fichier illisible'}`, 'err', 5000);
+        MF.ui.toast(t('Import impossible : {error}', { error: e.message || t('fichier illisible') }), 'err', 5000);
       }
     },
     /** Définitions manquantes : dictionnaire local puis Wiktionnaire. */
@@ -124,18 +125,18 @@ MF.createActions = app => {
       const pz = active();
       const todo = pz.words.filter(w => !w.clue.trim());
       if (!todo.length) return;
-      MF.ui.toast(`Recherche de ${plural(todo.length, 'définition')}…`, 'info', 2500);
+      MF.ui.toast(t('Recherche de {n}…', { n: plural(todo.length, 'définition') }), 'info', 2500);
       const found = new Map();
       await MF.pickers.autoDefine(todo.map(w => w.text), (i, clue) => found.set(todo[i].id, clue));
       if (found.size) mutate(p => p.words.forEach(w => { if (found.has(w.id) && !w.clue) w.clue = S.str(found.get(w.id), S.LIMITS.clue); }), 'words');
-      MF.ui.toast(found.size ? `${plural(found.size, 'définition trouvée', 'définitions trouvées')} sur ${todo.length}. Relis-les, et rends-les drôles !` : 'Aucune définition trouvée (hors ligne ?).', found.size ? 'ok' : 'warn', 5000);
+      MF.ui.toast(found.size ? t('{n} sur {total}. Relis-les, et rends-les drôles !', { n: plural(found.size, 'définition trouvée', 'définitions trouvées'), total: todo.length }) : t('Aucune définition trouvée (hors ligne ?).'), found.size ? 'ok' : 'warn', 5000);
     },
     async autoDefineFillers(words) {
-      MF.ui.toast(`Recherche de ${plural(words.length, 'définition')}…`, 'info', 2500);
+      MF.ui.toast(t('Recherche de {n}…', { n: plural(words.length, 'définition') }), 'info', 2500);
       const found = new Map();
       await MF.pickers.autoDefine(words.map(w => w.toLowerCase()), (i, clue) => found.set(words[i], clue));
       if (found.size) mutate(p => found.forEach((c, w) => { p.fillerClues[w] = S.str(c, S.LIMITS.clue); }), 'clues');
-      MF.ui.toast(found.size ? `${plural(found.size, 'définition trouvée', 'définitions trouvées')}.` : 'Rien trouvé : écris-les toi-même (ou bannis ces mots).', found.size ? 'ok' : 'warn');
+      MF.ui.toast(found.size ? `${plural(found.size, 'définition trouvée', 'définitions trouvées')}.` : t('Rien trouvé : écris-les toi-même (ou bannis ces mots).'), found.size ? 'ok' : 'warn');
     },
 
     /* ---------------- Grille ---------------- */
@@ -154,7 +155,7 @@ MF.createActions = app => {
       if (pz.game === id) return;
       const sameEngine = MF.games.get(pz.game).engine === MF.games.get(id).engine;
       mutate(p => { p.game = id; }, sameEngine ? 'puzzle' : 'options');
-      MF.ui.toast(`${MF.games.get(id).label} ✓${sameEngine ? ' (même grille, nouvelle présentation)' : ''}`, 'ok');
+      MF.ui.toast(`${MF.games.get(id).label} ✓${sameEngine ? ` ${t('(même grille, nouvelle présentation)')}` : ''}`, 'ok');
     },
 
     /* ---------------- Design ---------------- */
@@ -171,13 +172,13 @@ MF.createActions = app => {
       try {
         const a = await MF.assets.add(file, file.name);
         actions.setDesign({ background: { type: 'image', imageId: a.id } });
-      } catch (e) { MF.ui.toast(e.message || 'Image refusée.', 'err', 5000); }
+      } catch (e) { MF.ui.toast(e.message || t('Image refusée.'), 'err', 5000); }
     },
 
     /* ---------------- Décor ---------------- */
     addSticker(partial) {
       const pz = active();
-      if (pz.stickers.length >= S.LIMITS.stickers) { MF.ui.toast('Trop d\'éléments de décor.', 'warn'); return; }
+      if (pz.stickers.length >= S.LIMITS.stickers) { MF.ui.toast(t('Trop d\'éléments de décor.'), 'warn'); return; }
       const jitter = () => (Math.random() - 0.5) * 0.12;
       const base = { x: 0.5 + jitter(), y: 0.5 + jitter(), ar: 1, ...partial };
       if (base.kind === 'text') base.ar = MF.stickers.textAspect(base);
@@ -225,14 +226,14 @@ MF.createActions = app => {
       if (s && !s.locked) actions.updateSticker(id, { x: s.x + dx, y: s.y + dy }, { live: false });
     },
     async clearStickers() {
-      if (await MF.ui.confirm('Retirer tout le décor ?', 'Emojis, stickers, textes et photos de cette grille seront retirés (Ctrl+Z pour annuler).', 'Tout retirer')) {
+      if (await MF.ui.confirm(t('Retirer tout le décor ?'), t('Emojis, stickers, textes et photos de cette grille seront retirés (Ctrl+Z pour annuler).'), t('Tout retirer'))) {
         view.selected = null;
         mutate(p => { p.stickers = []; }, 'stickers');
       }
     },
     async addPhotos(files) {
       const imgs = files.filter(f => /^image\//.test(f.type));
-      if (!imgs.length) { MF.ui.toast('Aucune image reconnue.', 'warn'); return; }
+      if (!imgs.length) { MF.ui.toast(t('Aucune image reconnue.'), 'warn'); return; }
       for (const [i, f] of imgs.slice(0, 12).entries()) {
         try {
           const a = await MF.assets.add(f, f.name);
@@ -250,11 +251,12 @@ MF.createActions = app => {
     async newPuzzle(defaults = {}) {
       const res = await MF.welcome.wizard(defaults);
       if (!res) return;
-      const pz = store.makePuzzle({ name: res.name || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape } });
+      const pz = store.makePuzzle({ name: res.name || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang } });
+      MF.dictionary.use(res.lang);
       pz.design = MF.themes.apply(pz.design, res.theme);
       let words = [];
       if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
-      else if (res.start.startsWith('pack:')) words = (MF.packs[res.start.slice(5)]?.words || []).map(([text, clue]) => ({ text, clue }));
+      else if (res.start.startsWith('pack:')) words = (MF.lexicon.packs(res.lang)[res.start.slice(5)]?.words || []).map(([text, clue]) => ({ text, clue }));
       pz.words = words.map(S.word).filter(Boolean);
       view.page = 0; view.selected = null; view.filter = ''; view.home = false;
       store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; }, 'puzzles');
@@ -271,14 +273,14 @@ MF.createActions = app => {
     },
     duplicatePuzzle(id) {
       const src = id ? store.puzzle(id) : active();
-      const copy = store.makePuzzle({ ...MF.util.deepClone(src), id: null, name: `${src.name} (copie)` });
+      const copy = store.makePuzzle({ ...MF.util.deepClone(src), id: null, name: t('{name} (copie)', { name: src.name }) });
       store.update(s => { s.puzzles.push(copy); if (!id) s.activeId = copy.id; }, 'puzzles');
-      MF.ui.toast('Grille dupliquée.', 'ok');
+      MF.ui.toast(t('Grille dupliquée.'), 'ok');
     },
     async deletePuzzle(id) {
       const pz = id ? store.puzzle(id) : active();
       if (!pz) return;
-      const ok = await MF.ui.confirm('Supprimer la grille ?', `« ${pz.name} » et ses ${pz.words.length} mots seront supprimés. (Ctrl+Z pour annuler)`, 'Supprimer');
+      const ok = await MF.ui.confirm(t('Supprimer la grille ?'), t('« {name} » et ses {n} mots seront supprimés. (Ctrl+Z pour annuler)', { name: pz.name, n: pz.words.length }), t('Supprimer'));
       if (!ok) return;
       view.selected = null;
       store.update(s => { s.puzzles = s.puzzles.filter(p => p.id !== pz.id); if (s.activeId === pz.id) s.activeId = s.puzzles[0]?.id || null; }, 'puzzles');
@@ -288,10 +290,10 @@ MF.createActions = app => {
     async backup() {
       const s = store.get();
       const withImages = await MF.ui.modal({
-        title: 'Sauvegarder mes grilles', size: 'small', icon: 'download',
-        body: `<p class="muted small">Un fichier .json contenant toutes tes grilles (${s.puzzles.length}). Garde-le précieusement : il permet de tout restaurer, ici ou sur un autre appareil.</p>
-          <label class="check"><input type="checkbox" id="bk-img" checked> Inclure les images (fichier plus lourd)</label>`,
-        actions: [{ label: 'Annuler', value: null }, { label: 'Télécharger', kind: 'primary', icon: 'download', value: r => r.querySelector('#bk-img').checked }],
+        title: t('Sauvegarder mes grilles'), size: 'small', icon: 'download',
+        body: `<p class="muted small">${t('Un fichier .json contenant toutes tes grilles ({n}). Garde-le précieusement : il permet de tout restaurer, ici ou sur un autre appareil.', { n: s.puzzles.length })}</p>
+          <label class="check"><input type="checkbox" id="bk-img" checked> ${t('Inclure les images (fichier plus lourd)')}</label>`,
+        actions: [{ label: t('Annuler'), value: null }, { label: t('Télécharger'), kind: 'primary', icon: 'download', value: r => r.querySelector('#bk-img').checked }],
       });
       if (withImages === null) return;
       const assets = {};
@@ -300,8 +302,8 @@ MF.createActions = app => {
         for (const id of ids) { const d = await MF.assets.dataUrl(id); if (d) assets[id] = d; }
       }
       const data = { app: 'mots-fleches-maker', v: 3, exportedAt: new Date().toISOString(), puzzles: s.puzzles, assets };
-      MF.util.download(`mes-grilles-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data));
-      MF.ui.toast('Sauvegarde téléchargée.', 'ok');
+      MF.util.download(`${t('mes-grilles')}-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data));
+      MF.ui.toast(t('Sauvegarde téléchargée.'), 'ok');
     },
     restore() {
       const input = document.createElement('input');
@@ -313,17 +315,17 @@ MF.createActions = app => {
     /** Ouvre un fichier : sauvegarde complète, liste de mots ou image. */
     async openFile(file) {
       const name = (file.name || '').toLowerCase();
-      if (/^image\//.test(file.type)) { if (active()) return actions.addPhotos([file]); MF.ui.toast('Crée d\'abord une grille.', 'warn'); return; }
+      if (/^image\//.test(file.type)) { if (active()) return actions.addPhotos([file]); MF.ui.toast(t('Crée d\'abord une grille.'), 'warn'); return; }
       if (/\.json$/.test(name)) {
         let data;
-        try { data = JSON.parse(await MF.util.readFile(file, 80 * 1024 * 1024)); } catch { MF.ui.toast('Fichier JSON illisible.', 'err'); return; }
+        try { data = JSON.parse(await MF.util.readFile(file, 80 * 1024 * 1024)); } catch { MF.ui.toast(t('Fichier JSON illisible.'), 'err'); return; }
         if (S.isObj(data) && Array.isArray(data.puzzles)) return restoreData(data);
       }
       if (!active()) await actions.newPuzzleSilent(file.name.replace(/\.[^.]+$/, ''));
       return actions.importFile(file);
     },
     async newPuzzleSilent(name) {
-      const pz = store.makePuzzle({ name: MF.util.cleanText(name, 60) || 'Ma grille' });
+      const pz = store.makePuzzle({ name: MF.util.cleanText(name, 60) || t('Ma grille'), options: { lang: MF.lexicon.preferred() } });
       store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; }, 'puzzles');
     },
     async recoverLegacy() {
@@ -334,36 +336,36 @@ MF.createActions = app => {
       MF.ui.toast(`${plural(list.length, 'grille récupérée', 'grilles récupérées')}.`, 'ok');
     },
     async wipeAll() {
-      const ok = await MF.ui.confirm('Effacer toutes tes données ?', 'Grilles, mots, images et progression seront définitivement supprimés de ce navigateur. Pense à « Sauvegarder tout » avant. Cette action ne peut pas être annulée.', 'Tout effacer');
+      const ok = await MF.ui.confirm(t('Effacer toutes tes données ?'), t('Grilles, mots, images et progression seront définitivement supprimés de ce navigateur. Pense à « Sauvegarder tout » avant. Cette action ne peut pas être annulée.'), t('Tout effacer'));
       if (!ok) return;
       await store.wipe();
-      MF.ui.toast('Toutes les données locales ont été effacées.', 'ok');
+      MF.ui.toast(t('Toutes les données locales ont été effacées.'), 'ok');
     },
 
     /* ---------------- Partage ---------------- */
     async share() {
       const pz = active();
-      if (!pz?.layout) { MF.ui.toast('Calcule d\'abord la grille.', 'warn'); return; }
+      if (!pz?.layout) { MF.ui.toast(t('Calcule d\'abord la grille.'), 'warn'); return; }
       let url;
-      try { url = await MF.share.link(pz); } catch (e) { MF.ui.toast(e.message || 'Lien impossible.', 'err'); return; }
+      try { url = await MF.share.link(pz); } catch (e) { MF.ui.toast(e.message || t('Lien impossible.'), 'err'); return; }
       await MF.ui.modal({
-        title: 'Partager la grille à jouer', icon: 'share',
-        body: `<p class="muted small">Envoie ce lien : on pourra jouer à ta grille directement dans le navigateur, sans compte. La grille est <b>dans le lien lui-même</b> (rien n'est stocké sur un serveur).</p>
-          <div class="row share-row"><input class="input mono" id="share-url" readonly value="${MF.util.esc(url)}"><button class="btn btn-primary" id="share-copy">${MF.icons.svg('copy')}Copier</button></div>
-          <p class="field-hint">${MF.icons.svg('info', 'ic-inline')} Le lien contient les réponses (pour vérifier) ; les photos importées ne sont pas incluses. ${(url.length / 1024).toFixed(1)} Ko.</p>`,
+        title: t('Partager la grille à jouer'), icon: 'share',
+        body: `<p class="muted small">${t('Envoie ce lien : on pourra jouer à ta grille directement dans le navigateur, sans compte. La grille est <b>dans le lien lui-même</b> (rien n\'est stocké sur un serveur).')}</p>
+          <div class="row share-row"><input class="input mono" id="share-url" readonly value="${MF.util.esc(url)}"><button class="btn btn-primary" id="share-copy">${MF.icons.svg('copy')}${t('Copier')}</button></div>
+          <p class="field-hint">${MF.icons.svg('info', 'ic-inline')} ${t('Le lien contient les réponses (pour vérifier) ; les photos importées ne sont pas incluses. {size} Ko.', { size: MF.i18n.num(+(url.length / 1024).toFixed(1)) })}</p>`,
         onOpen: r => {
           const inp = r.querySelector('#share-url');
           inp.addEventListener('focus', () => inp.select());
           r.querySelector('#share-copy').onclick = async () => {
-            try { await navigator.clipboard.writeText(url); MF.ui.toast('Lien copié !', 'ok'); } catch { inp.select(); document.execCommand?.('copy'); }
+            try { await navigator.clipboard.writeText(url); MF.ui.toast(t('Lien copié !'), 'ok'); } catch { inp.select(); document.execCommand?.('copy'); }
           };
           if (navigator.share) {
-            const b = MF.util.html(`<button class="btn">${MF.icons.svg('share')}Envoyer…</button>`);
+            const b = MF.util.html(`<button class="btn">${MF.icons.svg('share')}${t('Envoyer…')}</button>`);
             b.onclick = () => navigator.share({ title: pz.name, url }).catch(() => {});
             r.querySelector('.share-row').appendChild(b);
           }
         },
-        actions: [{ label: 'Fermer', value: null }],
+        actions: [{ label: t('Fermer'), value: null }],
       });
     },
   };
@@ -372,8 +374,8 @@ MF.createActions = app => {
     if (!n) return;
     const pz = active();
     const missing = MF.games.get(pz.game).clues ? pz.words.filter(w => !w.clue).length : 0;
-    MF.ui.toast(`${plural(n, 'mot ajouté', 'mots ajoutés')}${missing ? ` · ${missing} sans définition` : ''}`, 'ok', 5000,
-      missing && MF.wiki.isOnline() ? { label: 'Les chercher', run: () => actions.autoDefine() } : null);
+    MF.ui.toast(`${plural(n, 'mot ajouté', 'mots ajoutés')}${missing ? ` · ${t('{n} sans définition', { n: missing })}` : ''}`, 'ok', 5000,
+      missing && MF.wiki.isOnline() ? { label: t('Les chercher'), run: () => actions.autoDefine() } : null);
   }
 
   /** Restaure une sauvegarde : images ré-assainies, identifiants remappés. */
@@ -391,7 +393,7 @@ MF.createActions = app => {
       pz.stickers = pz.stickers.filter(s => s.kind !== 'image' || remap.has(s.imageId)).map(s => (s.kind === 'image' ? { ...s, imageId: remap.get(s.imageId) } : s));
       return pz;
     });
-    if (!list.length) { MF.ui.toast('Aucune grille dans ce fichier.', 'warn'); return; }
+    if (!list.length) { MF.ui.toast(t('Aucune grille dans ce fichier.'), 'warn'); return; }
     store.update(s => {
       for (const p of list) {
         const i = s.puzzles.findIndex(x => x.id === p.id);

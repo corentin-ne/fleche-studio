@@ -6,6 +6,7 @@
    ========================================================================= */
 (() => {
   const { $, $$, esc, plural, hexToRgb } = MF.util;
+  const { t } = MF.i18n;
   const store = MF.store;
   const ic = MF.icons.svg;
 
@@ -47,7 +48,7 @@
   async function regenerate(pzId) {
     const pz = store.puzzle(pzId);
     if (!pz) return;
-    if (!prepared(pz).length) { MF.ui.toast('Ajoute au moins un mot (2 lettres minimum).', 'warn'); renderGrid(); return; }
+    if (!prepared(pz).length) { MF.ui.toast(t('Ajoute au moins un mot (2 lettres minimum).'), 'warn'); renderGrid(); return; }
     jobs.get(pzId)?.cancel();
     const job = { cancelled: false, run: null, live: null, cancel() { this.cancelled = true; this.run?.cancel(); } };
     jobs.set(pzId, job);
@@ -87,7 +88,7 @@
     jobs.delete(pzId);
     setBusy(false);
     if (!pages.length || pages.length !== groups.length) {
-      MF.ui.toast(error ? `Le calcul a échoué : ${error}` : 'Aucune grille trouvée : essaie une grille plus grande ou une autre forme.', 'err', 5000);
+      MF.ui.toast(error ? t('Le calcul a échoué : {error}', { error }) : t('Aucune grille trouvée : essaie une grille plus grande ou une autre forme.'), 'err', 5000);
       renderAll();
       return;
     }
@@ -100,7 +101,7 @@
 
     const total = prepared(pz).length;
     const placed = pages.reduce((n, pg) => n + pg.words.filter(w => w.wid && (engine === 'meles' || w.src === 'theme')).length, 0);
-    MF.ui.toast(`${pages.length > 1 ? '2 grilles prêtes' : 'Grille prête'} : ${placed} / ${total} de tes mots placés`, placed === total ? 'ok' : 'warn', 4000);
+    MF.ui.toast(t(pages.length > 1 ? '2 grilles prêtes : {placed} / {total} de tes mots placés' : 'Grille prête : {placed} / {total} de tes mots placés', { placed, total }), placed === total ? 'ok' : 'warn', 4000);
   }
 
   /** Construction en direct (chaque instantané est mis en file et rejoué à l'image par MF.liveBuild). */
@@ -123,7 +124,7 @@
     jobs.delete(pz.id);
     setBusy(false);
     renderAll();
-    MF.ui.toast('Calcul arrêté.', 'info');
+    MF.ui.toast(t('Calcul arrêté.'), 'info');
   }
 
   /** Recalcul automatique (changement de forme, de taille, de jeu…), groupé. */
@@ -156,7 +157,7 @@
       <button class="ptab ${p.id === s.activeId ? 'active' : ''}" data-id="${p.id}" style="--c:${p.design.accent}" title="${esc(MF.games.get(p.game).label)}">
         <i class="dot"></i>${esc(p.name)}<small>${p.words.length}</small>
       </button>`).join('') +
-      `<button class="ptab add" id="btn-new-puzzle" title="Nouvelle grille (N)" aria-label="Nouvelle grille">${ic('plus')}<span>Nouvelle</span></button>`;
+      `<button class="ptab add" id="btn-new-puzzle" title="${t('Nouvelle grille (N)')}" aria-label="${t('Nouvelle grille')}">${ic('plus')}<span>${t('Nouvelle')}</span></button>`;
   }
 
   function renderToolbar() {
@@ -190,11 +191,11 @@
     const total = prepared(pz).length;
     const missing = game.clues ? d.fillers.filter(f => !f.clue).length + pz.words.filter(w => !w.clue.trim()).length : 0;
     $('#page-switch').hidden = d.pages.length < 2;
-    $('#page-switch').innerHTML = d.pages.map((pg, i) => `<button data-page="${i}" class="${i === d.page ? 'active' : ''}">Grille ${i + 1}</button>`).join('');
+    $('#page-switch').innerHTML = d.pages.map((pg, i) => `<button data-page="${i}" class="${i === d.page ? 'active' : ''}">${t('Grille {n}', { n: i + 1 })}</button>`).join('');
     $('#grid-stats').innerHTML = d.layout
       ? `<span class="badge">${d.model.cols} × ${d.model.rows}</span>
-         <span class="badge ${d.pageOf.size === total ? 'ok' : 'warn'}"><span class="dot"></span>${d.pageOf.size} / ${total} mots placés</span>
-         ${game.clues ? `<span class="badge ${missing ? 'warn' : 'ok'}"><span class="dot"></span>${missing ? `${plural(missing, 'définition')} à écrire` : 'Tout est défini'}</span>` : ''}`
+         <span class="badge ${d.pageOf.size === total ? 'ok' : 'warn'}"><span class="dot"></span>${t('{placed} / {total} mots placés', { placed: d.pageOf.size, total })}</span>
+         ${game.clues ? `<span class="badge ${missing ? 'warn' : 'ok'}"><span class="dot"></span>${missing ? t('{n} à écrire', { n: plural(missing, 'définition') }) : t('Tout est défini')}</span>` : ''}`
       : '';
     $('#stale-bar').hidden = busy || !compatible(pz) || isFresh(pz);
 
@@ -203,12 +204,12 @@
     $('#play-clue').hidden = $('#play-bar').hidden || !game.clues;
     $('#btn-fit').classList.toggle('active', !!s.ui.fit);
     $('#btn-hint-word').hidden = pz.game === 'meles';
-    $('#btn-hint').innerHTML = `${ic('bulb')}${pz.game === 'meles' ? 'Indice' : 'Lettre'}`;
+    $('#btn-hint').innerHTML = `${ic('bulb')}${t(pz.game === 'meles' ? 'Indice' : 'Lettre')}`;
 
     const entriesFor = `${pz.id}@${pz.layout?.at}#${d.page}`;
     if (view.entriesFor !== entriesFor) {
       view.entries = loadEntries(entriesFor); view.entriesFor = entriesFor; view.playStart = Date.now();
-      $('#clue-text').textContent = 'Touche une case pour voir sa définition';
+      $('#clue-text').textContent = t('Touche une case pour voir sa définition');
     }
     const box = $('#grid-scroll');
     if (busy) {
@@ -221,8 +222,8 @@
     if (!d.model.cols) {
       lastView = null;
       box.innerHTML = total
-          ? `<div class="empty">${ic('grid')}<h3>Prêt à construire</h3><p>${plural(total, 'mot')} dans ta liste.</p><p><button class="btn btn-primary" data-regen>${ic('sparkle')}Construire la grille</button></p></div>`
-          : `<div class="empty start-hint">${ic('edit')}<h3>Commence par ajouter des mots</h3><p>Tape-les dans le panneau « Mots », ou pioche dans la bibliothèque et les thèmes. La grille se construit toute seule.</p></div>`;
+          ? `<div class="empty">${ic('grid')}<h3>${t('Prêt à construire')}</h3><p>${t('{n} dans ta liste.', { n: plural(total, 'mot') })}</p><p><button class="btn btn-primary" data-regen>${ic('sparkle')}${t('Construire la grille')}</button></p></div>`
+          : `<div class="empty start-hint">${ic('edit')}<h3>${t('Commence par ajouter des mots')}</h3><p>${t('Tape-les dans le panneau « Mots », ou pioche dans la bibliothèque et les thèmes. La grille se construit toute seule.')}</p></div>`;
       return;
     }
     const fit = (W, H) => Math.max(10, Math.min(160, Math.floor(Math.min((box.clientWidth - 28) / (W / 100), (box.clientHeight - 28) / (H / 100)))));
@@ -309,6 +310,8 @@
 
   function renderAll() {
     const pz = store.active();
+    // Autocomplétion, bibliothèque, tirages : dans la langue des mots de la grille ouverte
+    MF.dictionary.use(pz?.options.lang || MF.lexicon.preferred());
     // Booléen strict : classList.toggle(x, undefined) inverserait la classe au lieu de la fixer
     const home = !pz || !!view.home;
     document.body.classList.toggle('no-puzzle', !pz);
@@ -370,7 +373,7 @@
   setInterval(() => { if (!$('#play-bar').hidden) $('#play-time').textContent = timer(); }, 1000);
 
   function celebrate() {
-    MF.ui.toast(`Bravo, grille terminée en ${timer()} ! 🎉`, 'ok', 6000);
+    MF.ui.toast(t('Bravo, grille terminée en {time} ! 🎉', { time: timer() }), 'ok', 6000);
     const layer = MF.util.html('<div class="confetti" aria-hidden="true"></div>');
     const colors = ['#ff4d7d', '#ffd23f', '#3dd68c', '#4d9bff', '#7b3fe4', '#ff8a3d'];
     for (let i = 0; i < 90; i++) {
@@ -387,7 +390,7 @@
     if (!compatible(pz)) return [];
     const m = MF.design.metrics(pz.design);
     return pz.layout.pages.map((pg, i) => ({
-      name: pz.layout.pages.length > 1 ? `${pz.name} grille ${i + 1}` : pz.name,
+      name: pz.layout.pages.length > 1 ? t('{name} grille {n}', { name: pz.name, n: i + 1 }) : pz.name,
       puzzle: pz,
       model: MF.gridModel.from(pg, pz, m, pz.layout),
     }));
@@ -395,15 +398,15 @@
   function openExport() {
     const pz = store.active();
     const d = derive(pz);
-    if (!d.model.cols) return MF.ui.toast('Aucune grille à exporter.', 'warn');
+    if (!d.model.cols) return MF.ui.toast(t('Aucune grille à exporter.'), 'warn');
     const game = MF.games.get(pz.game);
     const missing = game.clues ? d.fillers.filter(f => !f.clue).length + pz.words.filter(w => !w.clue.trim()).length : 0;
-    if (missing) MF.ui.toast(`Attention : ${plural(missing, 'définition')} encore vide${missing > 1 ? 's' : ''}.`, 'warn', 4500);
+    if (missing) MF.ui.toast(t(missing > 1 ? 'Attention : {n} encore vides.' : 'Attention : {n} encore vide.', { n: plural(missing, 'définition') }), 'warn', 4500);
     const { puzzles } = store.get();
     const mine = exportPages(pz);
     const everyone = puzzles.flatMap(exportPages);
     const scopes = [{ id: 'puzzle', label: `${pz.name} · ${plural(mine.length, 'page')}`, pages: mine, zipName: `${MF.exporter.slug(pz.name)}.zip` }];
-    if (puzzles.length > 1) scopes.push({ id: 'all', label: `Toutes mes grilles · ${plural(everyone.length, 'page')}`, pages: everyone, zipName: 'toutes-mes-grilles.zip' });
+    if (puzzles.length > 1) scopes.push({ id: 'all', label: `${t('Toutes mes grilles')} · ${plural(everyone.length, 'page')}`, pages: everyone, zipName: `${t('toutes-mes-grilles')}.zip` });
     const getPage = () => { const p = store.active(); return exportPages(p)[derive(p).page]; };
     MF.exporter.open(getPage, scopes, (patch, live) => actions.setDesign(patch, { live: !!live }));
   }
@@ -412,20 +415,20 @@
   function help() {
     const k = (keys, label) => `<div class="kbd-row"><span>${keys.map(x => `<kbd>${x}</kbd>`).join(' ')}</span><span>${label}</span></div>`;
     MF.ui.modal({
-      title: 'Aide & raccourcis', icon: 'help',
+      title: t('Aide & raccourcis'), icon: 'help',
       body: `<div class="help-grid">
-        <div><h4>Pour démarrer</h4><ol class="small help-steps">
-          <li><b>Mots</b> : tape tes mots (autocomplétion, correction) ou pioche dans la bibliothèque, les thèmes, un fichier Excel…</li>
-          <li><b>Grille</b> : choisis le jeu (fléchés, croisés, mêlés, codés), la forme (cœur, étoile…) et la taille.</li>
-          <li><b>Design</b> : un thème en un clic, puis fond, cases, polices, titre…</li>
-          <li><b>Décor</b> : emojis, stickers, textes et photos à glisser sur l'affiche.</li>
-          <li><b>Exporter</b> : PNG, SVG, PDF, choix du format de page et de la position de la grille.</li></ol></div>
-        <div><h4>Raccourcis</h4>
-          ${k(['Ctrl', 'Z'], 'Annuler')}${k(['Ctrl', 'Y'], 'Rétablir')}${k(['N'], 'Ajouter un mot')}${k(['M'], 'Mélanger la grille')}${k(['E'], 'Exporter')}${k(['P'], 'Jouer / quitter le jeu')}${k(['1', '…', '5'], 'Onglets du panneau')}
-          ${k(['Suppr'], 'Effacer le décor sélectionné')}${k(['←', '↑', '→', '↓'], 'Déplacer le décor (Maj = plus vite)')}${k(['Ctrl', 'molette'], 'Zoom')}${k(['?'], 'Cette aide')}</div>
+        <div><h4>${t('Pour démarrer')}</h4><ol class="small help-steps">
+          <li>${t('<b>Mots</b> : tape tes mots (autocomplétion, correction) ou pioche dans la bibliothèque, les thèmes, un fichier Excel…')}</li>
+          <li>${t('<b>Grille</b> : choisis le jeu (fléchés, croisés, mêlés, codés), la forme (cœur, étoile…) et la taille.')}</li>
+          <li>${t('<b>Design</b> : un thème en un clic, puis fond, cases, polices, titre…')}</li>
+          <li>${t('<b>Décor</b> : emojis, stickers, textes et photos à glisser sur l\'affiche.')}</li>
+          <li>${t('<b>Exporter</b> : PNG, SVG, PDF, choix du format de page et de la position de la grille.')}</li></ol></div>
+        <div><h4>${t('Raccourcis')}</h4>
+          ${k(['Ctrl', 'Z'], t('Annuler|undo'))}${k(['Ctrl', 'Y'], t('Rétablir'))}${k(['N'], t('Ajouter un mot'))}${k(['M'], t('Mélanger la grille'))}${k(['E'], t('Exporter'))}${k(['P'], t('Jouer / quitter le jeu'))}${k(['1', '…', '5'], t('Onglets du panneau'))}
+          ${k([t('Suppr')], t('Effacer le décor sélectionné'))}${k(['←', '↑', '→', '↓'], t('Déplacer le décor (Maj = plus vite)'))}${k(['Ctrl', t('molette')], t('Zoom'))}${k(['?'], t('Cette aide'))}</div>
       </div>
-      <div class="privacy small">${ic('lock')}<p><b>Confidentialité :</b> pas de compte, pas de serveur, pas de traceur. Tout est enregistré dans ce navigateur. Pense à « Sauvegarder » de temps en temps (onglet Grille → Mes données).</p></div>`,
-      actions: [{ label: 'Compris', kind: 'primary', value: null }],
+      <div class="privacy small">${ic('lock')}<p>${t('<b>Confidentialité :</b> pas de compte, pas de serveur, pas de traceur. Tout est enregistré dans ce navigateur. Pense à « Sauvegarder » de temps en temps (onglet Grille → Mes données).')}</p></div>`,
+      actions: [{ label: t('Compris'), kind: 'primary', value: null }],
     });
   }
 
@@ -445,11 +448,11 @@
     $('#puzzle-tabs').addEventListener('dblclick', async e => {
       const b = e.target.closest('.ptab[data-id]');
       if (!b) return;
-      const name = await MF.ui.prompt('Renommer la grille', { label: 'Nom', value: store.puzzle(b.dataset.id).name });
+      const name = await MF.ui.prompt(t('Renommer la grille'), { label: t('Nom'), value: store.puzzle(b.dataset.id).name });
       if (name) actions.setPuzzle({ name });
     });
     $('#grid-name').addEventListener('click', async () => {
-      const name = await MF.ui.prompt('Renommer la grille', { label: 'Nom', value: store.active().name });
+      const name = await MF.ui.prompt(t('Renommer la grille'), { label: t('Nom'), value: store.active().name });
       if (name) actions.setPuzzle({ name });
     });
     $('#side-tabs').addEventListener('click', e => {
@@ -476,12 +479,17 @@
       const r = MF.gridView.check();
       if (!r) return;
       if (r.filled === r.total && !r.wrong) celebrate();
-      else MF.ui.toast(store.active().game === 'meles' ? `${r.filled} / ${r.total} mots trouvés` : `${r.filled}/${r.total} cases remplies · ${plural(r.wrong, 'erreur')}`, r.wrong ? 'warn' : 'info');
+      else MF.ui.toast(store.active().game === 'meles' ? t('{filled} / {total} mots trouvés', r) : `${t('{filled}/{total} cases remplies', r)} · ${plural(r.wrong, 'erreur')}`, r.wrong ? 'warn' : 'info');
     };
-    $('#btn-hint').onclick = () => { if (!MF.gridView.reveal('letter')) MF.ui.toast('Clique d\'abord une case.', 'info'); };
-    $('#btn-hint-word').onclick = () => { if (!MF.gridView.reveal('word')) MF.ui.toast('Clique d\'abord une case du mot.', 'info'); };
+    $('#btn-hint').onclick = () => { if (!MF.gridView.reveal('letter')) MF.ui.toast(t('Clique d\'abord une case.'), 'info'); };
+    $('#btn-hint-word').onclick = () => { if (!MF.gridView.reveal('word')) MF.ui.toast(t('Clique d\'abord une case du mot.'), 'info'); };
     $('#btn-clear-play').onclick = () => { MF.gridView.clearEntries(); view.playStart = Date.now(); };
 
+    // Langue de l'interface : changer recharge la page dans la langue choisie
+    $('#lang-code').textContent = MF.i18n.LANGS[MF.i18n.lang].short;
+    $('#btn-lang').onclick = e => MF.ui.menu(e.currentTarget, Object.entries(MF.i18n.LANGS).map(([id, l]) => ({
+      icon: id === MF.i18n.lang ? 'check' : 'globe', label: l.label, run: () => MF.i18n.set(id),
+    })));
     $('#btn-theme').onclick = () => store.update(s => { s.theme = s.theme === 'light' ? 'dark' : 'light'; }, 'theme');
     $('#btn-undo').onclick = () => store.undo();
     $('#btn-redo').onclick = () => store.redo();
@@ -570,11 +578,11 @@
     $('#btn-more').onclick = e => {
       const phone = matchMedia('(max-width: 760px)').matches;
       const items = [
-        { id: 'btn-share', icon: 'share', label: 'Partager un lien pour jouer' },
-        { id: 'btn-open', icon: 'folder', label: 'Ouvrir un fichier (mots, Excel, sauvegarde)' },
-        { id: 'btn-save', icon: 'download', label: 'Sauvegarder toutes mes grilles' },
-        ...(phone ? [{ id: 'btn-theme', icon: 'contrast', label: 'Thème clair / sombre' }] : []),
-        { id: 'btn-help', icon: 'help', label: 'Aide & raccourcis', hint: '?' },
+        { id: 'btn-share', icon: 'share', label: t('Partager un lien pour jouer') },
+        { id: 'btn-open', icon: 'folder', label: t('Ouvrir un fichier (mots, Excel, sauvegarde)') },
+        { id: 'btn-save', icon: 'download', label: t('Sauvegarder toutes mes grilles') },
+        ...(phone ? [{ id: 'btn-theme', icon: 'contrast', label: t('Thème clair / sombre') }] : []),
+        { id: 'btn-help', icon: 'help', label: t('Aide & raccourcis'), hint: '?' },
       ];
       if (phone) { MF.phoneNav.menu(items); return; }
       const noPuzzle = document.body.classList.contains('no-puzzle');
@@ -589,14 +597,14 @@
     const pz = store.active();
     const slot = derive(pz).model.slots.get(wid);
     if (!slot) return;
-    const text = MF.gridModel.clueText(slot, pz) || 'Définition à écrire';
-    $('#clue-text').innerHTML = `<b class="pc-dir">${slot.dir === 'V' ? '↓' : '→'}</b><span>${esc(text)}</span><small>${slot.cells.length} lettres</small>`;
+    const text = MF.gridModel.clueText(slot, pz) || t('Définition à écrire');
+    $('#clue-text').innerHTML = `<b class="pc-dir">${slot.dir === 'V' ? '↓' : '→'}</b><span>${esc(text)}</span><small>${plural(slot.cells.length, 'lettre')}</small>`;
   }
 
   /* ---------------- Démarrage ---------------- */
   function onChange(reason) {
     if (reason === 'theme') { applyTheme(); return; }
-    if (reason === 'quota') { MF.ui.toast('Stockage du navigateur plein : supprime des images ou des grilles, et fais une sauvegarde.', 'err', 8000); return; }
+    if (reason === 'quota') { MF.ui.toast(t('Stockage du navigateur plein : supprime des images ou des grilles, et fais une sauvegarde.'), 'err', 8000); return; }
     if (reason === 'zoom') { renderGrid(); return; }
     renderToolbar();
     if (view.sideLocked) {
@@ -616,13 +624,13 @@
   /** Ouverture d'un lien de partage (#g=…). */
   async function openShared() {
     let pz;
-    try { pz = await MF.share.read(); } catch (e) { MF.ui.toast(`Lien de partage invalide : ${e.message}`, 'err', 5000); MF.share.clearHash(); return; }
+    try { pz = await MF.share.read(); } catch (e) { MF.ui.toast(t('Lien de partage invalide : {error}', { error: e.message }), 'err', 5000); MF.share.clearHash(); return; }
     MF.share.clearHash();
     if (!pz) return;
     const ok = await MF.ui.modal({
-      title: 'Une grille t\'a été partagée !', icon: 'share',
-      body: `<p><b>${esc(pz.name)}</b> · ${esc(MF.games.get(pz.game).label)} · ${plural(pz.words.length, 'mot')}</p><p class="muted small">Elle sera ajoutée à tes grilles (dans ce navigateur uniquement).</p>`,
-      actions: [{ label: 'Non merci', value: false }, { label: 'Jouer', kind: 'primary', icon: 'play', value: true }],
+      title: t('Une grille t\'a été partagée !'), icon: 'share',
+      body: `<p><b>${esc(pz.name)}</b> · ${esc(MF.games.get(pz.game).label)} · ${plural(pz.words.length, 'mot')}</p><p class="muted small">${t('Elle sera ajoutée à tes grilles (dans ce navigateur uniquement).')}</p>`,
+      actions: [{ label: t('Non merci'), value: false }, { label: t('Jouer'), kind: 'primary', icon: 'play', value: true }],
     });
     if (!ok) return;
     store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.mode = 'play'; }, 'puzzles');
@@ -635,20 +643,21 @@
       console.error(err);
       if (Date.now() - last < 5000) return;
       last = Date.now();
-      MF.ui.toast('Petit souci technique : ton travail est sauvegardé. Si quelque chose semble bloqué, recharge la page.', 'err', 6000);
+      MF.ui.toast(t('Petit souci technique : ton travail est sauvegardé. Si quelque chose semble bloqué, recharge la page.'), 'err', 6000);
     };
     addEventListener('error', e => report(e.error || e.message));
     addEventListener('unhandledrejection', e => report(e.reason));
     // Même appli ouverte dans un autre onglet : on propose de reprendre ses changements
     addEventListener('storage', e => {
       if (!store.isOwnKey(e.key)) return;
-      MF.ui.toast('Tes grilles ont été modifiées dans un autre onglet.', 'info', 10000, { label: 'Mettre à jour', run: () => store.reload() });
+      MF.ui.toast(t('Tes grilles ont été modifiées dans un autre onglet.'), 'info', 10000, { label: t('Mettre à jour'), run: () => store.reload() });
     });
   }
 
   async function boot() {
     guard();
     store.load();
+    MF.i18n.apply();
     MF.icons.hydrate();
     applyTheme();
     bind();

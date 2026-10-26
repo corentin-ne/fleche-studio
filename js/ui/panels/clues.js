@@ -7,6 +7,7 @@ MF.panels = MF.panels || {};
 
 MF.panels.clues = (() => {
   const { esc, normalize, plural } = MF.util;
+  const { t } = MF.i18n;
   const ic = MF.icons.svg;
 
   function render(root, { puzzle, derived, actions }) {
@@ -21,43 +22,43 @@ MF.panels.clues = (() => {
 
     root.innerHTML = `<div class="diag">
       <div class="kpis">
-        <div class="kpi glass-soft"><span class="label">Mes mots</span><span class="value">${placed}<small>/ ${themes.length}</small></span>
+        <div class="kpi glass-soft"><span class="label">${t('Mes mots')}</span><span class="value">${placed}<small>/ ${themes.length}</small></span>
           <div class="progress"><i style="width:${themes.length ? (placed / themes.length) * 100 : 0}%"></i></div></div>
-        <div class="kpi glass-soft"><span class="label">Mots en tout</span><span class="value">${total}</span><span class="delta">dans la grille</span></div>
-        ${game.clues ? `<div class="kpi glass-soft ${missing.length ? 'is-warn' : ''}"><span class="label">À définir</span><span class="value">${missing.length}</span><span class="delta">${missing.length ? 'à écrire' : 'tout est défini ✓'}</span></div>`
-          : `<div class="kpi glass-soft"><span class="label">Jeu</span><span class="value kpi-text">${esc(game.short)}</span><span class="delta">sans définitions</span></div>`}
+        <div class="kpi glass-soft"><span class="label">${t('Mots en tout')}</span><span class="value">${total}</span><span class="delta">${t('dans la grille')}</span></div>
+        ${game.clues ? `<div class="kpi glass-soft ${missing.length ? 'is-warn' : ''}"><span class="label">${t('À définir')}</span><span class="value">${missing.length}</span><span class="delta">${missing.length ? t('à écrire') : t('tout est défini ✓')}</span></div>`
+          : `<div class="kpi glass-soft"><span class="label">${t('Jeu')}</span><span class="value kpi-text">${esc(game.short)}</span><span class="delta">${t('sans définitions')}</span></div>`}
       </div>
 
       ${game.clues && fillers.length ? `
-      <div class="section-title">${ic('edit')}Mots de remplissage <span class="badge">${fillers.length}</span>
-        ${missing.length ? `<button type="button" class="btn btn-sm btn-ghost" id="fill-auto">${ic('wand')}Chercher les ${missing.length} manquantes</button>` : ''}</div>
-      <p class="muted small">Mots courants ajoutés pour remplir la grille. Personnalise leurs définitions, ou ${ic('x', 'ic-inline muted')} pour ne plus jamais utiliser un mot.</p>
+      <div class="section-title">${ic('edit')}${t('Mots de remplissage')} <span class="badge">${fillers.length}</span>
+        ${missing.length ? `<button type="button" class="btn btn-sm btn-ghost" id="fill-auto">${ic('wand')}${t('Chercher les {n} manquantes', { n: missing.length })}</button>` : ''}</div>
+      <p class="muted small">${t('Mots courants ajoutés pour remplir la grille. Personnalise leurs définitions, ou {icon} pour ne plus jamais utiliser un mot.', { icon: ic('x', 'ic-inline muted') })}</p>
       <div class="filler-list">${fillers.map(f => `
         <div class="filler ${f.clue ? '' : 'missing'}" data-key="${f.key}">
           <span class="fw mono">${esc(f.word)}<small>${f.word.length}</small></span>
-          <input class="input input-sm" data-word="${esc(f.word)}" value="${esc(f.clue)}" maxlength="${MF.schema.LIMITS.clue}" placeholder="${f.ready ? esc(f.ready) : 'Écris une définition…'}" spellcheck="true" lang="fr">
-          <button type="button" class="btn btn-sm btn-ghost btn-icon" data-find="${esc(f.word)}" title="Chercher une définition">${ic('book')}</button>
-          ${f.own && f.ready ? `<button type="button" class="btn btn-sm btn-ghost btn-icon" data-reset="${esc(f.word)}" title="Revenir à « ${esc(f.ready)} »">${ic('refresh')}</button>` : ''}
-          <button type="button" class="btn btn-sm btn-ghost btn-icon btn-danger" data-ban="${esc(f.word)}" title="Ne plus utiliser ce mot">${ic('x')}</button>
+          <input class="input input-sm" data-word="${esc(f.word)}" value="${esc(f.clue)}" maxlength="${MF.schema.LIMITS.clue}" placeholder="${f.ready ? esc(f.ready) : t('Écris une définition…')}" spellcheck="true" lang="${MF.dictionary.current()}">
+          <button type="button" class="btn btn-sm btn-ghost btn-icon" data-find="${esc(f.word)}" title="${t('Chercher une définition')}">${ic('book')}</button>
+          ${f.own && f.ready ? `<button type="button" class="btn btn-sm btn-ghost btn-icon" data-reset="${esc(f.word)}" title="${t('Revenir à « {clue} »', { clue: esc(f.ready) })}">${ic('refresh')}</button>` : ''}
+          <button type="button" class="btn btn-sm btn-ghost btn-icon btn-danger" data-ban="${esc(f.word)}" title="${t('Ne plus utiliser ce mot')}">${ic('x')}</button>
         </div>`).join('')}</div>` : ''}
 
       ${puzzle.banned.length ? `
-      <div class="section-title">${ic('x')}Mots bannis <span class="badge">${puzzle.banned.length}</span></div>
-      <p class="muted small">Jamais utilisés pour remplir la grille (au prochain calcul). Clique pour les autoriser à nouveau.</p>
+      <div class="section-title">${ic('x')}${t('Mots bannis')} <span class="badge">${puzzle.banned.length}</span></div>
+      <p class="muted small">${t('Jamais utilisés pour remplir la grille (au prochain calcul). Clique pour les autoriser à nouveau.')}</p>
       <div class="chips">${puzzle.banned.map(w => `<button type="button" class="chip chip-btn mono" data-unban="${esc(w)}">${esc(w)} ${ic('x', 'ic-xs')}</button>`).join('')}</div>` : ''}
 
       ${outWords.length ? `
-      <div class="section-title">${ic('grid')}Mots hors de la grille <span class="badge warn">${outWords.length}</span></div>
-      <p class="muted small">Ils n'ont pas trouvé de place. Mets une ${ic('star', 'ic-inline')} aux plus importants puis recalcule, ou agrandis la grille (onglet Grille).</p>
+      <div class="section-title">${ic('grid')}${t('Mots hors de la grille')} <span class="badge warn">${outWords.length}</span></div>
+      <p class="muted small">${t('Ils n\'ont pas trouvé de place. Mets une {icon} aux plus importants puis recalcule, ou agrandis la grille (onglet Grille).', { icon: ic('star', 'ic-inline') })}</p>
       <div class="chips">${outWords.map(w => `<span class="chip mono" title="${esc(w.clue)}">${esc(normalize(w.text))}</span>`).join(' ')}</div>` : ''}
 
-      ${issues.length ? `<div class="section-title">${ic('alert')}À vérifier</div><div class="checks">${issues.map(it => `
+      ${issues.length ? `<div class="section-title">${ic('alert')}${t('À vérifier')}</div><div class="checks">${issues.map(it => `
         <div class="check-item ${it.level}" ${it.wid ? `data-wid="${it.wid}"` : ''}>
           ${ic(levelIcon[it.level])}
           <div class="grow"><div><b>${esc(it.title)}</b></div><div class="detail">${esc(it.detail)}</div></div>
-        </div>`).join('')}</div>` : (layout ? `<div class="all-good">${ic('check')}<span><b>Tout est en ordre.</b> Ta grille est prête à être exportée.</span></div>` : '')}
+        </div>`).join('')}</div>` : (layout ? `<div class="all-good">${ic('check')}<span><b>${t('Tout est en ordre.')}</b> ${t('Ta grille est prête à être exportée.')}</span></div>` : '')}
 
-      <p class="muted small diag-foot">${layout?.pages?.[0]?.attempts ? `${plural(layout.pages[0].attempts, 'grille essayée', 'grilles essayées')} lors du dernier calcul. ` : ''}« Mélanger » cherche une autre disposition.</p>
+      <p class="muted small diag-foot">${layout?.pages?.[0]?.attempts ? `${t('{n} lors du dernier calcul.', { n: plural(layout.pages[0].attempts, 'grille essayée', 'grilles essayées') })} ` : ''}${t('« Mélanger » cherche une autre disposition.')}</p>
     </div>`;
 
     const box = root.firstElementChild;
@@ -74,21 +75,21 @@ MF.panels.clues = (() => {
       });
     });
     box.addEventListener('click', async e => {
-      const t = e.target.closest('button');
-      if (!t) {
+      const btn = e.target.closest('button');
+      if (!btn) {
         const ci = e.target.closest('[data-wid]');
         if (ci) actions.focusWord(ci.dataset.wid);
         return;
       }
-      if (t.dataset.reset) actions.setFillerClue(t.dataset.reset, null);
-      if (t.dataset.ban) actions.banWord(t.dataset.ban, true);
-      if (t.dataset.unban) actions.banWord(t.dataset.unban, false);
-      if (t.dataset.find) {
-        const cur = box.querySelector(`input[data-word="${t.dataset.find}"]`)?.value || '';
-        const def = await MF.pickers.chooseDefinition(t.dataset.find.charAt(0) + t.dataset.find.slice(1).toLowerCase(), cur);
-        if (def) actions.setFillerClue(t.dataset.find, def);
+      if (btn.dataset.reset) actions.setFillerClue(btn.dataset.reset, null);
+      if (btn.dataset.ban) actions.banWord(btn.dataset.ban, true);
+      if (btn.dataset.unban) actions.banWord(btn.dataset.unban, false);
+      if (btn.dataset.find) {
+        const cur = box.querySelector(`input[data-word="${btn.dataset.find}"]`)?.value || '';
+        const def = await MF.pickers.chooseDefinition(btn.dataset.find.charAt(0) + btn.dataset.find.slice(1).toLowerCase(), cur);
+        if (def) actions.setFillerClue(btn.dataset.find, def);
       }
-      if (t.id === 'fill-auto') actions.autoDefineFillers(missing.map(f => f.word));
+      if (btn.id === 'fill-auto') actions.autoDefineFillers(missing.map(f => f.word));
     });
   }
 

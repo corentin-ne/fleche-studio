@@ -89,6 +89,7 @@ MF.icons = (() => {
 
 MF.ui = (() => {
   const { esc, html } = MF.util;
+  const { t } = MF.i18n;
   const ic = MF.icons.svg;
 
   /** Notification éphémère. `action` = { label, run } ajoute un bouton (ex. « Annuler »). */
@@ -110,13 +111,13 @@ MF.ui = (() => {
   function modal(o) {
     return new Promise(resolve => {
       const prevFocus = document.activeElement;
-      const actions = (o.actions || [{ label: 'Fermer', value: null }]).map((a, i) =>
+      const actions = (o.actions || [{ label: t('Fermer'), value: null }]).map((a, i) =>
         `<button class="btn ${a.kind ? 'btn-' + a.kind : ''}" data-i="${i}">${a.icon ? ic(a.icon) : ''}${esc(a.label)}</button>`).join('');
       const root = html(`
         <div class="modal-scrim">
           <div class="modal glass ${o.wide ? 'wide' : ''} ${o.size || ''} ${o.className || ''}" role="dialog" aria-modal="true" aria-label="${esc(o.title)}">
             <div class="modal-head">${o.icon ? `<span class="modal-icon">${ic(o.icon)}</span>` : ''}<h3>${esc(o.title)}</h3>
-              <button class="btn btn-icon btn-ghost" data-close aria-label="Fermer">${ic('x')}</button></div>
+              <button class="btn btn-icon btn-ghost" data-close aria-label="${esc(t('Fermer'))}">${ic('x')}</button></div>
             <div class="modal-body">${o.body || ''}</div>
             ${actions ? `<div class="modal-foot">${o.footNote ? `<span class="foot-note">${o.footNote}</span>` : ''}${actions}</div>` : ''}
           </div>
@@ -160,19 +161,19 @@ MF.ui = (() => {
     });
   }
 
-  const confirm = (title, message, label = 'Confirmer', kind = 'danger-solid') => modal({
+  const confirm = (title, message, label = t('Confirmer'), kind = 'danger-solid') => modal({
     title, size: 'small',
     body: `<p class="muted">${esc(message)}</p>`,
-    actions: [{ label: 'Annuler', value: false }, { label, kind, value: true }],
+    actions: [{ label: t('Annuler'), value: false }, { label, kind, value: true }],
   });
 
   /** Demande un texte. */
-  function prompt(title, { label = '', value = '', placeholder = '', okLabel = 'Valider', max = 80 } = {}) {
+  function prompt(title, { label = '', value = '', placeholder = '', okLabel = t('Valider'), max = 80 } = {}) {
     return modal({
       title, size: 'small',
       body: `<label class="field"><span>${esc(label)}</span><input class="input" id="prompt-input" maxlength="${max}" value="${esc(value)}" placeholder="${esc(placeholder)}" autofocus></label>`,
       onOpen: r => r.querySelector('#prompt-input').addEventListener('keydown', e => { if (e.key === 'Enter') r.querySelector('.btn-primary').click(); }),
-      actions: [{ label: 'Annuler', value: null }, { label: okLabel, kind: 'primary', value: r => r.querySelector('#prompt-input').value.trim() }],
+      actions: [{ label: t('Annuler'), value: null }, { label: okLabel, kind: 'primary', value: r => r.querySelector('#prompt-input').value.trim() }],
     });
   }
 
@@ -233,7 +234,7 @@ MF.ui = (() => {
     return `<div class="color-field ${isAuto ? 'is-auto' : ''}" data-color-key="${esc(key)}">
       <label class="color-swatch" style="--c:${esc(shown)}" title="${esc(label)}"><input type="color" value="${esc(shown)}" aria-label="${esc(label)}"></label>
       <span class="color-label">${esc(label)}${isAuto ? '<small>auto</small>' : ''}</span>
-      ${auto && !isAuto ? `<button type="button" class="btn btn-sm btn-ghost btn-icon" data-auto title="Revenir à la couleur automatique" aria-label="Couleur automatique">${ic('refresh')}</button>` : ''}
+      ${auto && !isAuto ? `<button type="button" class="btn btn-sm btn-ghost btn-icon" data-auto title="${esc(t('Revenir à la couleur automatique'))}" aria-label="${esc(t('Couleur automatique'))}">${ic('refresh')}</button>` : ''}
     </div>`;
   }
 

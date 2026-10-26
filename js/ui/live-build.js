@@ -17,13 +17,14 @@ window.MF = window.MF || {};
 
 MF.liveBuild = (() => {
   const { esc } = MF.util;
+  const { t } = MF.i18n;
   const ARROW = { right: '→', down: '↓', downRight: '↳', rightDown: '⤵' };
   const DIR = { H: [0, 1], V: [1, 0] };
   const WAIT_FRAME = { w: 13, h: 17, top: 0, shape: 'rect' }; // grille fantôme avant le premier instantané
   const RING = 2 * Math.PI * 22;
   const STEPS = {
-    builder: ['Placement de tes mots', 'Remplissage', 'Choix final'],
-    meles: ['Cachette de tes mots', 'Lettres de remplissage'],
+    builder: [t('Placement de tes mots'), t('Remplissage'), t('Choix final')],
+    meles: [t('Cachette de tes mots'), t('Lettres de remplissage')],
   };
   const DRAIN_FRAMES = 22; // la file est rattrapée en ~22 images : visible sans prendre de retard
   const HOLD_MS = 650; // la grille terminée reste un instant avant le rendu final
@@ -39,7 +40,7 @@ MF.liveBuild = (() => {
         <div class="lb-stage">
           <div class="lb-aura" aria-hidden="true"><i></i><i></i><i></i></div>
           <div class="lb-board">
-            <div class="lb-frame"><div class="lb-grid" role="img" aria-label="Grille en cours de construction"></div></div>
+            <div class="lb-frame"><div class="lb-grid" role="img" aria-label="${esc(t('Grille en cours de construction'))}"></div></div>
             <div class="lb-scan" aria-hidden="true"></div>
           </div>
         </div>
@@ -53,11 +54,11 @@ MF.liveBuild = (() => {
             <b class="lb-pct">0%</b>
           </div>
           <div class="lb-info">
-            <div class="lb-title"><span class="lb-live"><i></i>En direct</span><span class="lb-phase">Préparation…</span></div>
+            <div class="lb-title"><span class="lb-live"><i></i>${t('En direct')}</span><span class="lb-phase">${t('Préparation…')}</span></div>
             <div class="lb-stats"></div>
             <ol class="lb-steps"></ol>
           </div>
-          <button class="btn btn-sm btn-ghost lb-stop" title="Arrêter le calcul">${MF.icons.svg('x')}Arrêter</button>
+          <button class="btn btn-sm btn-ghost lb-stop" title="${esc(t('Arrêter le calcul'))}">${MF.icons.svg('x')}${t('Arrêter')}</button>
         </div>
       </div>`;
     const root = box.firstElementChild;
@@ -235,7 +236,9 @@ MF.liveBuild = (() => {
   }
 
   /* ---------------- Panneau d'état ---------------- */
-  const fmt = n => Math.round(n).toLocaleString('fr-FR');
+  const fmt = n => MF.i18n.num(Math.round(n));
+  /** Unité accordée au nombre (le nombre est affiché à part, en gras). */
+  const unit = (n, one, many) => t((MF.i18n.lang === 'fr' ? n > 1 : n !== 1) ? many : one);
 
   function hud(live, snap) {
     const done = snap?.phase === 'done';
@@ -246,20 +249,20 @@ MF.liveBuild = (() => {
     const engine = snap?.engine || live.engine || 'builder';
     const steps = STEPS[engine] || STEPS.builder;
     const step = !snap ? -1 : done ? steps.length - 1 : snap.phase === 'fill' ? 1 : 0;
-    let phase = 'Préparation…';
-    if (snap) phase = done ? 'Grille prête' : snap.phase === 'fill' ? `Remplissage · variante ${snap.variant}/${snap.variants}` : steps[0];
+    let phase = t('Préparation…');
+    if (snap) phase = done ? t('Grille prête') : snap.phase === 'fill' ? t('Remplissage · variante {n}/{total}', { n: snap.variant, total: snap.variants }) : steps[0];
     if (st.phase.textContent !== phase) st.phase.textContent = phase;
     st.root.classList.toggle('done', done);
 
     const chips = [];
-    if (live.pages > 1) chips.push(`<span class="lb-chip page">Grille ${live.page + 1} / ${live.pages}</span>`);
+    if (live.pages > 1) chips.push(`<span class="lb-chip page">${t('Grille {n} / {total}', { n: live.page + 1, total: live.pages })}</span>`);
     if (snap) {
       const all = snap.placed === snap.total;
-      chips.push(`<span class="lb-chip ${all ? 'ok' : ''}"><b>${snap.placed}</b>/${snap.total} mots perso</span>`);
+      chips.push(`<span class="lb-chip ${all ? 'ok' : ''}"><b>${snap.placed}</b>/${snap.total} ${unit(snap.total, 'mot perso', 'mots perso')}</span>`);
       const fillers = (snap.words || []).filter(w => w.src === 'curated').length;
-      if (fillers) chips.push(`<span class="lb-chip"><b>${fillers}</b> ${fillers > 1 ? 'mots courants' : 'mot courant'}</span>`);
+      if (fillers) chips.push(`<span class="lb-chip"><b>${fillers}</b> ${unit(fillers, 'mot courant', 'mots courants')}</span>`);
       const tries = snap.attempts || 0;
-      chips.push(`<span class="lb-chip"><b>${fmt(tries)}</b> ${tries > 1 ? 'essais' : 'essai'}</span>`);
+      chips.push(`<span class="lb-chip"><b>${fmt(tries)}</b> ${unit(tries, 'essai', 'essais')}</span>`);
       chips.push(`<span class="lb-chip">${snap.frame.w} × ${snap.frame.h - (snap.frame.top || 0)}</span>`);
     }
     st.stats.innerHTML = chips.join('');

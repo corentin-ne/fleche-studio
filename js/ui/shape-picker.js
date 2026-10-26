@@ -8,7 +8,9 @@ window.MF = window.MF || {};
 
 MF.shapePicker = (() => {
   const { esc } = MF.util;
+  const { t } = MF.i18n;
   const S = MF.shapes;
+  const dot = () => `<i class="chip-dot" aria-label="${esc(t('forme choisie'))}"></i>`;
   let lastGroup = null;
 
   /**
@@ -22,7 +24,7 @@ MF.shapePicker = (() => {
     const n = compact ? 11 : 13;
     const chips = Object.entries(S.GROUPS).map(([g, label]) => {
       const has = S.groupOf(current) === g;
-      return `<button type="button" class="chip chip-btn ${g === open ? 'active' : ''}" data-shape-cat="${g}" aria-pressed="${g === open}">${esc(label)}${has ? '<i class="chip-dot" aria-label="forme choisie"></i>' : ''}<small>${S.byGroup(g).length}</small></button>`;
+      return `<button type="button" class="chip chip-btn ${g === open ? 'active' : ''}" data-shape-cat="${g}" aria-pressed="${g === open}">${esc(label)}${has ? dot() : ''}<small>${S.byGroup(g).length}</small></button>`;
     }).join('');
     const panels = Object.keys(S.GROUPS).map(g => {
       const glyphs = g === 'letters' || g === 'digits';
@@ -31,7 +33,7 @@ MF.shapePicker = (() => {
         return `<button type="button" class="shape-btn ${id === current ? 'active' : ''}" ${attrs(id)} title="${esc(s.label)}" aria-label="${esc(s.label)}">${S.preview(id, n)}<span>${esc(s.short || s.label)}</span></button>`;
       }).join('')}</div>`;
     }).join('');
-    return `<div class="shape-picker"><div class="chips shape-cats" role="toolbar" aria-label="Familles de formes">${chips}</div>${panels}</div>`;
+    return `<div class="shape-picker"><div class="chips shape-cats" role="toolbar" aria-label="${esc(t('Familles de formes'))}">${chips}</div>${panels}</div>`;
   }
 
   /** Bascule de famille, sur place. */
@@ -43,7 +45,7 @@ MF.shapePicker = (() => {
         const g = btn.closest('[data-shape-panel]').dataset.shapePanel;
         picker.querySelectorAll('[data-shape-cat]').forEach(c => {
           c.querySelector('.chip-dot')?.remove();
-          if (c.dataset.shapeCat === g) c.querySelector('small').insertAdjacentHTML('beforebegin', '<i class="chip-dot" aria-label="forme choisie"></i>');
+          if (c.dataset.shapeCat === g) c.querySelector('small').insertAdjacentHTML('beforebegin', dot());
         });
         return;
       }

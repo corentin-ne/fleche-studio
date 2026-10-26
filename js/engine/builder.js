@@ -198,25 +198,26 @@ MF.builder = (() => {
   }
 
   /* ---------------- 2. Comblement avec des mots courants ---------------- */
-  let fillerIndex = null; // lettre -> [[mot, position]]
-  function fillers() {
-    if (fillerIndex) return fillerIndex;
-    fillerIndex = new Map();
-    for (const w of Object.keys(MF.cluesFr || {})) {
+  const fillerIndexes = new Map(); // langue -> (lettre -> [[mot, position]])
+  function fillers(lang) {
+    if (fillerIndexes.has(lang)) return fillerIndexes.get(lang);
+    const index = new Map();
+    for (const w of Object.keys(MF.lexicon.get(lang))) {
       if (w.length < 3 || w.length > 9) continue;
       for (let i = 0; i < w.length; i++) {
-        if (!fillerIndex.has(w[i])) fillerIndex.set(w[i], []);
-        fillerIndex.get(w[i]).push([w, i]);
+        if (!index.has(w[i])) index.set(w[i], []);
+        index.get(w[i]).push([w, i]);
       }
     }
-    return fillerIndex;
+    fillerIndexes.set(lang, index);
+    return index;
   }
 
   const DENSITY = { airy: { rounds: 70, islands: false }, normal: { rounds: 400, islands: true }, dense: { rounds: 600, islands: true } };
 
   /** `tick` (facultatif) est appelé après chaque mot posé : construction visible en direct. */
-  function fillGaps(board, rnd, used, deadline, density = 'normal', tick) {
-    const index = fillers();
+  function fillGaps(board, rnd, used, deadline, density = 'normal', tick, lang = 'fr') {
+    const index = fillers(lang);
     const dz = DENSITY[density] || DENSITY.normal;
     for (let round = 0; round < dz.rounds && performance.now() < deadline; round++) {
       let best = null, bestScore = -Infinity;
@@ -246,19 +247,21 @@ MF.builder = (() => {
       place(board, toPlacement(best.w, 'curated', undefined, best.ev));
       tick?.();
     }
-    if (dz.islands) fillIslands(board, rnd, used, deadline, tick);
+    if (dz.islands) fillIslands(board, rnd, used, deadline, tick, lang);
   }
 
   /** Mots courants posés seuls dans les zones encore vides (les plus longs d'abord). */
-  let byLength = null;
-  function fillIslands(board, rnd, used, deadline, tick) {
+  const byLengths = new Map(); // langue -> (longueur -> mots)
+  function fillIslands(board, rnd, used, deadline, tick, lang = 'fr') {
+    let byLength = byLengths.get(lang);
     if (!byLength) {
       byLength = new Map();
-      for (const w of Object.keys(MF.cluesFr || {})) {
+      for (const w of Object.keys(MF.lexicon.get(lang))) {
         if (w.length < 3 || w.length > 9) continue;
         if (!byLength.has(w.length)) byLength.set(w.length, []);
         byLength.get(w.length).push(w);
       }
+      byLengths.set(lang, byLength);
     }
     const { w: W, h: H, top = 0 } = board.frame;
     for (let round = 0; round < 200 && performance.now() < deadline; round++) {
@@ -449,7 +452,7 @@ MF.builder = (() => {
       const used = new Set([...exclude, ...banned, ...board.placements.map(p => p.word)]);
       const tick = () => show(board, 'fill', { variant: i + 1, variants: top.length }, true);
       tick();
-      if (withFillers) fillGaps(board, MF.util.rng((seed + i * 104729) >>> 0), used, performance.now() + Math.max(400, (budget * 0.3) / top.length), opts.density, tick);
+      if (withFillers) fillGaps(board, MF.util.rng((seed + i * 104729) >>> 0), used, performance.now() + Math.max(400, (budget * 0.3) / top.length), opts.density, tick, MF.lexicon.pick(opts.lang));
       const res = summarize(board, all, { seed, attempts: n });
       res.score = cand.score * 10 - res.photos;
       if (!best || res.score > best.score) best = res;
@@ -463,7 +466,7 @@ MF.builder = (() => {
   const optionsKey = (o = {}) => {
     const paper = MF.paper.label(o);
     // A4 portrait (format historique) n'apparaît pas : les grilles déjà calculées restent à jour
-    return `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}|${paper}|${o.shape || 'rect'}|${o.density || 'normal'}${o.shape && o.shape !== 'rect' ? '|s2' : ''}`;
+    return `${o.size === 'fixed' ? `${o.cols || 15}x${o.rows || 21}` : 'auto'}|p${o.pages || 1}|f${o.fillers === false ? 0 : 1}|b${+o.photoBand || 0}|${paper}|${o.shape || 'rect'}|${o.density || 'normal'}${o.shape && o.shape !== 'rect' ? '|s2' : ''}${o.lang && o.lang !== 'fr' ? `|${o.lang}` : ''}`;
   };
 
   /** Empreinte des données qui influencent la grille. */

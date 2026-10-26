@@ -100,9 +100,11 @@ MF.scene = (() => {
             const narrow = cl.box.w < U / 2;
             const cx = x + cl.box.x + cl.box.w / 2, cy = y + cl.box.y + cl.box.h / 2;
             const bw = cl.box.w - 10, bh = narrow ? 44 : 26;
-            const label = narrow
-              ? [{ op: 'text', x: cx, y: cy - 3, text: 'à', size: 11, font: m.clueFont, weight: 700, fill: C.arrow, anchor: 'middle' }, { op: 'text', x: cx, y: cy + 11, text: 'définir', size: 11, font: m.clueFont, weight: 700, fill: C.arrow, anchor: 'middle' }]
-              : [{ op: 'text', x: cx, y: cy + 5, text: 'à définir', size: 13, font: m.clueFont, weight: 700, fill: C.arrow, anchor: 'middle' }];
+            // Case étroite : le libellé passe sur deux lignes (premier mot, puis le reste)
+            const todo = MF.i18n.t('à définir'), cut = todo.indexOf(' ');
+            const label = narrow && cut > 0
+              ? [{ op: 'text', x: cx, y: cy - 3, text: todo.slice(0, cut), size: 11, font: m.clueFont, weight: 700, fill: C.arrow, anchor: 'middle' }, { op: 'text', x: cx, y: cy + 11, text: todo.slice(cut + 1), size: 11, font: m.clueFont, weight: 700, fill: C.arrow, anchor: 'middle' }]
+              : [{ op: 'text', x: cx, y: cy + 5, text: todo, size: 13, font: m.clueFont, weight: 700, fill: C.arrow, anchor: 'middle' }];
             ops.push({ op: 'group', cls: 'missing', data: { key: cl.wid }, children: [{ op: 'rect', x: cx - bw / 2, y: cy - bh / 2, w: bw, h: bh, r: 13, fill: '#ffffff', stroke: C.arrow, sw: 2, dash: '5 4' }, ...label] });
           }
         }
@@ -141,7 +143,7 @@ MF.scene = (() => {
       { op: 'rect', x, y, w: bw, h: bh, r: 24, fill: 'none', stroke: '#ffffff', sw: 4, dash: '14 10' },
       { op: 'path', d: `M${cx - 60} ${cy + 20}l35-40 24 27 18-18 43 31Z`, fill: '#ffffff' },
       { op: 'circle', cx: cx + 30, cy: cy - 30, r: 12, fill: '#ffffff' },
-      { op: 'text', x: cx, y: cy + 70, text: `Zone libre · ${model.cols} × ${model.band} cases`, size: 34, font: MF.design.font('inter').css, weight: 700, fill: '#ffffff', anchor: 'middle' },
+      { op: 'text', x: cx, y: cy + 70, text: MF.i18n.t('Zone libre · {cols} × {rows} cases', { cols: model.cols, rows: model.band }), size: 34, font: MF.design.font('inter').css, weight: 700, fill: '#ffffff', anchor: 'middle' },
     ] };
   }
 
@@ -192,7 +194,7 @@ MF.scene = (() => {
         }
         return { title, items, h };
       };
-      const cols = [column('Horizontalement', model.across), column('Verticalement', model.down)];
+      const cols = [column(MF.i18n.t('Horizontalement'), model.across), column(MF.i18n.t('Verticalement'), model.down)];
       const h = twoCols ? Math.max(...cols.map(c => c.h)) : cols[0].h + fs + cols[1].h;
       return {
         h,
