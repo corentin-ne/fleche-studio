@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Édition directe des stickers sur l'affiche : sélection, déplacement,
    redimensionnement (proportionnel), rotation, guides de centrage.
@@ -14,7 +15,7 @@ MF.stickerEditor = (() => {
 
   /**
    * @param view  contexte renvoyé par MF.gridView.render
-   * @param opts  { selected, onSelect(id|null), onCommit(id, patch), onAction(action, id) }
+   * @param opts  objet { selected, onSelect(id|null), onCommit(id, patch), onAction(action, id) }
    */
   function attach(view, opts) {
     st = { view, opts, box: null };
@@ -65,15 +66,15 @@ MF.stickerEditor = (() => {
     st.view.sheet.appendChild(box);
     st.box = box;
     box.addEventListener('pointerdown', e => {
-      const b = e.target.closest('[data-act]');
+      const b = /** @type {Element} */ (e.target).closest('[data-act]');
       if (b) { e.stopPropagation(); return; }
-      const h = e.target.closest('[data-h]');
+      const h = /** @type {any} */ (e.target).closest('[data-h]');
       e.preventDefault(); e.stopPropagation();
       if (s.locked) return;
       startDrag(e, s, h ? h.dataset.h : 'move');
     });
     bar.addEventListener('click', e => {
-      const b = e.target.closest('[data-act]');
+      const b = /** @type {any} */ (e.target).closest('[data-act]');
       if (b) st.opts.onAction(b.dataset.act, s.id);
     });
   }

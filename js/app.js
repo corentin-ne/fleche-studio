@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Orchestration : état -> calcul de grille -> rendu, événements globaux.
    Une grille prend quelques secondes à calculer et change entièrement à chaque
@@ -214,6 +215,7 @@
 
     $$('#mode-switch button').forEach(btn => { const on = btn.dataset.mode === s.ui.mode; btn.classList.toggle('active', on); btn.setAttribute('aria-pressed', on); });
     $('#play-bar').hidden = s.ui.mode !== 'play' || !d.model.cols;
+    MF.play.keepAwake(!$('#play-bar').hidden);
     $('#play-clue').hidden = $('#play-bar').hidden || !game.clues;
     $('#btn-fit').classList.toggle('active', !!s.ui.fit);
     $('#btn-hint-word').hidden = pz.game === 'meles';
@@ -332,6 +334,7 @@
     applyAccent(pz);
     renderTabs();
     renderToolbar();
+    if (home) MF.play.keepAwake(false);
     if (!pz) {
       MF.welcome.render($('#welcome'), { legacy: store.legacy().length, onNew: () => actions.newPuzzle(), onOpen: () => $('#file-open').click(), onLegacy: actions.recoverLegacy, onQuick: actions.quickStart });
       return;
@@ -353,6 +356,7 @@
       onDelete: id => actions.deletePuzzle(id),
       onImport: () => $('#file-open').click(),
       onBackup: () => actions.backup(),
+      backup: { at: store.backupAt(), due: store.backupDue() },
     });
   }
 
@@ -374,7 +378,12 @@
   setInterval(() => { if (!$('#play-bar').hidden) $('#play-time').textContent = MF.play.elapsed(view.playStart); }, 1000);
 
   function celebrate() {
-    MF.ui.toast(t('Bravo, grille terminée en {time} ! 🎉', { time: MF.play.elapsed(view.playStart) }), 'ok', 6000);
+    const time = MF.play.elapsed(view.playStart);
+    const r = MF.play.record(view.entriesFor, (Date.now() - view.playStart) / 1000);
+    const msg = !r.previous ? t('Bravo, grille terminée en {time} ! 🎉', { time })
+      : r.isNew ? t('Nouveau record : grille terminée en {time} ! 🏆', { time })
+        : t('Bravo, grille terminée en {time} ! 🎉 (record : {best})', { time, best: MF.play.clock(r.previous) });
+    MF.ui.toast(msg, 'ok', 6000);
     MF.play.confetti();
   }
 
@@ -444,7 +453,7 @@
       if (key !== lastBox && store.get().ui.fit && store.active()) { lastBox = key; renderGrid(); }
     }, 120)).observe($('#grid-scroll'));
     $('#btn-shuffle').onclick = () => store.active() && regenerate(store.active().id);
-    document.addEventListener('click', e => { if (e.target.closest('[data-regen]')) regenerate(store.active().id); });
+    document.addEventListener('click', e => { if (/** @type {Element} */ (e.target).closest('[data-regen]')) regenerate(store.active().id); });
     $('#btn-export').onclick = openExport;
     $('#btn-check').onclick = () => {
       const r = MF.gridView.check();
@@ -521,6 +530,7 @@
       return;
     }
     renderAll();
+    if (reason === 'puzzles') store.keepData();
     const pz = store.active();
     if (!pz) return;
     // Pas encore de grille, ou forme / taille / jeu / proportions de la page modifiés : on (re)construit automatiquement
@@ -577,6 +587,17 @@
     });
   }
 
+  /** Raccourcis de l'application installée (manifest) : ?action=new ou ?action=home. */
+  function startAction() {
+    const url = new URL(location.href);
+    const act = url.searchParams.get('action');
+    if (!act) return;
+    url.searchParams.delete('action');
+    history.replaceState(null, '', url.pathname + url.search + url.hash);
+    if (act === 'new') actions.newPuzzle();
+    else if (act === 'home') showHome(true);
+  }
+
   async function boot() {
     guard();
     store.load();
@@ -595,9 +616,11 @@
     const pz = store.active();
     if (pz && !compatible(pz) && prepared(pz).length) regenerate(pz.id);
     if (location.hash.startsWith('#g=')) openShared();
+    else startAction();
     // Toutes les polices en arrière-plan : aperçus des thèmes et mesures de texte exacts
     setTimeout(() => MF.design.loadFonts().then(() => { fontsChanged(); if (store.active()) renderAll(); }), 600);
     MF.updates.register();
+    store.keepData();
     MF.versions.watch(store);
     // Ménage : images qui ne servent plus (ni aux grilles, ni à une version restaurable), progressions périmées
     setTimeout(async () => {

@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Types de jeux proposés. Fléchés, croisés et codés partagent le même
    générateur (mots qui se croisent) ; seuls le dessin et le jeu changent.

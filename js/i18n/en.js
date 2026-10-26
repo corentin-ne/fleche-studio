@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Catalogue anglais de l'interface : { 'texte français': 'English text' }.
    Les clés sont les textes français passés à MF.i18n.t().
@@ -919,4 +920,12 @@ MF.i18n.add('en', {
   "portrait": "portrait",
   "<b>Design</b> : un thème en un clic, puis fond, cases, polices, titre et format de page (A4, story…).": "<b>Design</b>: a theme in one click, then background, squares, fonts, title and page size (A4, story…).",
   "<b>Exporter</b> : PNG, JPEG, SVG, PDF ou ZIP, dans la résolution voulue.": "<b>Export</b>: PNG, JPEG, SVG, PDF or ZIP, at the resolution you need.",
+  "Wikidata": "Wikidata",
+  "Toutes les grilles à remplir, puis toutes les solutions, dans un seul document": "All the blank puzzles, then all the solutions, in a single document",
+  "Imprimer / PDF du lot": "Print / PDF of the batch",
+  "Dernière sauvegarde : {when}": "Last backup: {when}",
+  "Aucune sauvegarde pour l'instant": "No backup yet",
+  "Si le navigateur efface ses données, tes grilles seront perdues. Garde une copie sur ton appareil.": "If your browser clears its data, your puzzles will be lost. Keep a copy on your device.",
+  "Nouveau record : grille terminée en {time} ! 🏆": "New record: puzzle finished in {time}! 🏆",
+  "Bravo, grille terminée en {time} ! 🎉 (record : {best})": "Well done, puzzle finished in {time}! 🎉 (record: {best})",
 });

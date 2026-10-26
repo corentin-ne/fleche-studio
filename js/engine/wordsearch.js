@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Générateur de mots mêlés : les mots perso sont cachés dans la grille
    (dans les sens autorisés, en se croisant quand c'est possible), puis
@@ -62,7 +63,7 @@ MF.wordsearch = (() => {
     return { grid, mask, placed, unplaced };
   }
 
-  async function generate(words, opts = {}, { seed = Date.now(), signal, onProgress, onSnapshot } = {}) {
+  async function generate(words, opts = {}, { seed = Date.now(), signal, onProgress, onSnapshot } = /** @type {any} */ ({})) {
     const items = prepare(words);
     if (!items.length) return null;
     const dirs = DIRS[opts.directions] || DIRS.normal;

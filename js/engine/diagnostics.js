@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Diagnostic d'une grille :
      - mots perso invalides, en double, sans définition ou à définition longue ;

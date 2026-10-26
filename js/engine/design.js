@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Design d'une grille : polices, styles de cases, couleurs résolues, métriques.
    Le design est une donnée pure (sérialisable) ; ce module en dérive tout ce

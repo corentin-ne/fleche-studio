@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Navigation téléphone : barre d'onglets en bas de l'écran. Sur petit écran,
    une seule vue à la fois (la grille ou un panneau d'édition), en plein écran.
@@ -50,7 +51,7 @@ MF.phoneNav = (() => {
       const shrunk = vv ? vv.height < full * 0.8 : true;
       const now = query.matches && typing(document.activeElement) && shrunk;
       // Clavier refermé (bouton retour du téléphone) : on quitte aussi le champ, l'interface revient
-      if (open && !now && shrunk === false && typing(document.activeElement)) document.activeElement.blur();
+      if (open && !now && shrunk === false && typing(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
       open = now;
       document.body.classList.toggle('kb-open', now);
     };
@@ -62,7 +63,7 @@ MF.phoneNav = (() => {
   }
 
   /** Ferme le clavier (quitte le champ actif). */
-  const closeKeyboard = () => document.activeElement?.blur?.();
+  const closeKeyboard = () => /** @type {HTMLElement} */ (document.activeElement)?.blur?.();
 
   /**
    * Les navigateurs mobiles zooment la page sur les petits champs (cases du jeu), ce qui
@@ -70,7 +71,7 @@ MF.phoneNav = (() => {
    * propre zoom à deux doigts (MF.pinchZoom).
    */
   function preventFocusZoom() {
-    const meta = document.querySelector('meta[name=viewport]');
+    const meta = /** @type {HTMLMetaElement} */ (document.querySelector('meta[name=viewport]'));
     if (matchMedia('(pointer: coarse)').matches && meta && !/maximum-scale/.test(meta.content)) meta.content += ', maximum-scale=1';
   }
 
@@ -82,7 +83,7 @@ MF.phoneNav = (() => {
   function menu(items) {
     const noPuzzle = document.body.classList.contains('no-puzzle');
     const available = items.filter(it => {
-      const b = document.getElementById(it.id);
+      const b = /** @type {HTMLButtonElement} */ (document.getElementById(it.id));
       return b && !b.disabled && !(noPuzzle && b.classList.contains('only-puzzle'));
     });
     MF.ui.modal({
@@ -91,9 +92,9 @@ MF.phoneNav = (() => {
     });
     const scrim = [...document.querySelectorAll('.modal-scrim')].pop();
     scrim?.querySelector('.phone-menu')?.addEventListener('click', e => {
-      const b = e.target.closest('[data-target]');
+      const b = /** @type {any} */ (e.target).closest('[data-target]');
       if (!b) return;
-      scrim.querySelector('[data-close]').click();
+      /** @type {HTMLElement} */ (scrim.querySelector('[data-close]')).click();
       // Après la fermeture de la feuille (le focus y revient), on déclenche l'action d'origine
       setTimeout(() => document.getElementById(b.dataset.target)?.click(), 140);
     });

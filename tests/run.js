@@ -367,6 +367,42 @@
     eq([back.stickers.map(s => s.kind), back.design.background.type], [['emoji'], 'solid']);
   });
 
+  /* ---------------- Packs, records, sauvegarde ---------------- */
+  test('packs à thème : 25 mots définis par pack, mêmes thèmes en français et en anglais', () => {
+    eq(Object.keys(MF.packs), Object.keys(MF.packsEn), 'thèmes différents');
+    for (const [lang, packs] of [['fr', MF.packs], ['en', MF.packsEn]]) {
+      for (const [id, p] of Object.entries(packs)) {
+        assert(p.label && p.emoji, `${lang}/${id} : libellé`);
+        assert(p.words.length >= 25, `${lang}/${id} : ${p.words.length} mots`);
+        const seen = new Set();
+        for (const [w, c] of p.words) {
+          const n = MF.util.normalize(w);
+          assert(n.length >= 2 && !seen.has(n), `${lang}/${id} : « ${w} » invalide ou en double`);
+          assert(MF.schema.word({ text: w, clue: c })?.clue === c, `${lang}/${id} : définition de « ${w} »`);
+          seen.add(n);
+        }
+      }
+    }
+  });
+  test('jeu : meilleur temps retenu, record battu seulement s\'il est meilleur', () => {
+    const mem = { data: {}, getItem(k) { return this.data[k] ?? null; }, setItem(k, v) { this.data[k] = String(v); }, removeItem(k) { delete this.data[k]; } };
+    const storage = /** @type {any} */ (mem);
+    eq(MF.play.record('p@1#0', 90, storage), { best: 90, previous: 0, isNew: true });
+    eq(MF.play.record('p@1#0', 120, storage), { best: 90, previous: 90, isNew: false });
+    eq(MF.play.record('p@1#0', 60, storage), { best: 60, previous: 90, isNew: true });
+    eq(MF.play.clock(605), '10:05');
+  });
+  test('sauvegarde : rappel seulement après des changements non sauvegardés', () => {
+    const st = MF.createStore({ persist: false });
+    const day = 86400000, now = Date.now();
+    st.load({ puzzles: [] });
+    assert(!st.backupDue(7, now), 'aucune grille');
+    st.load({ puzzles: [{ name: 'A', words: [{ text: 'chat' }], createdAt: now - 2 * day, updatedAt: now - day }] });
+    assert(st.backupDue(7, now), 'jamais sauvegardé, grille de 2 jours');
+    st.load({ puzzles: [{ name: 'A', words: [{ text: 'chat' }], createdAt: now - 3600000, updatedAt: now }] });
+    assert(!st.backupDue(7, now), 'grille toute neuve');
+  });
+
   /* ---------------- Traductions ---------------- */
   test('traductions : chaque texte de l\'interface existe en anglais', async () => {
     const lit = String.raw`'((?:[^'\\]|\\.)*)'`;

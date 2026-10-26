@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Panneau « Définitions » : définitions des mots de remplissage, mots
    bannis, mots perso hors grille et points à vérifier.

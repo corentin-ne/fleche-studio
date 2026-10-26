@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Calcul des grilles en arrière-plan (Web Worker) : l'interface reste fluide
    pendant les quelques secondes de recherche.

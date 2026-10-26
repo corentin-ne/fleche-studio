@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Nuanciers proposés dans le panneau Design, rangés par familles :
    couleur principale (cadre, flèches, définitions) et couleur de fond.

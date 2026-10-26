@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Générateur « mots perso d'abord » : objectif n°1 = placer le MAXIMUM de mots perso.
 
@@ -71,6 +72,7 @@ MF.builder = (() => {
       }
     }
     if (cross === L) return null;
+    /** @type {any} */
     let slot = null;
     SLOTS[dir].forEach((s, idx) => {
       const sr = r + s.dr, sc = c + s.dc;
@@ -294,6 +296,7 @@ MF.builder = (() => {
   /* ---------------- Orchestration ---------------- */
   function prepare(words) {
     const seen = new Set();
+    /** @type {any[]} */
     const items = [];
     for (const w of words) {
       const norm = MF.util.normalize(w.text);
@@ -365,7 +368,7 @@ MF.builder = (() => {
    *  - Taille fixe : on place le maximum de mots perso dans le cadre demandé.
    * Ensuite, comblement des meilleures dispositions ; on garde celle qui laisse le moins de cases photo.
    */
-  async function generate(words, opts = {}, { seed = Date.now(), onProgress, onSnapshot, signal, exclude = new Set(), banned = [] } = {}) {
+  async function generate(words, opts = {}, { seed = Date.now(), onProgress, onSnapshot, signal, exclude = new Set(), banned = [] } = /** @type {any} */ ({})) {
     if (!prepare(words).length) return null;
     const all = prepare(words);
     const budget = EFFORT_MS[opts.effort] || EFFORT_MS.normal;

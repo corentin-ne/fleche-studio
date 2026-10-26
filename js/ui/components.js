@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Composants d'interface : icônes, toasts, modales, confirmation, saisie,
    autocomplétion, champs couleur, curseurs.
@@ -81,7 +82,7 @@ MF.icons = (() => {
   /** Remplace les <span data-icon="nom"> par l'icône correspondante. */
   function hydrate(root = document) {
     root.querySelectorAll('[data-icon]').forEach(el => {
-      if (!el.firstElementChild) el.innerHTML = svg(el.dataset.icon);
+      if (!el.firstElementChild) el.innerHTML = svg(/** @type {HTMLElement} */ (el).dataset.icon);
     });
   }
   return { svg, hydrate };
@@ -110,7 +111,7 @@ MF.ui = (() => {
    */
   function modal(o) {
     return new Promise(resolve => {
-      const prevFocus = document.activeElement;
+      const prevFocus = /** @type {HTMLElement} */ (document.activeElement);
       const actions = (o.actions || [{ label: t('Fermer'), value: null }]).map((a, i) =>
         `<button class="btn ${a.kind ? 'btn-' + a.kind : ''}" data-i="${i}">${a.icon ? ic(a.icon) : ''}${esc(a.label)}</button>`).join('');
       const root = html(`
@@ -180,8 +181,10 @@ MF.ui = (() => {
   /* ---------------- Autocomplétion ---------------- */
   /**
    * Liste déroulante de suggestions sous un champ.
-   * @param o.source   async (q, signal) => [{ value, label (texte), hint, badge }]
-   * @param o.onPick   (item) => void
+   * @param input    champ texte
+   * @param {any} o  options :
+   *   o.source   async (q, signal) => [{ value, label (texte), hint, badge }]
+   *   o.onPick   (item) => void
    */
   function autocomplete(input, { source, onPick, minChars = 2, delay = 160 }) {
     const box = html('<div class="ac-list" role="listbox" hidden></div>');
@@ -228,7 +231,7 @@ MF.ui = (() => {
 
   /* ---------------- Champs réutilisables (HTML) ---------------- */
   /** Champ couleur avec bouton « auto » optionnel. data-color-key identifie la valeur. */
-  function colorField(key, label, value, { auto = false, resolved } = {}) {
+  function colorField(key, label, value, { auto = false, resolved } = /** @type {any} */ ({})) {
     const isAuto = value === 'auto';
     const shown = isAuto ? resolved || '#888888' : value;
     return `<div class="color-field ${isAuto ? 'is-auto' : ''}" data-color-key="${esc(key)}">

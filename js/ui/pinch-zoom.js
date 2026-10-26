@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Zoom à deux doigts sur la grille (écrans tactiles). Pendant le geste,
    l'affiche est simplement agrandie en CSS (fluide) ; au relâcher, la
@@ -11,9 +12,10 @@ MF.pinchZoom = (() => {
 
   /**
    * @param box       conteneur défilant de la grille
-   * @param o.cell()  taille de case actuelle (px)
-   * @param o.commit(cell) applique la nouvelle taille (re-rendu synchrone de la grille)
-   * @param o.min/max bornes de la taille de case
+   * @param {any} o  options :
+   *   o.cell()  taille de case actuelle (px)
+   *   o.commit(cell) applique la nouvelle taille (re-rendu synchrone de la grille)
+   *   o.min/max bornes de la taille de case
    */
   function attach(box, { cell, commit, min = 10, max = 160 }) {
     let g = null; // geste en cours

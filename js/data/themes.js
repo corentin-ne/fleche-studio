@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Thèmes prêts à l'emploi : un clic règle couleurs, fond, cases et polices.
    Chaque thème est un « patch » appliqué sur le design par défaut ;

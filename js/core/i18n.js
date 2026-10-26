@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Langues de l'interface.
    Le texte français sert de clé et de repli : t('Mots fléchés') renvoie la
@@ -80,7 +81,10 @@ MF.i18n = (() => {
     for (const attr of ['title', 'aria-label', 'placeholder']) {
       (root.body || root).querySelectorAll(`[${attr}]`).forEach(el => { const v = dict[el.getAttribute(attr)]; if (v) el.setAttribute(attr, v); });
     }
-    const desc = document.querySelector('meta[name="description"]');
+    // Application installée : nom, raccourcis et description dans la langue de l'interface
+    const manifest = /** @type {HTMLLinkElement | null} */ (document.querySelector('link[rel="manifest"]'));
+    if (manifest) manifest.href = `manifest.${lang}.webmanifest`;
+    const desc = /** @type {HTMLMetaElement} */ (document.querySelector('meta[name="description"]'));
     if (desc && dict[desc.content]) desc.content = dict[desc.content];
   }
 

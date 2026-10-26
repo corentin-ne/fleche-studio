@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Accueil (aucune grille) et assistant de création d'une grille.
    ========================================================================= */
@@ -38,8 +39,8 @@ MF.welcome = (() => {
   /** Assistant : renvoie { name, game, shape, theme, start } ou null. */
   function wizard(defaults = {}) {
     const st = { game: 'fleches', shape: 'rect', theme: 'violet', start: 'empty', lang: MF.lexicon.preferred(), ...defaults };
-    // Packs de chaque langue rendus d'avance : changer de langue bascule sur place
-    const packCards = lang => Object.entries(MF.lexicon.packs(lang)).slice(0, 6).map(([id, p]) => `<button type="button" class="start-card" data-wz="start" data-v="pack:${id}" data-lang="${lang}" ${lang === st.lang ? '' : 'hidden'}><span class="pack-emoji">${p.emoji}</span><b>${esc(p.label)}</b><small>${plural(p.words.length, 'mot')}</small></button>`).join('');
+    // Tous les packs à thème de chaque langue, rendus d'avance : changer de langue bascule sur place
+    const packCards = lang => Object.entries(MF.lexicon.packs(lang)).map(([id, p]) => `<button type="button" class="start-card" data-wz="start" data-v="pack:${id}" data-lang="${lang}" ${lang === st.lang ? '' : 'hidden'}><span class="pack-emoji">${p.emoji}</span><b>${esc(p.label)}</b><small>${plural(p.words.length, 'mot')}</small></button>`).join('');
     const themes = Object.entries(MF.themes.THEMES);
     return MF.ui.modal({
       title: t('Nouvelle grille'), wide: true, icon: 'sparkle', className: 'wizard',
