@@ -22,6 +22,13 @@ MF.backgrounds = (() => {
     const ang = -Math.PI / 2 + (i * Math.PI) / 5, r = i % 2 ? R * 0.45 : R;
     return `${(cx + Math.cos(ang) * r).toFixed(1)} ${(cy + Math.sin(ang) * r).toFixed(1)}`;
   }).join('L') + 'Z';
+  /** Chauve-souris dans une boîte 100 × 100 (motif « Chauves-souris » et sticker). */
+  const BAT = 'M50 36C46 36 44 38 43 41 36 32 20 28 4 34c8 4 10 12 8 20 8-4 16-2 20 4 3-6 9-8 13-4 1 4 3 8 5 10 2-2 4-6 5-10 4-4 10-2 13 4 4-6 12-8 20-4-2-8 0-16 8-20-16-6-32-2-39 7-1-3-3-5-7-5ZM44 39l1-9 5 5 5-5 1 9Z';
+
+  /** Œuf de hauteur ~1,75 s, centré en (x, y). */
+  const egg = (x, y, s) => `M${x} ${y - s}C${x + s * 0.75} ${y - s} ${x + s * 0.8} ${y + s * 0.75} ${x} ${y + s * 0.75}C${x - s * 0.8} ${y + s * 0.75} ${x - s * 0.75} ${y - s} ${x} ${y - s}Z`;
+  /** Lanterne chinoise (corps `a`, attaches et pompon `b`) dans une boîte d'environ 30 × 50 en (x, y). */
+  const lantern = (x, y, a, b) => `<g transform="translate(${x} ${y})"><path d="M15 0V8M15 40v10" stroke="${b}" stroke-width="2"/><rect x="9" y="8" width="12" height="4" rx="1" fill="${b}"/><ellipse cx="15" cy="24" rx="15" ry="13" fill="${a}"/><path d="M15 11v26M7 13c-4 6-4 16 0 22M23 13c4 6 4 16 0 22" stroke="${b}" stroke-width="1" fill="none" opacity=".7"/><rect x="9" y="36" width="12" height="4" rx="1" fill="${b}"/></g>`;
 
   const PATTERNS = {
     dots: { label: t('Pois'), tile: a => ({ w: 40, h: 40, svg: `<circle cx="20" cy="20" r="4.5" fill="${a}"/>` }) },
@@ -53,6 +60,22 @@ MF.backgrounds = (() => {
     terrazzo: {
       label: t('Terrazzo'),
       tile: (a, b) => ({ w: 120, h: 120, svg: `<path d="M14 20l12-6 6 10-10 6Z" fill="${a}"/><path d="M70 14l14 3-4 12-12-4Z" fill="${b}"/><path d="M98 60l10 8-8 8-8-6Z" fill="${a}"/><path d="M40 70l10-4 6 12-12 2Z" fill="${b}"/><path d="M14 98l9 2-2 10-9-3Z" fill="${a}"/><path d="M78 100l12-2 2 10-12 2Z" fill="${b}"/><circle cx="56" cy="40" r="3" fill="${a}"/><circle cx="104" cy="22" r="2.5" fill="${b}"/><circle cx="24" cy="58" r="2.5" fill="${b}"/>` }),
+    },
+    bats: {
+      label: t('Chauves-souris'),
+      tile: (a, b) => ({ w: 100, h: 100, svg: `<path transform="translate(4 8) scale(.38)" d="${BAT}" fill="${a}"/><path transform="translate(54 56) scale(.28) rotate(-12 50 50)" d="${BAT}" fill="${a}"/><path d="M82 12a10 10 0 1 0 8 17 8 8 0 1 1-8-17Z" fill="${b}"/><circle cx="22" cy="78" r="2" fill="${b}"/><circle cx="92" cy="92" r="1.5" fill="${b}"/><circle cx="58" cy="30" r="1.5" fill="${b}"/>` }),
+    },
+    eggs: {
+      label: t('Œufs'),
+      tile: (a, b) => ({ w: 80, h: 80, svg: `<path d="${egg(20, 24, 13)}" fill="${a}"/><polyline points="10,26 15,22 20,26 25,22 30,26" fill="none" stroke="#ffffff" stroke-width="2" stroke-linejoin="round" opacity=".75"/><path d="${egg(60, 62, 11)}" fill="${b}"/><circle cx="56" cy="60" r="1.8" fill="#ffffff" opacity=".8"/><circle cx="64" cy="64" r="1.8" fill="#ffffff" opacity=".8"/><circle cx="60" cy="18" r="2.2" fill="${b}"/><circle cx="18" cy="64" r="2" fill="${a}"/>` }),
+    },
+    harlequin: {
+      label: t('Arlequin'),
+      tile: (a, b) => ({ w: 60, h: 80, svg: `<polygon points="30,0 60,40 30,80 0,40" fill="${a}"/><polygon points="30,0 60,40 30,80 0,40" fill="none" stroke="${b}" stroke-width="1.5" opacity=".6"/><circle cx="0" cy="0" r="3" fill="${b}"/><circle cx="60" cy="0" r="3" fill="${b}"/><circle cx="0" cy="80" r="3" fill="${b}"/><circle cx="60" cy="80" r="3" fill="${b}"/><circle cx="30" cy="40" r="2" fill="${b}"/>` }),
+    },
+    lanterns: {
+      label: t('Lanternes'),
+      tile: (a, b) => ({ w: 100, h: 110, svg: `${lantern(8, 4, a, b)}<g transform="translate(56 56) scale(.75)">${lantern(0, 0, a, b)}</g><circle cx="80" cy="22" r="2" fill="${b}"/><circle cx="20" cy="88" r="2.4" fill="${b}"/><circle cx="92" cy="98" r="1.5" fill="${b}"/>` }),
     },
     memphis: {
       label: t('Memphis'),
@@ -139,5 +162,5 @@ MF.backgrounds = (() => {
     }
   }
 
-  return { TYPES, PATTERNS, tile, hatch, thumb, css, ops, linear };
+  return { TYPES, PATTERNS, BAT, tile, hatch, thumb, css, ops, linear };
 })();

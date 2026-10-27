@@ -17,8 +17,8 @@ listes de mots par thème), sans cookie ni référent.
   et **Murdoku** : une enquête logique sur un plan en diorama 3D peint (rendu adapté de
   [building-builder](https://github.com/corentin-ne/building-builder), sources dans `src3d/`,
   `npm run build:3d` produit `js/vendor/murdoku3d.js`), avec un plan 2D de secours.
-  17 univers (manoir, sirènes, samouraïs, Paris, bal de la Régence, pharaons, pirates, Far West,
-  station spatiale, château hanté…) avec leurs lieux, objets, suspects et histoire, tous
+  21 univers (manoir, sirènes, samouraïs, Paris, bal de la Régence, pharaons, pirates, Far West,
+  station spatiale, château hanté, Halloween, Pâques, carnaval, Nouvel an chinois…) avec leurs lieux, objets, suspects et histoire, tous
   modifiables ; 4 niveaux, de Facile à Expert.
 - **Studio et jeu séparés** : le studio crée (solution ou grille vierge) ; on joue sur une page à
   part, depuis la Salle de jeu du tableau de bord.

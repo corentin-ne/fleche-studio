@@ -23,6 +23,8 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Nouveaux thèmes de fête : Halloween revisité, Pâques, Carnaval et Nouvel an chinois (motifs, stickers, emojis et confettis)',
+    'Murdoku : 4 univers de fête (soirée Halloween, chasse aux œufs, carnaval, Nouvel an chinois) avec chapeaux et décor 3D',
     'Murdoku : figurines coiffées selon l\'univers (tricornes, casques spatiaux, kasa, hauts-de-forme…), plan et export aux couleurs de l\'univers',
     'Murdoku : plateaux 3D par univers (bords en sable, mer, neige…), zones en plein air sans murs, murs variés, noms des pièces et feuillages touffus',
     'Murdoku : 13 nouveaux sols (sable, eau, neige, marbre, tatami, mosaïque…) et encore plus de décor',

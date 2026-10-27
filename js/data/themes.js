@@ -3,6 +3,7 @@
    Thèmes prêts à l'emploi : un clic règle couleurs, fond, cases et polices.
    Chaque thème est un « patch » appliqué sur le design par défaut ;
    le titre et les images de l'utilisateur sont conservés.
+   confetti (facultatif) : couleurs et emojis de la pluie de fin de partie.
    ========================================================================= */
 window.MF = window.MF || {};
 
@@ -103,7 +104,23 @@ MF.themes = (() => {
     },
     halloween: {
       label: t('Halloween'), moods: ['party', 'dark'],
-      design: { accent: '#ff7518', colors: { letter: '#fff4e6', clue: '#3a2350', clueInk: '#fbe9d0', arrow: '#ff7518', frame: '#2a1838', line: '#2a1838' }, background: { type: 'radial', c1: '#4b2a63', c2: '#1b0f26' }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 24, radius: 12 }, font: { clue: 'patrick', letter: 'marker', clueWeight: 400 }, title: { font: 'marker', color: '#ff7518' } },
+      design: { accent: '#ff7518', colors: { letter: '#fff4e6', clue: '#3a2350', clueInk: '#fbe9d0', arrow: '#ff7518', frame: '#2a1838', line: '#2a1838' }, background: { type: 'pattern', pattern: 'bats', c1: '#34204a', c2: '#1b0f26', c3: '#ff9a3c', scale: 1.3 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 24, radius: 12 }, font: { clue: 'patrick', letter: 'marker', clueWeight: 400 }, title: { font: 'marker', color: '#ff7518' } },
+      confetti: { colors: ['#ff7518', '#8e44ad', '#8fd16a', '#ffd23f', '#2a1838'], emojis: ['🎃', '👻', '🦇', '🍬', '🕷️'] },
+    },
+    easter: {
+      label: t('Pâques'), moods: ['party', 'soft'],
+      design: { accent: '#8e6bd8', colors: { clue: '#fdf3d8', arrow: '#5f9a4a', line: '#d9c8ee', frame: '#b7d98a' }, background: { type: 'pattern', pattern: 'eggs', c1: '#f4fbef', c2: '#f6c9dc', c3: '#b9e0f2', scale: 1.1 }, cell: { style: 'rounded', gap: 0, radius: 16, line: 3, letterShape: 'square', shadow: false }, voids: 'light', frame: { width: 20, radius: 28 }, font: { clue: 'nunito', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo', color: '#5f9a4a' } },
+      confetti: { colors: ['#f6c9dc', '#b9e0f2', '#f6e08a', '#b7d98a', '#c8a0e0'], emojis: ['🐣', '🥚', '🐰', '🌷', '🍫'] },
+    },
+    carnival: {
+      label: t('Carnaval'), moods: ['party', 'vivid'],
+      design: { accent: '#6a1f6e', colors: { clue: '#fff1c2', arrow: '#e0283a', frame: '#6a1f6e', solution: '#e0283a' }, background: { type: 'pattern', pattern: 'harlequin', c1: '#2a0f2e', c2: '#6a1f6e', c3: '#f2c94c', scale: 1 }, cell: { style: 'tiles', gap: 6, radius: 10, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'grotesk', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair', color: '#f2c94c' } },
+      confetti: { colors: ['#e0283a', '#f2c94c', '#3fa08a', '#6a1f6e', '#2f6a9a'], emojis: ['🎭', '🎊', '🎉', '🪶'] },
+    },
+    lunar: {
+      label: t('Nouvel an chinois'), moods: ['party', 'vivid'],
+      design: { accent: '#b3202c', colors: { letter: '#fff8e8', clue: '#f9e1b0', ink: '#3a1010', clueInk: '#7a1018', arrow: '#b3202c', line: '#e0b23a', frame: '#e0b23a', solution: '#b3202c' }, background: { type: 'pattern', pattern: 'lanterns', c1: '#a81c26', c2: '#e8a020', c3: '#fbe3a0', scale: 1.2 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 22, radius: 10 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'fraunces', color: '#fbe3a0' } },
+      confetti: { colors: ['#b3202c', '#e0b23a', '#f2c14e', '#7a1018'], emojis: ['🧧', '🏮', '🐉', '🧨', '🍊'] },
     },
   };
 

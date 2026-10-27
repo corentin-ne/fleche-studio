@@ -180,6 +180,7 @@
 
 .confetti { position: fixed; inset: 0; pointer-events: none; z-index: 400; overflow: hidden; }
 .confetti i { position: absolute; top: -20px; left: var(--x); width: 10px; height: 16px; border-radius: 2px; background: var(--c); animation: fall var(--d) var(--delay) cubic-bezier(.3,.6,.5,1) forwards; }
+.confetti i.emoji { width: auto; height: auto; background: none; font-size: 26px; font-style: normal; line-height: 1; }
 @keyframes fall { to { transform: translate3d(var(--dx), 110vh, 0) rotate(var(--r)); } }
 
 #print-area { display: none; }

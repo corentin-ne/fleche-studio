@@ -18,6 +18,18 @@ MF.stickers = (() => {
     const a = (i / n) * Math.PI * 2;
     return circle(cx + Math.cos(a) * R, cy + Math.sin(a) * R, (Math.PI * R) / n * 1.15);
   }).join('') + circle(cx, cy, R);
+  const ellipse = (cx, cy, rx, ry) => `M${f(cx - rx)} ${f(cy)}a${rx} ${ry} 0 1 0 ${f(rx * 2)} 0a${rx} ${ry} 0 1 0 ${f(-rx * 2)} 0Z`;
+  /** Toile d'araignée : rayons et fils tendus entre eux (légèrement creusés vers le centre). */
+  const web = (cx, cy, R, spokes = 8, rings = 3) => {
+    const pt = (a, r) => [f(cx + Math.cos(a) * r), f(cy + Math.sin(a) * r)];
+    const angle = i => (i / spokes) * Math.PI * 2 - Math.PI / 2;
+    let d = Array.from({ length: spokes }, (_, i) => `M${cx} ${cy}L${pt(angle(i), R).join(' ')}`).join('');
+    for (let k = 1; k <= rings; k++) {
+      const r = (R * k) / (rings + 0.3);
+      d += `M${pt(angle(0), r).join(' ')}` + Array.from({ length: spokes }, (_, i) => `Q${pt((angle(i) + angle(i + 1)) / 2, r * 0.78).join(' ')} ${pt(angle(i + 1), r).join(' ')}`).join('');
+    }
+    return d;
+  };
   const petals = (cx, cy, R, r, n) => Array.from({ length: n }, (_, i) => {
     const a = (i / n) * Math.PI * 2 - Math.PI / 2;
     return circle(cx + Math.cos(a) * R, cy + Math.sin(a) * R, r);
@@ -67,6 +79,19 @@ MF.stickers = (() => {
     pin: { label: t('Punaise'), cat: 'Déco', main: '#ff4d4d', paths: [S('M50 56v40', '#8a8a8a', 4), P(circle(50, 34, 26)), P(circle(42, 26, 7), '#ffffff', { opacity: 0.6 })] },
     tag: { label: t('Étiquette'), cat: 'Déco', main: '#ffe08a', second: '#7a4a2e', paths: [P('M30 14h56a6 6 0 0 1 6 6v60a6 6 0 0 1-6 6H30L6 50Z'), P(circle(28, 50, 6), '#ffffff'), S('M28 50C14 30 4 30 2 40', 'second', 2)] },
     plane: { label: t('Avion'), cat: 'Loisirs', main: '#4d9bff', second: '#ffffff', paths: [P('M96 8 4 46l26 10 6 30 14-18 22 16Z'), P('M30 56 90 12 40 62l-4 24Z', 'second', { opacity: 0.5 })] },
+    pumpkin: { label: t('Citrouille'), cat: 'Fêtes', main: '#ff7518', second: '#4a7a2a', paths: [P('M46 32c0-10 2-17 8-24l6 3c-5 5-7 12-6 21Z', 'second'), P(ellipse(32, 60, 26, 30) + ellipse(68, 60, 26, 30)), P(ellipse(50, 60, 20, 32)), S('M50 30c-8 10-8 50 0 60M50 30c8 10 8 50 0 60', '#000000', 2.5, { opacity: 0.18 }), P('M28 54l9-13 9 13ZM54 54l9-13 9 13ZM26 66c6 12 42 12 48 0l-6 5-6-5-6 6-6-6-6 6-6-6-6 5Z', '#3a1d0a')] },
+    ghost: { label: t('Fantôme'), cat: 'Fêtes', main: '#ffffff', second: '#3a2350', paths: [P('M50 8C28 8 16 26 16 48v42l9-8 8 8 9-8 8 8 8-8 9 8 8-8 9 8V48C84 26 72 8 50 8Z', 'main', { stroke: 'second', sw: 3, join: 'round' }), P(ellipse(39, 42, 5, 7) + ellipse(61, 42, 5, 7) + ellipse(50, 60, 6, 8), 'second')] },
+    bat: { label: t('Chauve-souris'), cat: 'Fêtes', main: '#2a1838', second: '#ffd23f', paths: [P(MF.backgrounds.BAT), P(circle(46.5, 43, 1.8) + circle(53.5, 43, 1.8), 'second')] },
+    witchHat: { label: t('Chapeau de sorcière'), cat: 'Fêtes', main: '#3a2350', second: '#ff7518', paths: [P('M30 78C36 56 42 30 66 8c-6 20-4 44 6 70Z'), P('M6 80c22-10 66-10 88 0-8 10-80 10-88 0Z'), P('M32 66c12 4 28 4 38 0l2 11c-13 4-29 4-42 0Z', 'second'), P('M45 65h11v13H45Z', '#ffd23f')] },
+    spider: { label: t('Araignée'), cat: 'Fêtes', main: '#231f20', second: '#ff3b30', paths: [S('M50 0v30', 'main', 1.5), S('M50 52 26 34 18 46M50 54 18 54 10 68M50 56 26 70 22 86M50 52l24-18 8 12M50 54h32l8 14M50 56l24 14 4 16', 'main', 4), P(circle(50, 60, 15) + circle(50, 38, 10)), P(circle(46, 37, 2.6) + circle(54, 37, 2.6), 'second')] },
+    web: { label: t('Toile d\'araignée'), cat: 'Fêtes', main: '#c9c4d6', paths: [S(web(50, 50, 46), 'main', 2)] },
+    skull: { label: t('Crâne'), cat: 'Fêtes', main: '#f4f1e8', second: '#231f20', paths: [P('M50 8C28 8 14 24 14 44c0 12 6 20 14 24v14c0 4 3 6 6 6h32c3 0 6-2 6-6V68c8-4 14-12 14-24C86 24 72 8 50 8Z', 'main', { stroke: '#bdb6a6', sw: 2 }), P(circle(36, 46, 10) + circle(64, 46, 10), 'second'), P('M50 56l-5 9h10Z', 'second'), S('M40 76v10M50 76v10M60 76v10', 'second', 3)] },
+    candy: { label: t('Bonbon'), cat: 'Fêtes', main: '#ff7518', second: '#8e44ad', paths: [P('M30 50 6 34v32ZM70 50l24-16v32Z', 'second'), P(ellipse(50, 50, 23, 17)), S('M42 36l-6 28M54 34l-6 32M64 38l-5 22', '#ffffff', 3, { opacity: 0.55 })] },
+    cauldron: { label: t('Chaudron'), cat: 'Fêtes', main: '#2b2b33', second: '#8fd16a', paths: [P(circle(34, 22, 5) + circle(54, 13, 4) + circle(64, 26, 3), 'second'), P('M14 42h72c0 28-14 44-36 44S14 70 14 42Z'), P('M22 84h10v10H22ZM68 84h10v10H68Z'), P('M10 34h80v10H10Z'), P('M16 34c6-6 12 0 18-3s12-5 18 0 12-4 18-1 10 0 14 4Z', 'second')] },
+    easterEgg: { label: t('Œuf de Pâques'), cat: 'Fêtes', main: '#f6c9dc', second: '#8e6bd8', paths: [P('M50 6C76 6 88 46 88 62 88 82 71 94 50 94S12 82 12 62C12 46 24 6 50 6Z'), S('M14 50l9-8 9 8 9-8 9 8 9-8 9 8 9-8 9 8', 'second', 5), P(circle(34, 74, 5) + circle(50, 79, 5) + circle(66, 74, 5), 'second'), P('M32 22c4-6 10-9 16-9', 'none', { stroke: '#ffffff', sw: 4, cap: 'round', opacity: 0.6 })] },
+    bunny: { label: t('Lapin'), cat: 'Fêtes', main: '#f6f2ea', second: '#f2a6c0', paths: [P('M32 50C22 30 20 6 32 6s14 24 10 44ZM68 50c10-20 12-44 0-44S54 30 58 50Z', 'main', { stroke: '#d8cfc4', sw: 2 }), P('M33 42c-4-12-4-26 0-26s6 14 4 26ZM67 42c4-12 4-26 0-26s-6 14-4 26Z', 'second'), P(ellipse(50, 66, 30, 26), 'main', { stroke: '#d8cfc4', sw: 2 }), P(circle(40, 62, 3.5) + circle(60, 62, 3.5), '#231f20'), P('M46 72h8l-4 5Z', 'second'), P(circle(32, 74, 5) + circle(68, 74, 5), 'second', { opacity: 0.45 })] },
+    mask: { label: t('Masque'), cat: 'Fêtes', main: '#6a1f6e', second: '#f2c94c', paths: [P('M78 38C82 20 94 10 98 2 86 8 74 18 70 36Z', 'second'), P('M6 40c14-10 30-10 44 2 14-12 30-12 44-2 0 22-12 34-24 34-10 0-16-8-20-14-4 6-10 14-20 14C18 74 6 62 6 40Z', 'main', { stroke: 'second', sw: 3, join: 'round' }), P(ellipse(30, 50, 9, 6) + ellipse(70, 50, 9, 6), '#1b0f26'), P(circle(50, 40, 3) + circle(14, 44, 2.5) + circle(86, 44, 2.5), 'second')] },
+    lantern: { label: t('Lanterne'), cat: 'Fêtes', main: '#c0283a', second: '#e0b23a', paths: [S('M50 2v12', 'second', 3), P('M38 14h24v8H38Z', 'second'), P(ellipse(50, 48, 34, 28)), S('M50 22v52M32 26c-8 12-8 32 0 44M68 26c8 12 8 32 0 44', 'second', 2, { opacity: 0.8 }), P('M38 74h24v8H38Z', 'second'), S('M50 82v14M44 84v10M56 84v10', 'second', 2.5)] },
     pizza: { label: t('Pizza'), cat: 'Loisirs', main: '#ffcf5c', second: '#e5483b', paths: [P('M50 94 8 14c26-12 58-12 84 0Z'), P('M8 14c26-12 58-12 84 0l-4 8C64 12 36 12 12 22Z', '#c98a3c'), P(circle(40, 34, 7) + circle(60, 40, 6) + circle(50, 60, 6), 'second')] },
   };
 
@@ -80,6 +105,7 @@ MF.stickers = (() => {
     'Miam': ['🍕', '🍔', '🍟', '🍩', '🍪', '🍫', '🍓', '🍉', '🥐', '🧀', '🍷', '☕'],
     'Voyage': ['✈️', '🚗', '🏖️', '🗺️', '🏔️', '🗼', '🏰', '⛵', '🚀', '🎒', '🧳', '🌍'],
     'Loisirs': ['⚽', '🏀', '🎾', '🎮', '🎨', '🎸', '🎤', '📚', '🎬', '📷', '🧩', '🎲'],
+    'Fêtes de l\'année': ['🎃', '👻', '🦇', '🕷️', '🧙', '🍬', '🐣', '🐰', '🥚', '🌷', '🎭', '🎊', '🪶', '🧧', '🏮', '🐉', '🧨', '🎆'],
     'Objets': ['💡', '📌', '✏️', '🔑', '🎓', '🏆', '👑', '💎', '⏰', '🧸', '🪄', '🔮'],
   };
 

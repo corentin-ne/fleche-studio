@@ -105,13 +105,18 @@ MF.play = (() => {
   // Le verrou tombe quand l'onglet passe en arrière-plan : repris au retour
   if (typeof document !== 'undefined') document.addEventListener('visibilitychange', () => { if (awake && !document.hidden) keepAwake(true); });
 
-  /** Pluie de confettis (rien si l'utilisateur a demandé moins d'animations). */
-  function confetti() {
+  /**
+   * Pluie de confettis (rien si l'utilisateur a demandé moins d'animations).
+   * @param {{ colors?: string[], emojis?: string[] }} [style]  couleurs et emojis propres à un thème de fête (MF.themes)
+   */
+  function confetti({ colors = COLORS, emojis = [] } = {}) {
     if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     const layer = MF.util.html('<div class="confetti" aria-hidden="true"></div>');
     for (let i = 0; i < 90; i++) {
       const p = document.createElement('i');
-      p.style.cssText = `--x:${Math.random() * 100}vw;--dx:${Math.round((Math.random() - 0.5) * 240)}px;--d:${1.6 + Math.random() * 1.8}s;--r:${Math.random() * 720 - 360}deg;--c:${COLORS[i % COLORS.length]};--delay:${Math.random() * 0.4}s`;
+      // Une pièce sur trois est un emoji du thème (citrouilles, œufs, lanternes…)
+      if (emojis.length && i % 3 === 0) { p.className = 'emoji'; p.textContent = emojis[(i / 3) % emojis.length]; }
+      p.style.cssText = `--x:${Math.random() * 100}vw;--dx:${Math.round((Math.random() - 0.5) * 240)}px;--d:${1.6 + Math.random() * 1.8}s;--r:${Math.random() * 720 - 360}deg;--c:${colors[i % colors.length]};--delay:${Math.random() * 0.4}s`;
       layer.appendChild(p);
     }
     document.body.appendChild(layer);

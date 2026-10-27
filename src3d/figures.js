@@ -71,6 +71,10 @@ const HATS = {
   train: ['bowler', 'cloche', 'bowler'],
   rome: ['laurel', 'laurel', 'hood'],
   world: ['boater', 'cap', 'beanie'],
+  halloween: ['witch', 'devilHorns', 'witch'],
+  easter: ['bunnyEars', 'bonnet', 'bunnyEars'],
+  carnival: ['mask', 'partyHat', 'mask'],
+  lunar: ['mandarinCap', 'topknot', 'mandarinCap'],
 };
 function hat(b, kind, c, r) {
   const y = 0.98;
@@ -141,6 +145,24 @@ function hat(b, kind, c, r) {
       b.cyl(0.28, 0.28, 0.02, 0, y - 0.02, 0, '#2a2236', { seg: 20 });
       b.cyl(0.0, 0.15, 0.38, 0, y - 0.02, 0, '#2a2236', { seg: 14, rx: -0.2 });
       b.cyl(0.152, 0.152, 0.035, 0, y, 0, c, { seg: 14 });
+      break;
+    case 'devilHorns':
+      for (const s of [-1, 1]) b.cyl(0, 0.035, 0.12, s * 0.09, y - 0.02, 0.02, '#c0283a', { seg: 8, rz: -s * 0.35 });
+      break;
+    case 'bunnyEars':
+      for (const s of [-1, 1]) {
+        b.sphere(0.05, s * 0.08, y + 0.14, -0.02, '#f6f2ea', { sy: 3, seg: 10, rz: -s * 0.15 });
+        b.sphere(0.028, s * 0.08, y + 0.14, 0.022, '#f2a6c0', { sy: 2.8, seg: 8, rz: -s * 0.15 });
+      }
+      break;
+    case 'mask':
+      // Loup de carnaval sur les yeux, et une plume
+      b.cbox(0.3, 0.075, 0.04, 0, 0.87, 0.175, c, { round: 0.02 });
+      b.sphere(0.035, 0.13, y + 0.04, 0.08, '#f2c94c', { sy: 3, seg: 8, rz: -0.5 });
+      break;
+    case 'mandarinCap':
+      b.sphere(0.205, 0, 0.92, -0.01, '#1d1b1c', { sy: 0.62, seg: 16 });
+      b.sphere(0.035, 0, y + 0.05, 0, '#c0283a', { seg: 8 });
       break;
     case 'crown':
       b.cyl(0.15, 0.15, 0.08, 0, y - 0.02, 0, '#e0b23a', { seg: 18, metalness: 0.7, roughness: 0.3 });

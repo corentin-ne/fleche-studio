@@ -297,6 +297,21 @@ export const PROPS = {
     b.cyl(0.05, 0.05, 0.02, 0, 0, 0, '#2a2523', { seg: 8 });
     b.cyl(0.05, 0.05, 0.02, 0, 0.26, 0, '#2a2523', { seg: 8 });
   },
+  eggs(b, r) {
+    // Nid de paille et œufs peints
+    b.cyl(0.13, 0.1, 0.05, 0, 0, 0, '#c9a46a', { seg: 12 });
+    for (let i = 0; i < 4; i++) b.sphere(0.045, Math.cos(i * 1.6 + r()) * 0.06, 0.08, Math.sin(i * 1.6 + r()) * 0.06, pick(r, ['#f2a6c0', '#9ad0e0', '#f6e08a', '#b7d98a', '#c8a0e0']), { sy: 1.3, seg: 10, roughness: 0.4 });
+  },
+  confetti(b, r) {
+    for (let i = 0; i < 14; i++) b.cbox(0.035, 0.006, 0.022, (r() - 0.5) * 0.36, 0.003, (r() - 0.5) * 0.36, pick(r, CLOTH), { ry: r() * 3.14, jitter: 0, shadow: false });
+  },
+  firecrackers(b, r) {
+    for (let i = 0; i < 5; i++) {
+      const x = (i - 2) * 0.042, h = 0.14 + r() * 0.04;
+      b.cyl(0.02, 0.02, h, x, 0, 0, '#c0283a', { seg: 8 });
+      b.cyl(0.021, 0.021, 0.02, x, h - 0.02, 0, '#e0b23a', { seg: 8, metalness: 0.6 });
+    }
+  },
   scarab(b) {
     b.sphere(0.07, 0, 0.03, 0, '#2f8a6a', { sy: 0.5, seg: 10, metalness: 0.6, roughness: 0.3 });
     b.sphere(0.035, 0, 0.025, 0.08, '#1f5a4a', { seg: 8, metalness: 0.6 });
@@ -358,10 +373,14 @@ const THEME = {
   chalet: ['logs', 'mugs', 'books', 'cushion', 'skis', 'roundMat'],
   world: ['suitcase', 'hat', 'fruitBowl', 'coins', 'letters', 'umbrella', 'paperLantern'],
   rome: ['jar', 'fruitBowl', 'scroll', 'coins', 'grapes', 'sandals', 'roundMat'],
+  halloween: ['pumpkin', 'pumpkin', 'candles', 'mushrooms', 'cake', 'footprints', 'hay'],
+  easter: ['eggs', 'eggs', 'cake', 'plant_flowers', 'teaset', 'hay', 'roundMat'],
+  carnival: ['confetti', 'confetti', 'hat', 'cake', 'bottles', 'cushion', 'runner'],
+  lunar: ['paperLantern', 'lantern', 'teaset', 'firecrackers', 'coins', 'scroll', 'plant_bonsai'],
   manor: ['books', 'teaset', 'candles', 'vase', 'puddle', 'letters', 'birdcage'],
 };
 // Props small enough for a table top
-const SMALL = new Set([...TOP, 'coins', 'pearls', 'shells', 'scroll', 'jar', 'lantern', 'popcorn', 'canisters', 'pumpkin', 'hat', 'grapes', 'letters', 'scarab', 'paperLantern', 'birdcage']);
+const SMALL = new Set([...TOP, 'coins', 'pearls', 'shells', 'scroll', 'jar', 'lantern', 'popcorn', 'canisters', 'pumpkin', 'hat', 'grapes', 'letters', 'scarab', 'paperLantern', 'birdcage', 'eggs', 'firecrackers']);
 const AMOUNT = { none: 0, some: 0.4, lots: 0.85 };
 const FLOOR_SCALE = 1.35;
 

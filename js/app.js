@@ -469,7 +469,7 @@
       : r.isNew ? t('Nouveau record : grille terminée en {time} ! 🏆', { time })
         : t('Bravo, grille terminée en {time} ! 🎉 (record : {best})', { time, best: MF.play.clock(r.previous) });
     MF.ui.toast(msg, 'ok', 6000);
-    MF.play.confetti();
+    MF.play.confetti(MF.themes.THEMES[store.active()?.design.theme]?.confetti);
   }
 
   /* ---------------- Événements globaux ---------------- */

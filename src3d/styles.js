@@ -25,6 +25,10 @@ export const STYLES3D = {
   train: { border: ['cobble', '#8a8478', '#5e5a52'], side: '#4a3a2e', rim: '#221a14', ink: '#ffffff', wall: 'planks', fence: 'rail', open: 'line', deco: ['lamp', 'suitcase', 'crate', 'bush', 'lamp'] },
   chalet: { border: ['snow', '#f4f8fc', '#cfdbe8'], side: '#7a5a3a', rim: '#3e2c1c', ink: '#3a2c26', wall: 'logs', fence: 'snow', open: 'snow', deco: ['pine', 'snowman', 'pine', 'logs', 'rock', 'pine'] },
   world: { border: ['water', '#4fb0d8', '#e8fbff'], side: '#2f7aa0', rim: '#1a4a66', ink: '#ffffff', wall: 'plaster', fence: 'rail', open: 'line', deco: ['palm', 'suitcase', 'rock', 'flowers', 'palm'] },
+  halloween: { border: ['grass', '#5f7a52', '#3f5a38'], side: '#4a2e5a', rim: '#1b0f26', ink: '#ffd9a8', wall: 'planks', fence: 'picket', open: 'pebbles', deco: ['pumpkin', 'deadTree', 'candles', 'pumpkin', 'tomb', 'bush'] },
+  easter: { border: ['grass', '#a8d888', '#7ab860'], side: '#c8a0c0', rim: '#7a5a78', ink: '#ffffff', wall: 'plaster', fence: 'picket', open: 'hedge', deco: ['flowers', 'eggs', 'bush', 'sakura', 'flowers', 'eggs'] },
+  carnival: { border: ['marble', '#efe4d0', '#c9b490'], side: '#6a1f6e', rim: '#3a0f3e', ink: '#ffffff', wall: 'plaster', fence: 'iron', open: 'line', deco: ['balloons', 'lamp', 'confetti', 'balloons', 'column', 'confetti'] },
+  lunar: { border: ['cobble', '#c9b8a0', '#9a8a72'], side: '#b3202c', rim: '#5a1018', ink: '#f2c14e', wall: 'plaster', fence: 'bamboo', open: 'pebbles', deco: ['sakura', 'lanternStone', 'paperLantern', 'bamboo', 'firecrackers', 'bonsai'] },
   rome: { border: ['marble', '#efe9dc', '#bdb39c'], side: '#c8bea8', rim: '#6e6450', ink: '#5a3a2a', wall: 'marble', fence: 'rocks', open: 'pebbles', deco: ['cypress', 'jar', 'column', 'cypress', 'bush'] },
 };
 
