@@ -106,7 +106,7 @@ MF.design = (() => {
     theme: 'violet',
     accent: '#7b3fe4',
     colors: { frame: 'auto', line: 'auto', arrow: 'auto', letter: 'auto', clue: 'auto', ink: 'auto', clueInk: 'auto', solution: 'auto', void: 'auto' },
-    background: { type: 'solid', c1: '#f6f1ff', c2: '#e3d5ff', c3: '#ffd9ec', angle: 135, pattern: 'dots', scale: 1, imageId: '', fit: 'cover', imageOpacity: 1, overlay: '#000000', overlayOpacity: 0 },
+    background: { type: 'solid', c1: '#f6f1ff', c2: '#e3d5ff', c3: '#ffd9ec', angle: 135, pattern: 'dots', scale: 1.6, imageId: '', fit: 'cover', imageOpacity: 1, overlay: '#000000', overlayOpacity: 0 },
     frame: { width: 26, radius: 0 },
     voids: 'frame',
     cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false },

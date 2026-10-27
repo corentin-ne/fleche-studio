@@ -97,8 +97,10 @@ MF.panels.design = (() => {
     if (b.type === 'radial') extra = `<div class="color-row">${col('c1', t('Centre'))}${col('c2', t('Bords'))}</div>`;
     if (b.type === 'mesh') extra = `<div class="color-row">${col('c1', t('Fond'))}${col('c2', t('Lueur 1'))}${col('c3', t('Lueur 2'))}</div><button type="button" class="btn btn-sm" data-random-palette>${ic('dice')}${t('Couleurs au hasard')}</button>`;
     if (b.type === 'pattern') {
-      extra = `<div class="pattern-grid">${Object.entries(MF.backgrounds.PATTERNS).map(([id, p]) => `<button type="button" class="pattern-btn ${b.pattern === id ? 'active' : ''}" data-pattern="${id}" title="${esc(p.label)}" style="background:${esc(MF.backgrounds.thumb(id, b.c1, b.c2, b.c3))} 0 0 / 34px auto"><span>${esc(p.label)}</span></button>`).join('')}</div>
-        <div class="color-row">${col('c1', t('Fond'))}${col('c2', t('Motif'))}${col('c3', t('Motif 2'))}</div>${ui.slider('background.scale', t('Taille du motif'), b.scale, 0.3, 4, 0.1, '×')}`;
+      // Motifs rangés par catégorie ; l'aperçu garde l'échelle des dessins (grandes tuiles semées comprises)
+      const groups = Object.entries(MF.backgrounds.PATTERN_CATS).map(([cat, label]) => [label, Object.entries(MF.backgrounds.PATTERNS).filter(([, p]) => (p.cat || 'geo') === cat)]);
+      // Couleurs et taille en tête : la liste des motifs est longue
+      extra = `<div class="color-row">${col('c1', t('Fond'))}${col('c2', t('Motif'))}${col('c3', t('Motif 2'))}</div>${ui.slider('background.scale', t('Taille du motif'), b.scale, 0.2, 5, 0.1, '×')}` + groups.map(([label, list]) => `<p class="pattern-cat">${esc(label)}</p><div class="pattern-grid">${list.map(([id, p]) => `<button type="button" class="pattern-btn ${b.pattern === id ? 'active' : ''}" data-pattern="${id}" title="${esc(p.label)}" style="background:${esc(MF.backgrounds.thumb(id, b.c1, b.c2, b.c3))} 0 0 / ${MF.backgrounds.thumbSize(id)}px auto"><span>${esc(p.label)}</span></button>`).join('')}</div>`).join('');
     }
     if (b.type === 'image') {
       const has = b.imageId && MF.assets.has(b.imageId);

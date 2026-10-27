@@ -180,6 +180,8 @@
 .theme-card:hover .theme-thumb { transform: translateY(-2px); }
 .theme-card.active .theme-thumb { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .25); }
 .theme-card.active { color: var(--text); }
+.pattern-cat { margin: var(--sp-2) 0 4px; font: 600 var(--fs-xs) var(--font-sans); color: var(--text-3); text-transform: uppercase; letter-spacing: .05em; }
+.pattern-cat:first-child { margin-top: 0; }
 .pattern-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(62px, 1fr)); gap: 6px; }
 .pattern-btn { position: relative; height: 54px; border-radius: 10px; border: 2px solid var(--line); cursor: pointer; overflow: hidden; }
 .pattern-btn span { position: absolute; left: 0; right: 0; bottom: 0; padding: 2px; font: 600 9.5px var(--font-sans); color: #fff; background: linear-gradient(transparent, rgba(0,0,0,.55)); }

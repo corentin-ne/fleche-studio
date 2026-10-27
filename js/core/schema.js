@@ -170,7 +170,7 @@ MF.schema = (() => {
         c1: color(b.c1, D.background.c1), c2: color(b.c2, D.background.c2), c3: color(b.c3, D.background.c3),
         angle: int(b.angle, 0, 360, D.background.angle),
         pattern: oneOf(b.pattern, Object.keys(MF.backgrounds.PATTERNS), D.background.pattern),
-        scale: num(b.scale, 0.3, 4, D.background.scale),
+        scale: num(b.scale, 0.2, 5, D.background.scale),
         imageId: optId(b.imageId),
         fit: oneOf(b.fit, ['cover', 'contain', 'tile'], D.background.fit),
         imageOpacity: num(b.imageOpacity, 0, 1, 1),

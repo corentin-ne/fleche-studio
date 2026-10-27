@@ -28,7 +28,7 @@ MF.themes = (() => {
     },
     candy: {
       label: t('Bonbons'), moods: ['vivid', 'party'],
-      design: { accent: '#ff4d8d', colors: { clue: '#fff1a8', arrow: '#7b3fe4' }, background: { type: 'pattern', pattern: 'confetti', c1: '#fff7e6', c2: '#ff8fb1', c3: '#7cc6ff', scale: 1.2 }, cell: { style: 'bubbles', gap: 6, radius: 22, line: 0, letterShape: 'circle', shadow: false }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' } },
+      design: { accent: '#ff4d8d', colors: { clue: '#fff1a8', arrow: '#7b3fe4' }, background: { type: 'pattern', pattern: 'confetti', c1: '#fff7e6', c2: '#ff8fb1', c3: '#7cc6ff', scale: 1.6 }, cell: { style: 'bubbles', gap: 6, radius: 22, line: 0, letterShape: 'circle', shadow: false }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' } },
     },
     neon: {
       label: t('Néon'), moods: ['dark', 'vivid'],
@@ -36,7 +36,7 @@ MF.themes = (() => {
     },
     kraft: {
       label: t('Kraft vintage'), moods: ['soft'],
-      design: { accent: '#6b4226', colors: { letter: '#fdf6e3', clue: '#efe0c2', ink: '#3b2516', clueInk: '#3b2516', arrow: '#a0522d' }, background: { type: 'pattern', pattern: 'notebook', c1: '#d8b98a', c2: '#c4a070', c3: '#c9a87a', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, arrows: { style: 'chevron' }, voids: 'frame', frame: { width: 22, radius: 8 }, font: { clue: 'playfair', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair' } },
+      design: { accent: '#6b4226', colors: { letter: '#fdf6e3', clue: '#efe0c2', ink: '#3b2516', clueInk: '#3b2516', arrow: '#a0522d' }, background: { type: 'pattern', pattern: 'notebook', c1: '#d8b98a', c2: '#c4a070', c3: '#c9a87a', scale: 1.4 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, arrows: { style: 'chevron' }, voids: 'frame', frame: { width: 22, radius: 8 }, font: { clue: 'playfair', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair' } },
     },
     chalk: {
       label: t('Tableau noir'), moods: ['dark'],
@@ -44,11 +44,11 @@ MF.themes = (() => {
     },
     ocean: {
       label: t('Océan'), moods: ['vivid'],
-      design: { accent: '#0f5c8c', colors: { clue: '#d7efff', arrow: '#0f5c8c' }, background: { type: 'pattern', pattern: 'waves', c1: '#0f5c8c', c2: '#1d76ad', c3: '#ffffff', scale: 1.6 }, cell: { style: 'tiles', gap: 8, radius: 16, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'nunito', letter: 'nunito', clueWeight: 700 }, title: { font: 'baloo', color: '#ffffff' } },
+      design: { accent: '#0f5c8c', colors: { clue: '#d7efff', arrow: '#0f5c8c' }, background: { type: 'pattern', pattern: 'seaMix', c1: '#0f5c8c', c2: '#3d8fc4', c3: '#d7efff', scale: 1 }, cell: { style: 'tiles', gap: 8, radius: 16, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'nunito', letter: 'nunito', clueWeight: 700 }, title: { font: 'baloo', color: '#ffffff' } },
     },
     forest: {
       label: t('Forêt'), moods: ['soft'],
-      design: { accent: '#2f6b3a', colors: { clue: '#e3f1dc' }, background: { type: 'mesh', c1: '#eef6e8', c2: '#bfe0a8', c3: '#f6e7b4' }, cell: { style: 'rounded', gap: 0, radius: 16, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 24, radius: 28 }, font: { clue: 'nunito', letter: 'nunito', clueWeight: 700 }, title: { font: 'fraunces' } },
+      design: { accent: '#2f6b3a', colors: { clue: '#e3f1dc' }, background: { type: 'pattern', pattern: 'forestMix', c1: '#eef6e8', c2: '#a8d48f', c3: '#e8b86a', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 16, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 24, radius: 28 }, font: { clue: 'nunito', letter: 'nunito', clueWeight: 700 }, title: { font: 'fraunces' } },
     },
     sunset: {
       label: t('Coucher de soleil'), moods: ['vivid'],
@@ -56,7 +56,7 @@ MF.themes = (() => {
     },
     love: {
       label: t('Love'), moods: ['party', 'soft'],
-      design: { accent: '#e5384f', colors: { clue: '#ffe1e6' }, background: { type: 'pattern', pattern: 'hearts', c1: '#fff0f3', c2: '#ffc2cf', c3: '#ff8fa6', scale: 1.1 }, cell: { style: 'rounded', gap: 0, radius: 20, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 20, radius: 36 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'caveat' } },
+      design: { accent: '#e5384f', colors: { clue: '#ffe1e6' }, background: { type: 'pattern', pattern: 'loveMix', c1: '#fff0f3', c2: '#ffb3c4', c3: '#ff7f99', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 20, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 20, radius: 36 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'caveat' } },
     },
     minimal: {
       label: t('Minimal'), moods: ['soft'],
@@ -64,11 +64,11 @@ MF.themes = (() => {
     },
     xmas: {
       label: t('Noël'), moods: ['party'],
-      design: { accent: '#b3202c', colors: { clue: '#e9f4ea', arrow: '#1f6b3a' }, background: { type: 'pattern', pattern: 'stars', c1: '#123d27', c2: '#f3d36b', c3: '#ffffff', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 14, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 24, radius: 20 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'playfair', color: '#ffffff' } },
+      design: { accent: '#b3202c', colors: { clue: '#e9f4ea', arrow: '#1f6b3a' }, background: { type: 'pattern', pattern: 'xmasMix', c1: '#123d27', c2: '#e8c45a', c3: '#ffffff', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 14, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 24, radius: 20 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'playfair', color: '#ffffff' } },
     },
     memphis: {
       label: t('Memphis 90s'), moods: ['vivid'],
-      design: { accent: '#231f20', colors: { clue: '#fff27a', arrow: '#ff3e8a' }, background: { type: 'pattern', pattern: 'memphis', c1: '#9fe7f5', c2: '#ff3e8a', c3: '#231f20', scale: 1 }, cell: { style: 'bold', gap: 0, radius: 0, line: 6, letterShape: 'square', shadow: false }, voids: 'hatch', frame: { width: 14 }, font: { clue: 'grotesk', letter: 'grotesk', clueWeight: 700 }, title: { font: 'marker' } },
+      design: { accent: '#231f20', colors: { clue: '#fff27a', arrow: '#ff3e8a' }, background: { type: 'pattern', pattern: 'memphis', c1: '#9fe7f5', c2: '#ff3e8a', c3: '#231f20', scale: 1.5 }, cell: { style: 'bold', gap: 0, radius: 0, line: 6, letterShape: 'square', shadow: false }, voids: 'hatch', frame: { width: 14 }, font: { clue: 'grotesk', letter: 'grotesk', clueWeight: 700 }, title: { font: 'marker' } },
     },
     mint: {
       label: t('Menthe fraîche'), moods: ['soft'],
@@ -76,7 +76,7 @@ MF.themes = (() => {
     },
     lavender: {
       label: t('Lavande'), moods: ['soft'],
-      design: { accent: '#8e6bd8', colors: { clue: '#ece4fb', arrow: '#6a45c2' }, background: { type: 'pattern', pattern: 'dots', c1: '#f7f3ff', c2: '#ddd0fa', c3: '#cbbaf5', scale: 1 }, cell: { style: 'bubbles', gap: 6, radius: 22, line: 0, letterShape: 'circle', shadow: false }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'caveat' } },
+      design: { accent: '#8e6bd8', colors: { clue: '#ece4fb', arrow: '#6a45c2' }, background: { type: 'pattern', pattern: 'flowers', c1: '#f7f3ff', c2: '#ddd0fa', c3: '#c3aef2', scale: 1.4 }, cell: { style: 'bubbles', gap: 6, radius: 22, line: 0, letterShape: 'circle', shadow: false }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'caveat' } },
     },
     coral: {
       label: t('Corail'), moods: ['vivid'],
@@ -88,11 +88,11 @@ MF.themes = (() => {
     },
     crayons: {
       label: t('Crayons de couleur'), moods: ['party', 'vivid'],
-      design: { accent: '#3a3a5c', colors: { clue: '#ffffff', arrow: '#3a3a5c', line: '#3a3a5c', frame: '#3a3a5c' }, background: { type: 'pattern', pattern: 'dots', c1: '#fffdf6', c2: '#ffe3ef', c3: '#d8f0ff', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 14, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 16, radius: 24 }, font: { clue: 'nunito', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' }, multi: { on: true, targets: { letters: true, cells: false, clues: true, words: true }, mode: 'word', preset: 'candy', palette: ['#ff4d8d', '#ff9f1c', '#ffd23f', '#3ec300', '#00bbf9', '#9b5de5'] } },
+      design: { accent: '#3a3a5c', colors: { clue: '#ffffff', arrow: '#3a3a5c', line: '#3a3a5c', frame: '#3a3a5c' }, background: { type: 'pattern', pattern: 'dots', c1: '#fffdf6', c2: '#ffe3ef', c3: '#d8f0ff', scale: 1.6 }, cell: { style: 'rounded', gap: 0, radius: 14, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 16, radius: 24 }, font: { clue: 'nunito', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' }, multi: { on: true, targets: { letters: true, cells: false, clues: true, words: true }, mode: 'word', preset: 'candy', palette: ['#ff4d8d', '#ff9f1c', '#ffd23f', '#3ec300', '#00bbf9', '#9b5de5'] } },
     },
     night: {
       label: t('Nuit étoilée'), moods: ['dark'],
-      design: { accent: '#ffd166', colors: { letter: '#14213d', clue: '#1f3160', ink: '#fdf6e3', clueInk: '#e6ecff', arrow: '#ffd166', line: '#2c4377', frame: '#0b1530', solution: '#ffd166' }, background: { type: 'pattern', pattern: 'stars', c1: '#0b1530', c2: '#ffd166', c3: '#ffffff', scale: 1 }, cell: { style: 'tiles', gap: 8, radius: 12, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'fraunces', color: '#ffd166' } },
+      design: { accent: '#ffd166', colors: { letter: '#14213d', clue: '#1f3160', ink: '#fdf6e3', clueInk: '#e6ecff', arrow: '#ffd166', line: '#2c4377', frame: '#0b1530', solution: '#ffd166' }, background: { type: 'pattern', pattern: 'nightMix', c1: '#0b1530', c2: '#ffd166', c3: '#8aa0d8', scale: 1 }, cell: { style: 'tiles', gap: 8, radius: 12, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'fraunces', color: '#ffd166' } },
     },
     gold: {
       label: t('Noir & or'), moods: ['dark'],
@@ -100,27 +100,52 @@ MF.themes = (() => {
     },
     birthday: {
       label: t('Anniversaire'), moods: ['party', 'vivid'],
-      design: { accent: '#ff7a00', colors: { clue: '#fff0c2', arrow: '#e5384f' }, background: { type: 'pattern', pattern: 'confetti', c1: '#fffaf0', c2: '#ff7a00', c3: '#1f8fff', scale: 1.1 }, cell: { style: 'rounded', gap: 0, radius: 18, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 20, radius: 30 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' } },
+      design: { accent: '#ff7a00', colors: { clue: '#fff0c2', arrow: '#e5384f' }, background: { type: 'pattern', pattern: 'partyMix', c1: '#fffaf0', c2: '#ff7a00', c3: '#1f8fff', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 18, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 20, radius: 30 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo' } },
     },
     halloween: {
       label: t('Halloween'), moods: ['party', 'dark'],
-      design: { accent: '#ff7518', colors: { letter: '#fff4e6', clue: '#3a2350', clueInk: '#fbe9d0', arrow: '#ff7518', frame: '#2a1838', line: '#2a1838' }, background: { type: 'pattern', pattern: 'bats', c1: '#34204a', c2: '#1b0f26', c3: '#ff9a3c', scale: 1.3 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 24, radius: 12 }, font: { clue: 'patrick', letter: 'marker', clueWeight: 400 }, title: { font: 'marker', color: '#ff7518' } },
+      design: { accent: '#ff7518', colors: { letter: '#fff4e6', clue: '#3a2350', clueInk: '#fbe9d0', arrow: '#ff7518', frame: '#2a1838', line: '#2a1838' }, background: { type: 'pattern', pattern: 'halloweenMix', c1: '#34204a', c2: '#ff8a2a', c3: '#d9c8f0', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 24, radius: 12 }, font: { clue: 'patrick', letter: 'marker', clueWeight: 400 }, title: { font: 'marker', color: '#ff7518' } },
       confetti: { colors: ['#ff7518', '#8e44ad', '#8fd16a', '#ffd23f', '#2a1838'], emojis: ['🎃', '👻', '🦇', '🍬', '🕷️'] },
     },
     easter: {
       label: t('Pâques'), moods: ['party', 'soft'],
-      design: { accent: '#8e6bd8', colors: { clue: '#fdf3d8', arrow: '#5f9a4a', line: '#d9c8ee', frame: '#b7d98a' }, background: { type: 'pattern', pattern: 'eggs', c1: '#f4fbef', c2: '#f6c9dc', c3: '#b9e0f2', scale: 1.1 }, cell: { style: 'rounded', gap: 0, radius: 16, line: 3, letterShape: 'square', shadow: false }, voids: 'light', frame: { width: 20, radius: 28 }, font: { clue: 'nunito', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo', color: '#5f9a4a' } },
+      design: { accent: '#8e6bd8', colors: { clue: '#fdf3d8', arrow: '#5f9a4a', line: '#d9c8ee', frame: '#b7d98a' }, background: { type: 'pattern', pattern: 'easterMix', c1: '#f4fbef', c2: '#f4b6cf', c3: '#f2d86a', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 16, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 20, radius: 28 }, font: { clue: 'nunito', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo', color: '#5f9a4a' } },
       confetti: { colors: ['#f6c9dc', '#b9e0f2', '#f6e08a', '#b7d98a', '#c8a0e0'], emojis: ['🐣', '🥚', '🐰', '🌷', '🍫'] },
     },
     carnival: {
       label: t('Carnaval'), moods: ['party', 'vivid'],
-      design: { accent: '#6a1f6e', colors: { clue: '#fff1c2', arrow: '#e0283a', frame: '#6a1f6e', solution: '#e0283a' }, background: { type: 'pattern', pattern: 'harlequin', c1: '#2a0f2e', c2: '#6a1f6e', c3: '#f2c94c', scale: 1 }, cell: { style: 'tiles', gap: 6, radius: 10, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'grotesk', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair', color: '#f2c94c' } },
+      design: { accent: '#6a1f6e', colors: { clue: '#fff1c2', arrow: '#e0283a', frame: '#6a1f6e', solution: '#e0283a' }, background: { type: 'pattern', pattern: 'harlequin', c1: '#2a0f2e', c2: '#6a1f6e', c3: '#f2c94c', scale: 1.6 }, cell: { style: 'tiles', gap: 6, radius: 10, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'grotesk', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair', color: '#f2c94c' } },
       confetti: { colors: ['#e0283a', '#f2c94c', '#3fa08a', '#6a1f6e', '#2f6a9a'], emojis: ['🎭', '🎊', '🎉', '🪶'] },
     },
     lunar: {
       label: t('Nouvel an chinois'), moods: ['party', 'vivid'],
-      design: { accent: '#b3202c', colors: { letter: '#fff8e8', clue: '#f9e1b0', ink: '#3a1010', clueInk: '#7a1018', arrow: '#b3202c', line: '#e0b23a', frame: '#e0b23a', solution: '#b3202c' }, background: { type: 'pattern', pattern: 'lanterns', c1: '#a81c26', c2: '#e8a020', c3: '#fbe3a0', scale: 1.2 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'frame', frame: { width: 22, radius: 10 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'fraunces', color: '#fbe3a0' } },
+      design: { accent: '#b3202c', colors: { letter: '#fff8e8', clue: '#f9e1b0', ink: '#3a1010', clueInk: '#7a1018', arrow: '#b3202c', line: '#e0b23a', frame: '#e0b23a', solution: '#b3202c' }, background: { type: 'pattern', pattern: 'lunarMix', c1: '#a81c26', c2: '#e8a020', c3: '#fbe3a0', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 22, radius: 10 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'fraunces', color: '#fbe3a0' } },
       confetti: { colors: ['#b3202c', '#e0b23a', '#f2c14e', '#7a1018'], emojis: ['🧧', '🏮', '🐉', '🧨', '🍊'] },
+    },
+    pirates: {
+      label: t('Pirates'), moods: ['dark', 'vivid'],
+      design: { accent: '#e0a94a', colors: { letter: '#f6ead2', clue: '#e7d3a8', ink: '#2a1a10', clueInk: '#3b2516', arrow: '#8a2a2a', line: '#5a3a22', frame: '#3b2516', solution: '#8a2a2a' }, background: { type: 'pattern', pattern: 'pirateMix', c1: '#123e52', c2: '#e0a94a', c3: '#f6ead2', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 22, radius: 8 }, font: { clue: 'patrick', letter: 'playfair', clueWeight: 400 }, title: { font: 'marker', color: '#e0a94a' } },
+      confetti: { colors: ['#e0a94a', '#8a2a2a', '#123e52', '#f6ead2'], emojis: ['🏴‍☠️', '💰', '⚓', '🦜'] },
+    },
+    space: {
+      label: t('Espace'), moods: ['dark'],
+      design: { accent: '#7f8cff', colors: { letter: '#1b2440', clue: '#26305a', ink: '#ffffff', clueInk: '#cfd6ff', arrow: '#ffcc4d', line: '#3a4680', frame: '#7f8cff', solution: '#ffcc4d' }, background: { type: 'pattern', pattern: 'spaceMix', c1: '#0b1028', c2: '#5a66c8', c3: '#ffcc4d', scale: 1 }, cell: { style: 'tiles', gap: 8, radius: 12, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 0 }, font: { clue: 'grotesk', letter: 'grotesk' }, title: { font: 'grotesk', color: '#ffcc4d' } },
+      confetti: { colors: ['#7f8cff', '#ffcc4d', '#ffffff', '#ff6ad5'], emojis: ['🚀', '🪐', '⭐', '👽'] },
+    },
+    japan: {
+      label: t('Japon'), moods: ['soft'],
+      design: { accent: '#c0283a', colors: { clue: '#fbe7e7', arrow: '#c0283a', line: '#e8c4c4', frame: '#c0283a' }, background: { type: 'pattern', pattern: 'japanMix', c1: '#fdf6f0', c2: '#f6b8c8', c3: '#e3cbb4', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 2, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 16, radius: 4 }, font: { clue: 'nunito', letter: 'fraunces', clueWeight: 700 }, title: { font: 'fraunces', color: '#c0283a' } },
+      confetti: { colors: ['#f6b8c8', '#c0283a', '#ffffff', '#e3cbb4'], emojis: ['🌸', '🎏', '🍡'] },
+    },
+    egypt: {
+      label: t('Égypte'), moods: ['vivid'],
+      design: { accent: '#2f5e8c', colors: { clue: '#f6e3b0', arrow: '#b8862b', frame: '#b8862b', line: '#d9b870' }, background: { type: 'pattern', pattern: 'egyptMix', c1: '#ecd08a', c2: '#c9a456', c3: '#2f5e8c', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 20, radius: 6 }, font: { clue: 'nunito', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair', color: '#2f5e8c' } },
+      confetti: { colors: ['#e0b23a', '#2f5e8c', '#c9a456', '#ffffff'], emojis: ['🐫', '🏺', '☀️'] },
+    },
+    mermaid: {
+      label: t('Sirènes'), moods: ['soft', 'vivid'],
+      design: { accent: '#1d6f8a', colors: { clue: '#dff6f2', arrow: '#1d6f8a', frame: '#7fd6c8', line: '#a8e2da' }, background: { type: 'pattern', pattern: 'mermaidMix', c1: '#e8f8f6', c2: '#7fd6c8', c3: '#f2a6c0', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 16, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 18, radius: 28 }, font: { clue: 'nunito', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo', color: '#1d6f8a' } },
+      confetti: { colors: ['#7fd6c8', '#f2a6c0', '#1d6f8a', '#ffffff'], emojis: ['🧜‍♀️', '🐚', '🐠', '🫧'] },
     },
   };
 

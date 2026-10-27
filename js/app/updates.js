@@ -23,6 +23,8 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Motifs de fond : plus de 60 motifs rangés par catégorie, dont des mélanges à thème (Halloween, Noël, mer, espace…) semés sans répétition visible',
+    'Thèmes retravaillés avec des fonds illustrés, et 5 nouveaux thèmes : Pirates, Espace, Japon, Égypte, Sirènes',
     'Nouveaux thèmes de fête : Halloween revisité, Pâques, Carnaval et Nouvel an chinois (motifs, stickers, emojis et confettis)',
     'Murdoku : 4 univers de fête (soirée Halloween, chasse aux œufs, carnaval, Nouvel an chinois) avec chapeaux et décor 3D',
     'Murdoku : figurines coiffées selon l\'univers (tricornes, casques spatiaux, kasa, hauts-de-forme…), plan et export aux couleurs de l\'univers',
