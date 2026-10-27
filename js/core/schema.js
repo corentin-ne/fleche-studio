@@ -81,6 +81,7 @@ MF.schema = (() => {
       labels: bool(o.labels, true),
       render: oneOf(o.render, ['3d', '2d'], '3d'),
       clutter: oneOf(o.clutter, ['none', 'some', 'lots'], 'lots'),
+      roomLabels: bool(o.roomLabels, true),
       // Variante des noms et de l'histoire (générateur), indépendante de l'énigme
       flavor: int(o.flavor, 0, 2147483647, 0),
       seed: int(o.seed, 0, 2147483647, 0),
@@ -96,7 +97,7 @@ MF.schema = (() => {
     const N = int(p.size, 5, 8, 0);
     const M = MF.murdoku;
     if (!N || !M || !Array.isArray(p.rooms) || !Array.isArray(p.cells) || p.cells.length !== N) return null;
-    const PATTERNS = ['wood', 'tile', 'carpet', 'grass', 'stone'];
+    const PATTERNS = ['wood', 'tile', 'carpet', 'grass', 'stone', 'sand', 'water', 'snow', 'marble', 'tatami', 'planks', 'parquet', 'metal', 'mosaic', 'cobble', 'hex', 'straw', 'checker'];
     const rooms = p.rooms.slice(0, N * N).map(obj).map((r, i) => {
       const out = { id: i, type: oneOf(r.type, M.ROOM_TYPES, 'hall') };
       // Habillage d'un univers : nom, phrase « dans … », sol et mur
@@ -104,6 +105,7 @@ MF.schema = (() => {
       if (r.in) out.in = str(r.in, 60);
       if (Array.isArray(r.floor) && PATTERNS.includes(r.floor[0])) out.floor = [r.floor[0], color(r.floor[1], '#cccccc'), color(r.floor[2], '#999999')];
       if (r.wall) out.wall = color(r.wall, '#cccccc');
+      if (typeof r.open === 'boolean') out.open = r.open;
       return out;
     });
     const cells = p.cells.map(row => (Array.isArray(row) && row.length === N ? row.map(v => int(v, 0, rooms.length - 1, -1)) : null));

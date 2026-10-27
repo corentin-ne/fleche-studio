@@ -21,7 +21,7 @@ const CAMERAS = {
   top: { az: 0, el: 76, ortho: true },
 };
 
-const DEFAULTS = { look: 'print', mood: 'day', camera: 'iso', labels: true, names: false, clutter: 'some', interactive: true, ao: true, padding: 0.04, maxPixelRatio: 2, background: null };
+const DEFAULTS = { look: 'print', mood: 'day', camera: 'iso', labels: true, roomLabels: true, names: false, clutter: 'some', interactive: true, ao: true, padding: 0.04, maxPixelRatio: 2, background: null };
 
 const _v = new THREE.Vector3();
 
@@ -188,6 +188,7 @@ export class BoardView {
   syncLabels() {
     if (!this.board) return;
     this.board.labels.visible = !!this.opts.labels;
+    if (this.board.roomLabels) this.board.roomLabels.visible = this.opts.roomLabels !== false;
     const front = !CAMERAS[this.opts.camera]?.ortho;
     for (const m of this.board.labels.children) m.visible = m.userData.edge !== (front ? 'back' : 'front');
   }
@@ -223,7 +224,7 @@ export class BoardView {
     this.renderer.toneMappingExposure = m.exposure;
     this.scene.background = new THREE.Color(this.opts.background ?? m.backdrop);
     const dark = this.opts.mood === 'night';
-    for (const mat of this.board?.labelMats ?? []) mat.color.set(dark ? '#f3e7cf' : '#3a2c26');
+    for (const mat of this.board?.labelMats ?? []) mat.color.set(dark ? '#f3e7cf' : this.board.ink ?? '#3a2c26');
     this.scaleLamps();
     this.placeSun();
   }
@@ -258,7 +259,7 @@ export class BoardView {
   // ---------------------------------------------------------------- puzzle
   setPuzzle(puzzle, state = {}) {
     if (!puzzle || !puzzle.size || !puzzle.cells) throw new Error('murdoku3d: invalid puzzle');
-    const sig = JSON.stringify([puzzle.size, puzzle.seed, puzzle.rooms, puzzle.cells, puzzle.objects, puzzle.theme, this.opts.clutter]);
+    const sig = JSON.stringify([puzzle.size, puzzle.seed, puzzle.rooms, puzzle.cells, puzzle.objects, puzzle.theme, puzzle.roomLabels, this.opts.clutter]);
     if (sig !== this.sig) {
       this.sig = sig;
       this.clearBoard();

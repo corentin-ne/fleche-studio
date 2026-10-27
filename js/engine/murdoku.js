@@ -640,6 +640,8 @@ MF.murdoku = (() => {
     if (r.in) out.in = String(r.in).slice(0, 60);
     if (Array.isArray(r.floor) && r.floor[0]) out.floor = r.floor.slice(0, 3);
     if (r.wall) out.wall = r.wall;
+    // plein air : une zone sans murs avec les zones voisines
+    if (typeof r.open === 'boolean') out.open = r.open;
     return out;
   }
 

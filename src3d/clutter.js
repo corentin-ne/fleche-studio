@@ -4,6 +4,7 @@
 // cell (people stand in the middle), or on top of tables, desks and counters.
 // Every prop sits on y = 0, centred on (0, 0), and is merged into one mesh.
 import { Builder, rng, seedBuilders } from './geo.js';
+import { PLANTS } from './deco.js';
 
 const pick = (r, a) => a[Math.floor(r() * a.length)];
 const FRUIT = ['#e8492c', '#e0a94a', '#7cae4f', '#f2c94c', '#8e3b7a', '#f08a3c'];
@@ -12,7 +13,7 @@ const GLASS = ['#3f7a4a', '#7a2a2a', '#2f5d8a', '#c9a24a', '#5a3b26'];
 const WOOD = ['#8a5a36', '#a8703f', '#6b4a34', '#b98552'];
 
 // --- props -------------------------------------------------------------------
-const PROPS = {
+export const PROPS = {
   plate(b, r) {
     b.cyl(0.17, 0.13, 0.025, 0, 0, 0, '#f6f2ea', { seg: 18, roughness: 0.3 });
     const food = pick(r, ['#c0602a', '#e0a94a', '#7cae4f', '#a33b2b']);
@@ -226,55 +227,148 @@ const PROPS = {
     b.cyl(0.14, 0.14, 0.004, 0, 0, 0, pick(r, ['#7a2a2a', '#5fa5b5', '#c9a24a']), { seg: 14, roughness: 0.05, shadow: false });
     b.cbox(0.05, 0.12, 0.05, 0.06, 0.03, 0.02, '#e8f0f2', { rz: 1.57, roughness: 0.1 });
   },
+  roundMat(b, r) {
+    const cs = [pick(r, CLOTH), pick(r, ['#efe6c8', '#f4efe4']), pick(r, CLOTH)];
+    for (let i = 0; i < 3; i++) b.cyl(0.32 - i * 0.09, 0.32 - i * 0.09, 0.008 + i * 0.004, 0, 0, 0, cs[i], { seg: 22, jitter: 0, shadow: false });
+  },
+  runner(b, r) {
+    const c = pick(r, CLOTH);
+    b.box(0.3, 0.008, 0.85, 0, 0, 0, '#efe6c8', { jitter: 0, shadow: false });
+    b.box(0.22, 0.012, 0.77, 0, 0, 0, c, { jitter: 0, shadow: false });
+    for (let i = 0; i < 3; i++) b.cbox(0.08, 0.016, 0.08, 0, 0.006, -0.25 + i * 0.25, '#efe6c8', { ry: 0.785, jitter: 0, shadow: false });
+  },
+  stool(b, r) {
+    const c = pick(r, WOOD);
+    for (const [x, z] of [[-0.09, -0.09], [0.09, -0.09], [0, 0.11]]) b.cyl(0.018, 0.022, 0.26, x, 0, z, c, { seg: 6 });
+    b.cyl(0.15, 0.15, 0.04, 0, 0.26, 0, c, { seg: 14 });
+  },
+  skis(b, r) {
+    const c = pick(r, ['#c0283a', '#2f5d8a', '#f2c94c']);
+    for (const x of [-0.05, 0.05]) { b.box(0.07, 0.015, 0.75, x, 0, 0, c); b.cbox(0.07, 0.015, 0.1, x, 0.03, 0.4, c, { rx: -0.5 }); }
+    b.cyl(0.012, 0.012, 0.6, 0.15, 0.01, 0, '#2a2523', { rx: 1.57, seg: 5 });
+  },
+  horseshoe(b) {
+    for (let i = 0; i < 7; i++) {
+      const a = Math.PI * (i / 6);
+      b.cbox(0.05, 0.02, 0.035, Math.cos(a) * 0.08, 0.01, Math.sin(a) * 0.08, '#8e8a82', { ry: -a, metalness: 0.6 });
+    }
+  },
+  pins(b, r) {
+    for (let i = 0; i < 3; i++) {
+      const x = (i - 1) * 0.08, c = pick(r, CLOTH);
+      b.cyl(0.03, 0.02, 0.18, x, 0, 0, '#f6f2ea', { seg: 8 });
+      b.sphere(0.035, x, 0.2, 0, c, { seg: 8 });
+      b.cyl(0.032, 0.032, 0.02, x, 0.1, 0, c, { seg: 8 });
+    }
+  },
+  robot(b, r) {
+    const c = pick(r, ['#c9d1db', '#e0a040', '#5fb3a8']);
+    b.box(0.2, 0.18, 0.16, 0, 0.06, 0, c, { round: 0.03, metalness: 0.5 });
+    b.box(0.14, 0.1, 0.12, 0, 0.25, 0, c, { round: 0.03, metalness: 0.5 });
+    for (const x of [-0.035, 0.035]) b.sphere(0.018, x, 0.3, 0.062, '#5ad8ff', { emissive: '#2ab8ff', ei: 1.4, seg: 6 });
+    for (const x of [-0.07, 0.07]) b.cyl(0.035, 0.035, 0.04, x, 0, 0, '#2a2f38', { rz: 1.57, seg: 10 });
+    b.cyl(0.006, 0.006, 0.08, 0, 0.35, 0, '#2a2f38', { seg: 4 });
+    b.sphere(0.018, 0, 0.44, 0, '#ff4a4a', { emissive: '#ff2020', ei: 1.4, seg: 6 });
+  },
+  cables(b, r) {
+    for (let k = 0; k < 2; k++) {
+      const c = pick(r, ['#c0283a', '#2f5d8a', '#2a2523', '#f2c94c']);
+      for (let i = 0; i < 9; i++) b.cbox(0.06, 0.02, 0.02, Math.cos(i * 0.7 + k) * 0.12, 0.01, Math.sin(i * 0.9 + k) * 0.12, c, { ry: i * 0.7 + k, jitter: 0 });
+    }
+  },
+  sandals(b, r) {
+    const c = pick(r, ['#c9a46a', '#7a5a3a', '#c0283a']);
+    for (const x of [-0.06, 0.06]) { b.box(0.08, 0.025, 0.2, x, 0, 0, c, { round: 0.01 }); b.box(0.06, 0.012, 0.012, x, 0.025, 0.05, '#2a2523'); }
+  },
+  grapes(b, r) {
+    const c = pick(r, ['#6a2a6a', '#8ab04a']);
+    b.cyl(0.13, 0.11, 0.02, 0, 0, 0, '#c9a24a', { seg: 14, metalness: 0.6 });
+    for (let i = 0; i < 12; i++) b.sphere(0.025, (r() - 0.5) * 0.12, 0.04 + (i % 3) * 0.025, (r() - 0.5) * 0.1, c, { seg: 6 });
+  },
+  letters(b, r) {
+    for (let i = 0; i < 3; i++) {
+      b.cbox(0.16, 0.006, 0.11, (r() - 0.5) * 0.12, 0.004 + i * 0.006, (r() - 0.5) * 0.12, '#f6efdc', { ry: r() * 3, shadow: false });
+    }
+    b.cyl(0.018, 0.018, 0.008, 0.02, 0.022, 0.01, '#a33b2b', { seg: 8 });
+  },
+  paperLantern(b, r) {
+    const c = pick(r, ['#e8492c', '#f2c94c', '#f6efdc']);
+    b.sphere(0.11, 0, 0.13, 0, c, { sy: 1.25, seg: 12, emissive: c, ei: 0.35 });
+    b.cyl(0.05, 0.05, 0.02, 0, 0, 0, '#2a2523', { seg: 8 });
+    b.cyl(0.05, 0.05, 0.02, 0, 0.26, 0, '#2a2523', { seg: 8 });
+  },
+  scarab(b) {
+    b.sphere(0.07, 0, 0.03, 0, '#2f8a6a', { sy: 0.5, seg: 10, metalness: 0.6, roughness: 0.3 });
+    b.sphere(0.035, 0, 0.025, 0.08, '#1f5a4a', { seg: 8, metalness: 0.6 });
+  },
+  fishbones(b) {
+    b.box(0.26, 0.012, 0.015, 0, 0.005, 0, '#efe6d0');
+    for (let i = 0; i < 6; i++) b.cbox(0.012, 0.012, 0.09, -0.08 + i * 0.03, 0.005, 0, '#efe6d0');
+    b.cbox(0.06, 0.015, 0.06, 0.15, 0.008, 0, '#efe6d0', { ry: 0.785 });
+  },
+  birdcage(b) {
+    b.cyl(0.1, 0.1, 0.02, 0, 0, 0, '#c9a24a', { seg: 12, metalness: 0.7 });
+    for (let i = 0; i < 10; i++) b.cyl(0.005, 0.005, 0.26, Math.cos(i * 0.628) * 0.09, 0.02, Math.sin(i * 0.628) * 0.09, '#c9a24a', { seg: 4, metalness: 0.7 });
+    b.sphere(0.1, 0, 0.27, 0, '#c9a24a', { sy: 0.5, seg: 10, metalness: 0.7 });
+    b.sphere(0.035, 0, 0.1, 0, '#f2c94c', { seg: 8 });
+  },
+  umbrella(b, r) {
+    const c = pick(r, CLOTH);
+    b.cyl(0.008, 0.008, 0.6, 0, 0.02, 0, '#2a2523', { rz: 1.3, seg: 4 });
+    b.cyl(0.0, 0.08, 0.36, -0.12, 0.08, 0, c, { rz: 1.3, seg: 8 });
+  },
 };
+for (const [k, fn] of Object.entries(PLANTS)) if (['fern', 'flowers', 'tuft', 'bush', 'bonsai', 'kelp', 'cactus', 'dryBush'].includes(k)) PROPS[`plant_${k}`] = fn;
 
 // Props on the floor and on table tops, by room type
 const FLOOR = {
-  living: ['books', 'cushion', 'mat', 'vase', 'ball', 'papers', 'mugs'],
-  kitchen: ['sack', 'bread', 'crate', 'bucket', 'jar', 'fruitBowl', 'cheese'],
-  bedroom: ['cushion', 'books', 'hat', 'suitcase', 'mat', 'papers'],
-  bathroom: ['bucket', 'mat', 'bottles', 'cushion'],
-  office: ['papers', 'books', 'scroll', 'crate', 'mugs'],
-  library: ['books', 'books', 'scroll', 'papers', 'candles', 'cushion'],
-  dining: ['bottles', 'crate', 'jar', 'mat', 'fruitBowl'],
-  garden: ['rocks', 'mushrooms', 'ball', 'hay', 'logs'],
-  hall: ['suitcase', 'hat', 'mat', 'footprints', 'crate'],
-  music: ['papers', 'candles', 'cushion', 'mat', 'vase'],
-  guest: ['suitcase', 'cushion', 'books', 'hat'],
-  game: ['ball', 'bottles', 'cushion', 'papers', 'mugs'],
-  veranda: ['vase', 'cushion', 'rocks', 'hat', 'mugs'],
-  laundry: ['bucket', 'sack', 'crate', 'mat'],
+  living: ['books', 'cushion', 'mat', 'roundMat', 'vase', 'ball', 'papers', 'mugs', 'stool', 'birdcage'],
+  kitchen: ['sack', 'bread', 'crate', 'bucket', 'jar', 'fruitBowl', 'cheese', 'stool', 'runner'],
+  bedroom: ['cushion', 'books', 'hat', 'suitcase', 'mat', 'roundMat', 'papers', 'letters'],
+  bathroom: ['bucket', 'mat', 'bottles', 'cushion', 'roundMat'],
+  office: ['papers', 'books', 'scroll', 'crate', 'mugs', 'letters', 'stool'],
+  library: ['books', 'books', 'scroll', 'papers', 'candles', 'cushion', 'runner', 'letters'],
+  dining: ['bottles', 'crate', 'jar', 'mat', 'fruitBowl', 'runner', 'stool'],
+  garden: ['rocks', 'mushrooms', 'ball', 'hay', 'logs', 'plant_flowers', 'plant_tuft', 'plant_fern', 'plant_bush'],
+  hall: ['suitcase', 'hat', 'mat', 'footprints', 'crate', 'runner', 'umbrella'],
+  music: ['papers', 'candles', 'cushion', 'mat', 'roundMat', 'vase'],
+  guest: ['suitcase', 'cushion', 'books', 'hat', 'roundMat'],
+  game: ['ball', 'bottles', 'cushion', 'papers', 'mugs', 'pins', 'stool'],
+  veranda: ['vase', 'cushion', 'rocks', 'hat', 'mugs', 'plant_flowers', 'birdcage'],
+  laundry: ['bucket', 'sack', 'crate', 'mat', 'runner'],
 };
-const TOP = ['plate', 'plate', 'fruitBowl', 'cake', 'teaset', 'bottles', 'candles', 'books', 'cheese', 'bread', 'vase', 'mugs', 'papers'];
+// Open-air areas (beach, dunes, pistes…): mostly plants and stones
+const OUTDOOR = ['rocks', 'plant_tuft', 'plant_flowers', 'plant_fern', 'mushrooms', 'plant_tuft', 'footprints', 'plant_bush'];
+const TOP = ['plate', 'plate', 'fruitBowl', 'cake', 'teaset', 'bottles', 'candles', 'books', 'cheese', 'bread', 'vase', 'mugs', 'papers', 'grapes', 'letters'];
 // Theme extras (puzzle.theme), mixed in with the room props
 const THEME = {
-  mermaids: ['shells', 'pearls', 'coral', 'shells', 'coral'],
-  japan: ['teaset', 'lantern', 'cushion', 'scroll'],
-  paris: ['bread', 'cheese', 'bottles', 'papers', 'books'],
-  regency: ['teaset', 'cake', 'vase', 'hat', 'papers'],
-  egypt: ['jar', 'scroll', 'coins', 'jar'],
-  pirates: ['barrel', 'crate', 'coins', 'rope', 'cannonballs', 'bottles'],
-  western: ['hay', 'barrel', 'bottles', 'hat', 'sack'],
-  space: ['canisters', 'crate', 'papers', 'canisters'],
-  haunted: ['pumpkin', 'candles', 'bones', 'books', 'footprints'],
-  medieval: ['barrel', 'sack', 'bread', 'candles', 'hay'],
-  prehistory: ['bones', 'rocks', 'mushrooms', 'logs', 'hay'],
-  circus: ['ball', 'popcorn', 'hat', 'cushion', 'ball'],
-  train: ['suitcase', 'papers', 'bottles', 'hat', 'suitcase'],
-  chalet: ['logs', 'mugs', 'books', 'cushion'],
-  world: ['suitcase', 'hat', 'fruitBowl', 'coins'],
-  rome: ['jar', 'fruitBowl', 'scroll', 'coins'],
-  manor: ['books', 'teaset', 'candles', 'vase', 'puddle'],
+  mermaids: ['shells', 'pearls', 'coral', 'shells', 'coral', 'plant_kelp', 'fishbones', 'coins'],
+  japan: ['teaset', 'lantern', 'paperLantern', 'cushion', 'scroll', 'sandals', 'plant_bonsai', 'roundMat'],
+  paris: ['bread', 'cheese', 'bottles', 'papers', 'books', 'umbrella', 'letters', 'plant_flowers'],
+  regency: ['teaset', 'cake', 'vase', 'hat', 'letters', 'birdcage', 'plant_flowers', 'runner'],
+  egypt: ['jar', 'scroll', 'coins', 'jar', 'scarab', 'sandals', 'plant_dryBush', 'grapes'],
+  pirates: ['barrel', 'crate', 'coins', 'rope', 'cannonballs', 'bottles', 'fishbones', 'birdcage'],
+  western: ['hay', 'barrel', 'bottles', 'hat', 'sack', 'horseshoe', 'plant_cactus', 'stool'],
+  space: ['canisters', 'crate', 'papers', 'canisters', 'robot', 'cables', 'robot'],
+  haunted: ['pumpkin', 'candles', 'bones', 'books', 'footprints', 'birdcage', 'mushrooms', 'puddle'],
+  medieval: ['barrel', 'sack', 'bread', 'candles', 'hay', 'stool', 'logs'],
+  prehistory: ['bones', 'rocks', 'mushrooms', 'logs', 'hay', 'plant_fern', 'fishbones'],
+  circus: ['ball', 'popcorn', 'hat', 'cushion', 'ball', 'pins', 'roundMat'],
+  train: ['suitcase', 'papers', 'bottles', 'hat', 'suitcase', 'letters', 'umbrella'],
+  chalet: ['logs', 'mugs', 'books', 'cushion', 'skis', 'roundMat'],
+  world: ['suitcase', 'hat', 'fruitBowl', 'coins', 'letters', 'umbrella', 'paperLantern'],
+  rome: ['jar', 'fruitBowl', 'scroll', 'coins', 'grapes', 'sandals', 'roundMat'],
+  manor: ['books', 'teaset', 'candles', 'vase', 'puddle', 'letters', 'birdcage'],
 };
 // Props small enough for a table top
-const SMALL = new Set([...TOP, 'coins', 'pearls', 'shells', 'scroll', 'jar', 'lantern', 'popcorn', 'canisters', 'pumpkin', 'hat']);
+const SMALL = new Set([...TOP, 'coins', 'pearls', 'shells', 'scroll', 'jar', 'lantern', 'popcorn', 'canisters', 'pumpkin', 'hat', 'grapes', 'letters', 'scarab', 'paperLantern', 'birdcage']);
 const AMOUNT = { none: 0, some: 0.4, lots: 0.85 };
 const FLOOR_SCALE = 1.35;
 
 /**
  * Builds the decor of a board into one Builder group.
  * @param {any} puzzle
- * @param {{ n: number, cells: any[][], cellCenter: Function, roomType: Function, spots: Map<string, number[][]>, clutter?: string }} o
+ * @param {{ n: number, cells: any[][], cellCenter: Function, roomType: Function, isOpen?: Function, spots: Map<string, number[][]>, clutter?: string }} o
  */
 export function buildClutter(puzzle, o) {
   const amount = AMOUNT[o.clutter] ?? AMOUNT.some;
@@ -287,6 +381,7 @@ export function buildClutter(puzzle, o) {
     seedBuilders(Math.floor(r() * 1e9));
     const sub = new Builder();
     PROPS[name](sub, r);
+    if (name.startsWith('plant_')) s *= 0.55;
     if (s !== 1) for (const bk of sub.buckets.values()) for (const g of bk.gs) g.scale(s, s, s);
     main.merge(sub, ry, x, y, z);
   };
@@ -306,7 +401,8 @@ export function buildClutter(puzzle, o) {
       // On the floor: one or two props in the corners (people stand in the middle)
       const n = r() < amount ? (r() < amount * 0.55 ? (r() < amount * 0.3 ? 3 : 2) : 1) : 0;
       const free = corners.slice().sort(() => r() - 0.5);
-      const pool = [...(FLOOR[type] ?? FLOOR.living), ...extra, ...extra];
+      const open = o.isOpen?.(rr, cc);
+      const pool = open ? [...OUTDOOR, ...OUTDOOR, ...extra] : [...(FLOOR[type] ?? FLOOR.living), ...extra, ...extra];
       for (let i = 0; i < n; i++) {
         const [sx, sz] = free[i];
         const off = 0.56 + r() * 0.06;

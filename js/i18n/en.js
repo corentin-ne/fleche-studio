@@ -1203,4 +1203,7 @@ MF.i18n.add('en', {
   "Nourriture, livres, tonneaux, coquillages… pour le plaisir des yeux : le décor ne compte pas dans l'énigme.": "Food, books, barrels, seashells… just for the eyes: the decor is not part of the puzzle.",
   "Murdoku : scènes 3D bien plus vivantes (nourriture, livres, tonneaux, coquillages, petits tapis…), réglable dans Rendu": "Murdoku: much livelier 3D scenes (food, books, barrels, seashells, little rugs…), adjustable under Rendering",
   "Murdoku : générateur de surnoms, de victimes et d'histoires qui mélange les ingrédients de chaque univers": "Murdoku: a generator of nicknames, victims and stories that mixes each world's ingredients",
+  "Noms des pièces sur le plateau": "Room names on the board",
+  "Murdoku : plateaux 3D par univers (bords en sable, mer, neige…), zones en plein air sans murs, murs variés, noms des pièces et feuillages touffus": "Murdoku: themed 3D boards (sand, sea, snow… borders), open-air areas without walls, varied walls, room names and lush foliage",
+  "Murdoku : 13 nouveaux sols (sable, eau, neige, marbre, tatami, mosaïque…) et encore plus de décor": "Murdoku: 13 new floors (sand, water, snow, marble, tatami, mosaic…) and even more decor",
 });

@@ -378,6 +378,8 @@ export class Builder {
       merged.computeBoundingSphere();
       const mesh = new THREE.Mesh(merged, m);
       mesh.castShadow = shadow && !m.transparent;
+      // leaf cards: the shadow follows the leaves, not the card
+      if (m.alphaTest > 0) mesh.customDepthMaterial = depthFor(m);
       mesh.receiveShadow = true;
       this.group.add(mesh);
     }
@@ -394,6 +396,11 @@ export const PALETTES = {
   olive: ['#4b5a2a', '#647534', '#7f9042', '#9eab5c', '#c1c886'],
   autumn: ['#7a3b1a', '#a2531f', '#c9762a', '#e0a33a', '#f0c75a'],
   blossom: ['#b85c84', '#d77aa1', '#e99bbb', '#f4bfd3', '#fbe0ea'],
+  tropical: ['#1f5a2e', '#2f7a3a', '#3f9a45', '#6cbf4f', '#a5d867'],
+  pine: ['#163a2e', '#1f4d3a', '#2a6046', '#3a7553', '#5a8f68'],
+  kelp: ['#2a4a2a', '#3f6a32', '#5a8a3a', '#7aa84a', '#a8c46a'],
+  coral: ['#a8445a', '#d0607a', '#ec8a9a', '#f6b0b8', '#fbd6d8'],
+  dry: ['#6a6a3a', '#8a8448', '#a8a05a', '#c4ba74', '#ddd49a'],
 };
 
 const ICO0 = new THREE.IcosahedronGeometry(1, 0).attributes.position.array.slice();
@@ -458,8 +465,30 @@ function foliageGeometry(acc) {
   g.setAttribute('position', new THREE.Float32BufferAttribute(acc.pos, 3));
   g.setAttribute('normal', new THREE.Float32BufferAttribute(acc.nor, 3));
   g.setAttribute('color', new THREE.Float32BufferAttribute(acc.col, 3));
+  // cores and leaves sample the dense middle of the leaf texture; cards map it whole
+  while (acc.uv.length < (acc.pos.length / 3) * 2) acc.uv.push(0.5, 0.5);
+  g.setAttribute('uv', new THREE.Float32BufferAttribute(acc.uv, 2));
   g.setIndex(acc.idx);
   return g;
+}
+
+// One leaf card: a square of size `size` centred on p, facing n, rolled by `roll`.
+const _white = new THREE.Color('#ffffff');
+function card(acc, p, n, size, roll, tint, mass) {
+  _t.set(Math.cos(roll), Math.sin(roll), 0.3);
+  _a.copy(_t).addScaledVector(n, -_t.dot(n));
+  if (_a.lengthSq() < 1e-6) _a.set(1, 0, 0);
+  _a.normalize().multiplyScalar(size / 2);
+  _b.crossVectors(n, _a);
+  while (acc.uv.length < (acc.pos.length / 3) * 2) acc.uv.push(0.5, 0.5);
+  const ids = [];
+  for (const [sa, sb, u, v] of [[-1, -1, 0, 0], [1, -1, 1, 0], [1, 1, 1, 1], [-1, 1, 0, 1]]) {
+    const x = p.x + _a.x * sa + _b.x * sb, y = p.y + _a.y * sa + _b.y * sb, z = p.z + _a.z * sa + _b.z * sb;
+    const sn = softNormal(x, y, z, n, { ...mass, blend: 0.75 });
+    ids.push(pushVert(acc, x, y, z, sn.x, sn.y, sn.z, _white, tint * (0.92 + (y - mass.y) * 0.25)));
+    acc.uv.push(u, v);
+  }
+  acc.idx.push(ids[0], ids[1], ids[2], ids[0], ids[2], ids[3]);
 }
 
 export function foliageGeometryFor(o, ox = 0, oy = 0, oz = 0) {
@@ -468,7 +497,7 @@ export function foliageGeometryFor(o, ox = 0, oy = 0, oz = 0) {
   const rx = o.rx, ry = o.ry, rz = o.rz ?? o.rx;
   const cy = o.cy ?? ry;
   const pal = PALETTES[o.palette] ?? PALETTES.green;
-  const acc = { pos: [], nor: [], col: [], idx: [] };
+  const acc = { pos: [], nor: [], col: [], idx: [], uv: [] };
   const mass = { x: ox, y: oy + cy, z: oz, blend: 0.6 };
   const density = (o.density ?? 1) * (1 - (o.sparse ?? 0.1) * 0.6);
 
@@ -499,37 +528,23 @@ export function foliageGeometryFor(o, ox = 0, oy = 0, oz = 0) {
     lobes.push({ x: ox + lx * (1 + (o.lean ?? 0)), y: oy + cy + ly, z: oz + lz, r: lr });
   }
 
-  for (const L of lobes) core(acc, L.x, L.y, L.z, L.r * 0.82, L.r * 0.75, L.r * 0.82, pal[0], mass);
+  for (const L of lobes) core(acc, L.x, L.y, L.z, L.r * 0.7, L.r * 0.64, L.r * 0.7, pal[0], mass);
 
-  // 2. leaves on the outer surface of each lobe
+  // 2. leaf cards: textured quads around each lobe, facing outwards with a random roll,
+  //    plus one crossed pair through the centre so the silhouette stays full from any side
   const p = new THREE.Vector3();
   const n = new THREE.Vector3();
-  const lowY = oy + cy - ry, span = 2 * ry;
   for (const L of lobes) {
-    const count = Math.round(((4 * Math.PI * L.r * L.r) / (s * s * 0.42)) * density);
+    const count = Math.max(5, Math.round(((L.r * L.r) / (s * s)) * 0.55 * density + 5));
     for (let i = 0; i < count; i++) {
-      const u = r() * 2 - 1, a = r() * Math.PI * 2, q = Math.sqrt(1 - u * u);
-      const dx = q * Math.cos(a), dy = u, dz = q * Math.sin(a);
-      const rr = L.r * (0.86 + r() * 0.22);
-      p.set(L.x + dx * rr, L.y + dy * rr * 0.92, L.z + dz * rr);
-      let inside = false;
-      for (const M of lobes) {
-        if (M === L) continue;
-        if ((p.x - M.x) ** 2 + (p.y - M.y) ** 2 + (p.z - M.z) ** 2 < (M.r * 0.86) ** 2) { inside = true; break; }
-      }
-      if (inside || (dy < -0.55 && r() < 0.7)) continue;
-      n.set(dx + (r() - 0.5) * 0.9, dy + 0.45 + (r() - 0.5) * 0.6, dz + (r() - 0.5) * 0.9).normalize();
-      const h = (p.y - lowY) / span;
-      const t = THREE.MathUtils.clamp(h * 0.7 + (dy * 0.5 + 0.5) * 0.35 + (r() - 0.5) * 0.45, 0, 0.999);
-      const len = s * (0.8 + r() * 0.55) * (column ? 0.8 : 1);
-      leaf(acc, p, n, len, len * (column ? 0.5 : 0.62), pal[Math.floor(t * pal.length)], mass, r);
-      if (o.flowers && r() < (o.flowerRate ?? 0.06) && dy > -0.3) {
-        const fp = p.clone().addScaledVector(n, s * 0.15);
-        for (let f = 0; f < 4; f++) {
-          const fn = n.clone().add(new THREE.Vector3(r() - 0.5, r() - 0.5, r() - 0.5).multiplyScalar(0.9)).normalize();
-          leaf(acc, fp, fn, s * 0.32, s * 0.28, o.flowers, { ...mass, blend: 0.3 }, r);
-        }
-      }
+      const u = r() * 1.7 - 0.7, a = r() * Math.PI * 2, q = Math.sqrt(Math.max(0, 1 - u * u));
+      n.set(q * Math.cos(a), u, q * Math.sin(a));
+      p.set(L.x + n.x * L.r * 0.55, L.y + n.y * L.r * 0.5, L.z + n.z * L.r * 0.55);
+      card(acc, p, n, L.r * (1.05 + r() * 0.45), r() * Math.PI * 2, (0.86 + r() * 0.3), mass);
+    }
+    for (let k = 0; k < 2; k++) {
+      n.set(Math.cos(k * Math.PI / 2 + 0.4), 0.15, Math.sin(k * Math.PI / 2 + 0.4)).normalize();
+      card(acc, p.set(L.x, L.y, L.z), n, L.r * 1.7, r() * Math.PI, 0.9, mass);
     }
   }
 
@@ -587,7 +602,88 @@ export function foliage(builder, o, x = 0, y = 0, z = 0) {
     foliageCache.set(key, cached);
   }
   const g = cached && cached.clone();
-  if (g) builder.geo(x || y || z ? g.translate(x, y, z) : g, '#ffffff', { vc: true, roughness: 0.9, side: THREE.DoubleSide });
+  if (g) builder.geo(x || y || z ? g.translate(x, y, z) : g, '#ffffff', { material: leafMaterial(o.palette, o.flowers), tess: false });
+}
+
+// ---------- leaf cards (game-style foliage) ----------
+// A canvas of overlapping leaves with transparent gaps, used on crossed cards
+// around a dark core: lush silhouettes for very few triangles.
+const leafMats = new Map();
+function leafTexture(palette, flowers) {
+  const pal = PALETTES[palette] ?? PALETTES.green;
+  const S = 256, cv = document.createElement('canvas');
+  cv.width = cv.height = S;
+  const g = cv.getContext('2d');
+  const r = rng(`${palette}|${flowers}`);
+  const leafShape = (x, y, a, l, w, c) => {
+    g.save();
+    g.translate(x, y);
+    g.rotate(a);
+    g.fillStyle = c;
+    g.beginPath();
+    g.moveTo(0, 0);
+    g.quadraticCurveTo(w, l * 0.45, 0, l);
+    g.quadraticCurveTo(-w, l * 0.45, 0, 0);
+    g.fill();
+    // midrib
+    g.strokeStyle = 'rgba(0,0,0,0.18)';
+    g.lineWidth = 1.2;
+    g.beginPath();
+    g.moveTo(0, l * 0.1);
+    g.lineTo(0, l * 0.85);
+    g.stroke();
+    g.restore();
+  };
+  // back to front: dark inner leaves, light outer ones
+  for (let layer = 0; layer < 3; layer++) {
+    const n = [70, 90, 70][layer];
+    for (let i = 0; i < n; i++) {
+      const a = r() * Math.PI * 2, d = Math.sqrt(r()) * S * (0.22 + layer * 0.08);
+      const x = S / 2 + Math.cos(a) * d, y = S / 2 + Math.sin(a) * d * 0.9;
+      const ang = Math.atan2(y - S / 2, x - S / 2) - Math.PI / 2 + (r() - 0.5) * 1.4;
+      const c = pal[Math.min(pal.length - 1, layer + Math.floor(r() * 3))];
+      leafShape(x, y, ang, 26 + r() * 22, 9 + r() * 6, c);
+    }
+  }
+  if (flowers) {
+    for (let i = 0; i < 26; i++) {
+      const a = r() * Math.PI * 2, d = Math.sqrt(r()) * S * 0.36;
+      const x = S / 2 + Math.cos(a) * d, y = S / 2 + Math.sin(a) * d;
+      g.fillStyle = flowers;
+      for (let k = 0; k < 5; k++) {
+        g.beginPath();
+        g.arc(x + Math.cos(k * 1.256) * 4, y + Math.sin(k * 1.256) * 4, 3.6, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.fillStyle = '#f2c94c';
+      g.beginPath();
+      g.arc(x, y, 2.2, 0, Math.PI * 2);
+      g.fill();
+    }
+  }
+  const t = new THREE.CanvasTexture(cv);
+  t.colorSpace = THREE.SRGBColorSpace;
+  t.anisotropy = 4;
+  return t;
+}
+export function leafMaterial(palette = 'green', flowers = null) {
+  const key = `${palette}|${flowers ?? ''}`;
+  let m = leafMats.get(key);
+  if (!m) {
+    m = handmade(new THREE.MeshStandardMaterial({ map: leafTexture(palette, flowers), alphaTest: 0.45, side: THREE.DoubleSide, vertexColors: true, roughness: 0.85 }));
+    m.userData.shared = true;
+    leafMats.set(key, m);
+  }
+  return m;
+}
+const depthMats = new Map();
+function depthFor(m) {
+  let d = depthMats.get(m.uuid);
+  if (!d) {
+    d = new THREE.MeshDepthMaterial({ depthPacking: THREE.RGBADepthPacking, map: m.map, alphaTest: m.alphaTest });
+    depthMats.set(m.uuid, d);
+  }
+  return d;
 }
 
 // ---------- procedural canvas textures ----------
@@ -735,6 +831,212 @@ export function patternTexture(pattern, c1, c2) {
       }
       break;
     }
+    case 'sand': {
+      speckle(2600, 0.1, 1.4);
+      // wind ripples
+      g.strokeStyle = shade(c2, -0.02);
+      g.lineWidth = 2;
+      for (let i = 0; i < 9; i++) {
+        g.globalAlpha = 0.35;
+        g.beginPath();
+        const y0 = r() * S;
+        for (let x = 0; x <= S; x += 8) g.lineTo(x, y0 + Math.sin(x / 22 + i) * 6);
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+      break;
+    }
+    case 'water': {
+      const gr = g.createLinearGradient(0, 0, S, S);
+      gr.addColorStop(0, c1);
+      gr.addColorStop(1, shade(c1, -0.06));
+      g.fillStyle = gr;
+      g.fillRect(0, 0, S, S);
+      g.strokeStyle = c2;
+      g.lineCap = 'round';
+      for (let i = 0; i < 26; i++) {
+        g.globalAlpha = 0.5 + r() * 0.4;
+        g.lineWidth = 2 + r() * 2;
+        const x = r() * S, y = r() * S, w = 14 + r() * 26;
+        g.beginPath();
+        g.arc(x, y, w, Math.PI * 1.15, Math.PI * 1.85);
+        g.stroke();
+      }
+      g.fillStyle = '#ffffff';
+      for (let i = 0; i < 40; i++) {
+        g.globalAlpha = 0.5;
+        g.fillRect(r() * S, r() * S, 2, 2);
+      }
+      g.globalAlpha = 1;
+      break;
+    }
+    case 'snow': {
+      speckle(1500, 0.05, 2);
+      g.fillStyle = '#ffffff';
+      for (let i = 0; i < 90; i++) {
+        g.globalAlpha = 0.6;
+        g.beginPath();
+        g.arc(r() * S, r() * S, 2 + r() * 5, 0, Math.PI * 2);
+        g.fill();
+      }
+      g.globalAlpha = 1;
+      break;
+    }
+    case 'marble': {
+      speckle(300, 0.03, 4);
+      g.strokeStyle = c2;
+      for (let i = 0; i < 7; i++) {
+        g.globalAlpha = 0.25 + r() * 0.3;
+        g.lineWidth = 0.8 + r() * 1.6;
+        g.beginPath();
+        let x = r() * S, y = 0;
+        g.moveTo(x, y);
+        while (y < S) { x += (r() - 0.5) * 40; y += 12 + r() * 18; g.lineTo(x, y); }
+        g.stroke();
+      }
+      g.globalAlpha = 0.5;
+      g.fillStyle = shade(c2, 0.1);
+      g.fillRect(0, S / 2 - 1, S, 2);
+      g.fillRect(S / 2 - 1, 0, 2, S);
+      g.globalAlpha = 1;
+      break;
+    }
+    case 'tatami': {
+      const t = S / 2;
+      for (const [x, y, w, h] of [[0, 0, t, S], [t, 0, t, t], [t, t, t, t]]) {
+        g.fillStyle = shade(c1, (r() - 0.5) * 0.05);
+        g.fillRect(x, y, w, h);
+        g.strokeStyle = shade(c1, -0.08);
+        g.globalAlpha = 0.35;
+        const vert = h > w;
+        for (let k = 3; k < (vert ? w : h); k += 4) {
+          g.beginPath();
+          if (vert) { g.moveTo(x + k, y); g.lineTo(x + k, y + h); } else { g.moveTo(x, y + k); g.lineTo(x + w, y + k); }
+          g.stroke();
+        }
+        g.globalAlpha = 1;
+        g.strokeStyle = c2;
+        g.lineWidth = 6;
+        g.strokeRect(x + 3, y + 3, w - 6, h - 6);
+        g.lineWidth = 1;
+      }
+      break;
+    }
+    case 'planks': {
+      const cols = 4;
+      for (let i = 0; i < cols; i++) {
+        const x = (i * S) / cols;
+        g.fillStyle = shade(c1, (r() - 0.5) * 0.1);
+        g.fillRect(x, 0, S / cols, S);
+        for (let k = 0; k < 5; k++) {
+          g.strokeStyle = shade(c1, -0.07);
+          g.globalAlpha = 0.4;
+          g.beginPath();
+          const xx = x + r() * (S / cols);
+          g.moveTo(xx, 0);
+          g.bezierCurveTo(xx + 6, S / 3, xx - 6, (2 * S) / 3, xx + 2, S);
+          g.stroke();
+        }
+        g.globalAlpha = 1;
+        g.fillStyle = c2;
+        g.fillRect(x, 0, 3, S);
+        // nail heads
+        for (const y of [8, S / 2, S - 8]) { g.fillRect(x + 10, y, 3, 3); g.fillRect(x + S / cols - 12, y, 3, 3); }
+      }
+      break;
+    }
+    case 'parquet': {
+      const u = S / 8;
+      for (let i = -1; i < 9; i++)
+        for (let j = -1; j < 9; j++) {
+          g.fillStyle = shade(c1, (r() - 0.5) * 0.12);
+          if ((i + j) % 2) g.fillRect(i * u, j * u, u * 2, u);
+          else g.fillRect(i * u, j * u, u, u * 2);
+          g.strokeStyle = c2;
+          g.lineWidth = 1.2;
+          if ((i + j) % 2) g.strokeRect(i * u, j * u, u * 2, u);
+          else g.strokeRect(i * u, j * u, u, u * 2);
+        }
+      break;
+    }
+    case 'metal': {
+      const t = S / 2;
+      for (let i = 0; i < 2; i++)
+        for (let j = 0; j < 2; j++) {
+          g.fillStyle = shade(c1, (r() - 0.5) * 0.05);
+          g.fillRect(i * t + 2, j * t + 2, t - 4, t - 4);
+          g.fillStyle = c2;
+          for (const [x, y] of [[8, 8], [t - 12, 8], [8, t - 12], [t - 12, t - 12]]) {
+            g.beginPath();
+            g.arc(i * t + x + 2, j * t + y + 2, 3, 0, Math.PI * 2);
+            g.fill();
+          }
+        }
+      // diamond tread
+      g.strokeStyle = shade(c1, 0.08);
+      g.globalAlpha = 0.5;
+      for (let x = 10; x < S; x += 18)
+        for (let y = 10; y < S; y += 18) {
+          g.beginPath();
+          g.moveTo(x - 4, y + ((x + y) % 36 ? 3 : -3));
+          g.lineTo(x + 4, y - ((x + y) % 36 ? 3 : -3));
+          g.stroke();
+        }
+      g.globalAlpha = 1;
+      break;
+    }
+    case 'mosaic': {
+      const n = 16, t = S / n;
+      for (let i = 0; i < n; i++)
+        for (let j = 0; j < n; j++) {
+          const d = Math.abs(i - n / 2 + 0.5) + Math.abs(j - n / 2 + 0.5);
+          g.fillStyle = (Math.floor(d) % 4 === 0) ? c2 : shade(c1, (r() - 0.5) * 0.1);
+          g.fillRect(i * t + 0.8, j * t + 0.8, t - 1.6, t - 1.6);
+        }
+      break;
+    }
+    case 'cobble': {
+      g.fillStyle = c2;
+      g.fillRect(0, 0, S, S);
+      for (let i = 0; i < 70; i++) {
+        g.fillStyle = shade(c1, (r() - 0.5) * 0.16);
+        g.beginPath();
+        g.ellipse(r() * S, r() * S, 12 + r() * 10, 10 + r() * 8, r() * 3, 0, Math.PI * 2);
+        g.fill();
+      }
+      break;
+    }
+    case 'hex': {
+      const R = 18, w = R * Math.sqrt(3);
+      for (let row = -1; row < S / (R * 1.5) + 1; row++)
+        for (let col = -1; col < S / w + 1; col++) {
+          const cx = col * w + (row % 2 ? w / 2 : 0), cy = row * R * 1.5;
+          g.fillStyle = shade(c1, (r() - 0.5) * 0.08);
+          g.strokeStyle = c2;
+          g.lineWidth = 2;
+          g.beginPath();
+          for (let k = 0; k < 6; k++) g.lineTo(cx + Math.cos(Math.PI / 6 + (k * Math.PI) / 3) * R, cy + Math.sin(Math.PI / 6 + (k * Math.PI) / 3) * R);
+          g.closePath();
+          g.fill();
+          g.stroke();
+        }
+      break;
+    }
+    case 'straw': {
+      speckle(800, 0.06, 2);
+      for (let i = 0; i < 900; i++) {
+        g.strokeStyle = r() < 0.5 ? c2 : shade(c1, 0.08);
+        g.globalAlpha = 0.6;
+        g.lineWidth = 1.2;
+        const x = r() * S, y = r() * S, a = r() * Math.PI, l = 6 + r() * 10;
+        g.beginPath();
+        g.moveTo(x, y);
+        g.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l);
+        g.stroke();
+      }
+      g.globalAlpha = 1;
+      break;
+    }
     case 'plain':
     default:
       speckle(800, 0.04);
@@ -755,7 +1057,8 @@ export function patternMaterial(pattern, c1, c2, rx, ry) {
     const t = patternTexture(pattern, c1, c2).clone();
     t.needsUpdate = true;
     t.repeat.set(rx, ry);
-    m = handmade(new THREE.MeshStandardMaterial({ map: t, roughness: pattern === 'tile' ? 0.55 : 0.92 }));
+    const shiny = { tile: 0.55, marble: 0.35, water: 0.18, metal: 0.45, ice: 0.2 }[pattern] ?? 0.92;
+    m = handmade(new THREE.MeshStandardMaterial({ map: t, roughness: shiny, metalness: pattern === 'metal' ? 0.35 : 0 }));
     m.userData.shared = true;
     texMatCache.set(key, m);
   }

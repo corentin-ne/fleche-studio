@@ -73,12 +73,16 @@ MF.murdokuView = (() => {
     }
     // Quadrillage léger, puis murs entre pièces
     for (let i = 1; i < N; i++) out.push(`<path d="M${X(i)} ${M}V${M + N * U}M${M} ${Y(i)}H${M + N * U}" stroke="#5b4a3f" stroke-opacity=".18" stroke-width="2"/>`);
-    const walls = [];
+    // Plein air : pas de mur entre deux zones ouvertes, juste une limite en pointillés
+    const open = id => { const rm = pz.rooms[id]; return !!rm && (rm.open ?? rm.type === 'garden'); };
+    const walls = [], lines = [];
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
-      if (room(r, c) !== room(r, c + 1) && c < N - 1) walls.push(`M${X(c + 1)} ${Y(r)}V${Y(r + 1)}`);
-      if (room(r, c) !== room(r + 1, c) && r < N - 1) walls.push(`M${X(c)} ${Y(r + 1)}H${X(c + 1)}`);
+      const a = room(r, c);
+      if (a !== room(r, c + 1) && c < N - 1) (open(a) && open(room(r, c + 1)) ? lines : walls).push(`M${X(c + 1)} ${Y(r)}V${Y(r + 1)}`);
+      if (a !== room(r + 1, c) && r < N - 1) (open(a) && open(room(r + 1, c)) ? lines : walls).push(`M${X(c)} ${Y(r + 1)}H${X(c + 1)}`);
     }
-    out.push(`<path d="${walls.join('')}" stroke="#3b2f2a" stroke-width="9" stroke-linecap="round"/>`);
+    if (walls.length) out.push(`<path d="${walls.join('')}" stroke="#3b2f2a" stroke-width="9" stroke-linecap="round"/>`);
+    if (lines.length) out.push(`<path d="${lines.join('')}" stroke="#3b2f2a" stroke-opacity=".55" stroke-width="5" stroke-dasharray="4 12" stroke-linecap="round"/>`);
     // Noms des pièces (une fois, dans la première case libre de chaque pièce)
     const named = new Set();
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
@@ -134,7 +138,9 @@ MF.murdokuView = (() => {
     return loading;
   }
   const want3d = pz => options(pz.options.murdoku).render === '3d';
-  const viewOpts = pz => { const o = options(pz.options.murdoku); return { look: o.look, mood: o.mood, camera: o.camera, labels: o.labels, clutter: o.clutter }; };
+  const viewOpts = pz => { const o = options(pz.options.murdoku); return { look: o.look, mood: o.mood, camera: o.camera, labels: o.labels, roomLabels: o.roomLabels, clutter: o.clutter }; };
+  /** Énigme pour la 3D : avec le nom affiché de chaque pièce (traduit, numéroté si répété). */
+  const for3d = puzzle => ({ ...puzzle, roomLabels: puzzle.rooms.map(rm => MF.murdoku.roomName(puzzle, rm.id)) });
 
   /**
    * Vue 3D unique, déplacée d'un conteneur à l'autre (studio, jeu) : créer une scène prend du
@@ -152,6 +158,7 @@ MF.murdokuView = (() => {
   /** Plateau dans un conteneur : 3D si choisie et possible, sinon plan SVG. */
   async function mountBoard(el, pz, state, onCell) {
     const puzzle = pz.layout.pages[0];
+    const p3 = for3d(puzzle);
     if (want3d(pz)) {
       if (!live) {
         if (!el.querySelector('.mdk-host')) el.innerHTML = `<div class="mdk-loading"><span class="spinner"></span>${esc(t('Préparation de la scène…'))}</div>`;
@@ -173,7 +180,7 @@ MF.murdokuView = (() => {
         if (live.host.parentElement !== el) el.replaceChildren(live.host);
         live.onCell = onCell;
         live.view.setOptions(viewOpts(pz));
-        live.view.setPuzzle(puzzle, state);
+        live.view.setPuzzle(p3, state);
         live.state = state;
         return;
       }
@@ -202,13 +209,13 @@ MF.murdokuView = (() => {
       // Vue déjà affichée : on la réutilise le temps de l'image (bien plus rapide qu'une nouvelle scène)
       if (live?.state) {
         try {
-          live.view.setPuzzle(puzzle, { show });
+          live.view.setPuzzle(for3d(puzzle), { show });
           return await live.view.toCanvas({ width, height: width });
-        } catch (e) { console.warn(e); } finally { live?.view.setPuzzle(puzzle, live.state); }
+        } catch (e) { console.warn(e); } finally { live?.view.setPuzzle(for3d(puzzle), live.state); }
       }
       const m = await load3d();
       if (m) {
-        try { return await m.renderImage(puzzle, { show, ...viewOpts(pz), width, height: width }); } catch (e) { console.warn(e); }
+        try { return await m.renderImage(for3d(puzzle), { show, ...viewOpts(pz), width, height: width }); } catch (e) { console.warn(e); }
       }
     }
     const svg = planSvg(puzzle, { people: show === 'solution' ? 'solution' : 'none', labels: viewOpts(pz).labels }).replace('fill="currentColor"', 'fill="#3b2f2a"').replaceAll('fill="currentColor"', 'fill="#3b2f2a"');
