@@ -303,11 +303,12 @@
   font: 800 24px var(--font-sans); color: #231f20; background: #fff;
   box-shadow: 0 10px 24px -10px rgba(var(--accent-rgb), .9), inset 0 -3px 0 rgba(0,0,0,.08);
   animation: tileIn .6s calc(var(--i) * 70ms) var(--ease-spring) backwards, tileFloat 4s calc(var(--i) * 200ms) ease-in-out infinite alternate;
+  will-change: transform;
 }
 .hero-grid span:nth-child(3n) { background: color-mix(in srgb, var(--accent) 22%, #fff); }
 @keyframes tileIn { from { opacity: 0; transform: translateY(16px) rotate(-8deg) scale(.6); } }
-@keyframes tileFloat { to { transform: translateY(-5px); } }
-.quick-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+@keyframes tileFloat { to { transform: translate3d(0, -5px, 0); } }
+.quick-grid { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--sp-3); }
 .quick-card { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: var(--sp-5); border-radius: var(--r-xl); text-align: left; cursor: pointer; color: var(--text); font: 400 var(--fs-xs) var(--font-sans); transition: transform var(--t-med) var(--ease), box-shadow var(--t-med); }
 .quick-card:hover { transform: translateY(-3px); box-shadow: var(--glass-shadow), 0 24px 60px -28px rgba(var(--accent-rgb), .6); }
 .quick-card .ic-lg { color: var(--accent); width: 28px; height: 28px; }
@@ -317,7 +318,8 @@
 .welcome-foot { display: flex; flex-wrap: wrap; justify-content: center; gap: var(--sp-3) var(--sp-6); color: var(--text-3); font-size: var(--fs-xs); }
 .welcome-foot span { display: inline-flex; align-items: center; gap: 6px; }
 .welcome-foot .ic { width: 15px; height: 15px; }
-@media (max-width: 900px) { .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+/* Deux colonnes : une carte seule en fin de liste prend toute la largeur (pas de trou) */
+@media (max-width: 900px) { .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .quick-card:last-child:nth-child(odd) { grid-column: 1 / -1; } }
 @media (max-width: 520px) { .quick-grid { grid-template-columns: 1fr; } .hero-grid span { width: 36px; height: 36px; font-size: 19px; } }
 
 /* Assistant de création */

@@ -9,8 +9,9 @@ MF.welcome = (() => {
   const { t } = MF.i18n;
   const ic = MF.icons.svg;
 
+  let seen = false;
   function render(root, { legacy = 0, onNew, onOpen, onLegacy, onQuick }) {
-    root.innerHTML = `<div class="welcome">
+    root.innerHTML = `<div class="welcome${seen ? ' seen' : ''}">
       <div class="welcome-hero">
         <span class="hero-logo">${MF.brand.svg()}</span>
         <h1>${t('Crée ta grille de mots, en quelques clics.')}</h1>
@@ -34,6 +35,7 @@ MF.welcome = (() => {
     root.querySelector('[data-w="open"]').onclick = onOpen;
     root.querySelector('[data-w="legacy"]')?.addEventListener('click', onLegacy);
     root.querySelectorAll('[data-quick]').forEach(b => (b.onclick = () => onQuick(b.dataset.quick)));
+    seen = true;
   }
 
   /**
