@@ -40,7 +40,7 @@ MF.diagnostics = (() => {
 
   /** Mots de remplissage d'une page, ceux sans définition en premier. */
   function fillers(puzzle, page) {
-    if (!page?.words || page.engine === 'meles') return [];
+    if (!page?.words || page.engine === 'meles' || page.engine === 'logic') return [];
     const seen = new Set();
     return page.words
       .filter(w => w.src !== 'theme' && !seen.has(w.word) && seen.add(w.word))

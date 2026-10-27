@@ -3,6 +3,8 @@
    Générateur de mots mêlés : les mots perso sont cachés dans la grille
    (dans les sens autorisés, en se croisant quand c'est possible), puis
    les cases restantes reçoivent des lettres au hasard (fréquences du français).
+   Mot mystère : les cases restantes épellent un mot, dans l'ordre de lecture ;
+   des mots du dictionnaire comblent les cases en trop.
    ========================================================================= */
 window.MF = window.MF || {};
 
@@ -71,11 +73,13 @@ MF.wordsearch = (() => {
   async function generate(words, opts = {}, { seed = Date.now(), signal, onProgress, onSnapshot } = {}) {
     const items = prepare(words);
     if (!items.length) return null;
+    const lexicon = MF.lexicon.get(opts.lang);
+    const secret = opts.game === 'mystere' ? mysteryWord(opts, lexicon, MF.util.rng(seed ^ 0x5bd1)) : '';
     const dirs = DIRS[opts.directions] || DIRS.normal;
     const rnd = MF.util.rng(seed);
     const budget = EFFORT_MS[opts.effort] || EFFORT_MS.normal;
     const longest = Math.max(...items.map(it => it.norm.length));
-    const letters = items.reduce((s, it) => s + it.norm.length, 0);
+    const letters = items.reduce((s, it) => s + it.norm.length, 0) + secret.length * 2;
     const shape = opts.shape || 'rect';
     const band = +opts.photoBand || 0;
 
@@ -87,7 +91,8 @@ MF.wordsearch = (() => {
       // Une forme garde ses vraies proportions (zone utile carrée)
       const colsFor = h => (shape === 'rect' ? MF.paper.colsFor(h, opts) : h);
       let h = Math.max(6, longest + (shape === 'rect' ? 0 : 3));
-      while (colsFor(h) * h * area < letters * 1.7) h++;
+      // Mot mystère : grille plus serrée (les cases en trop sont comblées par des mots du dictionnaire)
+      while (colsFor(h) * h * area < letters * (secret ? 1.3 : 1.7)) h++;
       for (let k = 0; k < 14; k++, h++) {
         const top = Math.min(band, Math.floor(h / 3));
         frames.push({ w: shape === 'rect' ? MF.paper.colsFor(h + top, opts) : h, h: h + top, top, shape });
@@ -108,18 +113,29 @@ MF.wordsearch = (() => {
       do {
         const res = { ...attempt(frame, items, dirs, rnd), frame };
         attempts++;
-        const score = res.placed.length * 100 + res.placed.filter(p => items.find(i => i.id === p.wid)?.priority).length * 1000;
+        // Mot mystère : il faut assez de cases libres pour l'écrire
+        const free = res.grid.filter((ch, k) => res.mask[k] && !ch).length;
+        const score = res.placed.length * 100 + res.placed.filter(p => items.find(i => i.id === p.wid)?.priority).length * 1000 + (free >= secret.length ? 50 : 0);
         if (!best || score > best.score) best = { ...res, score };
         show(best.grid === res.grid ? best : res);
-        if (!res.unplaced.length) break;
+        if (!res.unplaced.length && free >= secret.length) break;
       } while (performance.now() < tEnd);
       onProgress?.(Math.min(0.95, (performance.now() - t0) / budget));
       await MF.util.nextFrame();
       if (signal?.cancelled) return null;
-      if (best.frame === frame && !best.unplaced.length) break;
+      if (best.frame === frame && !best.unplaced.length && best.grid.filter((ch, k) => best.mask[k] && !ch).length >= secret.length) break;
     }
 
-    const { frame, grid, mask, placed, unplaced } = best;
+    const { frame, grid, placed, unplaced } = best;
+    const mask = Uint8Array.from(best.mask); // le masque de la forme est partagé (cache) : copie avant d'y faire des trous
+    let hidden = '';
+    if (secret) {
+      fillToSize(frame, grid, mask, placed, secret.length, dirs, lexicon, rnd);
+      // Cases libres, dans l'ordre de lecture : le mot mystère, puis (s'il en reste) des trous
+      const free = [...grid.keys()].filter(k => mask[k] && !grid[k]);
+      hidden = secret.slice(0, free.length);
+      free.forEach((k, i) => { if (i < hidden.length) grid[k] = hidden[i]; else mask[k] = 0; });
+    }
     const rows = [];
     for (let r = 0; r < frame.h; r++) {
       let row = '';
@@ -129,14 +145,54 @@ MF.wordsearch = (() => {
       }
       rows.push(row);
     }
-    return { engine: 'meles', frame, rows, words: placed, unplaced: unplaced.map(it => it.id) };
+    return { engine: 'meles', frame, rows, words: placed, unplaced: unplaced.map(it => it.id), ...(hidden ? { mystery: hidden } : {}) };
+  }
+
+  /** Mot mystère : celui choisi, sinon un mot du dictionnaire de 6 à 9 lettres. */
+  function mysteryWord(opts, lexicon, rnd) {
+    const own = MF.util.normalize(opts.logic?.text || '').slice(0, 30);
+    if (own.length >= 2) return own;
+    const pool = Object.keys(lexicon).filter(w => w.length >= 6 && w.length <= 9);
+    return pool.length ? pool[Math.floor(rnd() * pool.length)] : 'MYSTERE';
+  }
+
+  /** Mots du dictionnaire ajoutés jusqu'à ne laisser que `want` cases libres (ou presque). */
+  function fillToSize(frame, grid, mask, placed, want, dirs, lexicon, rnd) {
+    const { w: W, h: H } = frame;
+    let free = grid.filter((ch, k) => mask[k] && !ch).length;
+    const used = new Set(placed.map(p => p.word));
+    const pool = MF.util.shuffle(Object.keys(lexicon).filter(w => w.length >= 3 && w.length <= 9 && !used.has(w)), rnd).slice(0, 5000);
+    for (const word of pool) {
+      const surplus = free - want;
+      if (surplus <= 0) break;
+      const L = word.length;
+      if (L > Math.max(W, H)) continue;
+      for (let t = 0; t < 60; t++) {
+        const [dr, dc] = dirs[Math.floor(rnd() * dirs.length)];
+        const r = Math.floor(rnd() * H), c = Math.floor(rnd() * W);
+        const er = r + dr * (L - 1), ec = c + dc * (L - 1);
+        if (er < 0 || er >= H || ec < 0 || ec >= W) continue;
+        let fresh = 0, ok = true;
+        for (let i = 0; i < L; i++) {
+          const k = (r + dr * i) * W + (c + dc * i);
+          if (!mask[k] || (grid[k] && grid[k] !== word[i])) { ok = false; break; }
+          if (!grid[k]) fresh++;
+        }
+        if (!ok || !fresh || fresh > surplus) continue;
+        for (let i = 0; i < L; i++) grid[(r + dr * i) * W + (c + dc * i)] = word[i];
+        placed.push({ word, r, c, dr, dc, len: L, label: word });
+        free -= fresh;
+        break;
+      }
+    }
   }
 
   /** Empreinte des données qui influencent la grille. */
   function layoutHash(puzzle) {
     const o = MF.paper.gridOptions(puzzle);
     const sig = prepare(puzzle.words).map(it => `${it.id}:${it.norm}:${it.priority ? 1 : 0}`).join('|');
-    return MF.util.hash(`meles1#${sig}#${o.size === 'fixed' ? `${o.cols}x${o.rows}` : 'auto'}|${o.directions}|${o.shape}|${o.photoBand}|${MF.paper.key(o)}|${o.pages}`);
+    const secret = puzzle.game === 'mystere' ? `#m${MF.util.normalize(puzzle.options.logic?.text || '')}` : '';
+    return MF.util.hash(`meles1${secret}#${sig}#${o.size === 'fixed' ? `${o.cols}x${o.rows}` : 'auto'}|${o.directions}|${o.shape}|${o.photoBand}|${MF.paper.key(o)}|${o.pages}`);
   }
 
   return { generate, prepare, layoutHash };

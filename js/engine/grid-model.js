@@ -44,6 +44,7 @@ MF.gridModel = (() => {
 
   /** Clé du i-ème mot d'une page calculée (celle des `slots` du modèle). */
   const wordKey = (page, i) => (page.engine === 'meles' ? `W${i}` : slotKey(page.words[i]));
+  // (les pages « logic » n'ont pas de mots de l'utilisateur à placer : words = [])
 
   /** Ce mot de la grille est-il un mot de l'utilisateur (et non un mot de remplissage) ? */
   const isPlaced = (w, engine) => !!w.wid && (engine === 'meles' || w.src === 'theme');
@@ -51,8 +52,13 @@ MF.gridModel = (() => {
   /** Mots de l'utilisateur placés dans une page calculée. */
   const placedIn = page => page.words.filter(w => isPlaced(w, page.engine));
 
-  /** Définition d'un mot : mot perso -> sa définition ; sinon celle écrite par l'utilisateur, sinon celle du dictionnaire. */
+  /**
+   * Définition d'un mot : mot perso -> sa définition ; sinon celle écrite par l'utilisateur, sinon celle du dictionnaire.
+   * Nombres fléchés : formule calculée ; échelle de mots : définition donnée par le moteur.
+   */
   function clueText(w, puzzle, wordsById = new Map(puzzle.words.map(x => [x.id, x]))) {
+    if (typeof w.text === 'string') return w.text;
+    if (w.src === 'num') return MF.logic.formula(w.clue, puzzle.options?.lang);
     if (w.src === 'theme') return wordsById.get(w.wid)?.clue || '';
     return (puzzle.fillerClues || {})[w.word] ?? MF.lexicon.get(puzzle.options?.lang)[w.word] ?? '';
   }
@@ -100,7 +106,7 @@ MF.gridModel = (() => {
         if (cell.type === 'letter') cell.words[w.dir] = key;
         list.push([w.r + i * dr, w.c + i * dc]);
       }
-      slots.set(key, { cells: list, dir: w.dir, word: w.word, src: w.src, wid: w.wid, holder: [w.sr, w.sc] });
+      slots.set(key, { cells: list, dir: w.dir, word: w.word, src: w.src, wid: w.wid, clue: w.clue, holder: [w.sr, w.sc] });
       const hk = `${w.sr},${w.sc}`;
       if (!byHolder.has(hk)) byHolder.set(hk, []);
       byHolder.get(hk).push({ wid: key, word: w.word, src: w.src, arrow: w.arrow, dir: w.dir, tr: w.r, tc: w.c, text: clueText(w, puzzle, wordsById) });
@@ -139,6 +145,16 @@ MF.gridModel = (() => {
       return model;
     }
 
+    // Mots casés : la liste des mots par longueur, et le plus long déjà placé pour démarrer
+    if (game === 'cases') {
+      const byLen = new Map();
+      for (const s of slots.values()) { const n = s.word.length; if (!byLen.has(n)) byLen.set(n, []); byLen.get(n).push(s.word); }
+      model.lists = [...byLen.entries()].sort((a, b) => a[0] - b[0]).map(([n, list]) => ({ title: MF.i18n.t('{n} lettres', { n }), items: [{ text: list.sort().join('   ') }] }));
+      const start = [...slots.values()].sort((a, b) => b.word.length - a.word.length || a.word.localeCompare(b.word))[0];
+      start?.cells.forEach(([r, c]) => { cells[r][c].given = true; });
+      return model;
+    }
+
     // Croisés et codés : numérotation des départs de mots (ordre de lecture)
     const starts = [...slots.entries()].sort(([, a], [, b]) => a.cells[0][0] - b.cells[0][0] || a.cells[0][1] - b.cells[0][1]);
     let n = 0;
@@ -161,7 +177,7 @@ MF.gridModel = (() => {
     return model;
   }
 
-  /* ---------------- Mots mêlés ---------------- */
+  /* ---------------- Mots mêlés (et mot mystère) ---------------- */
   function fromMeles(page) {
     const rows = page.rows.length, cols = page.rows[0].length;
     const { mask, shape, top, outType } = maskCells(page.frame, rows, cols);
@@ -172,7 +188,15 @@ MF.gridModel = (() => {
       slots.set(`W${i}`, { cells: list, word: w.word, label: w.label, wid: w.wid, dr: w.dr, dc: w.dc });
     });
     const words = page.words.map((w, i) => ({ key: `W${i}`, word: w.word, label: w.label || w.word })).sort((a, b) => a.word.localeCompare(b.word));
-    return { game: 'meles', cols, rows, band: shape === 'rect' ? top : 0, top, shape, mask, cells, slots, words };
+    const model = { game: 'meles', cols, rows, band: shape === 'rect' ? top : 0, top, shape, mask, cells, slots, words };
+    // Mot mystère : les lettres qui restent, dans l'ordre de lecture
+    if (page.mystery) {
+      const used = new Set([...slots.values()].flatMap(s => s.cells.map(([r, c]) => `${r},${c}`)));
+      const left = [];
+      cells.forEach((row, r) => row.forEach((cell, c) => { if (cell.type === 'letter' && !used.has(`${r},${c}`)) { left.push([r, c]); cell.left = true; } }));
+      model.mystery = { word: page.mystery, cells: left };
+    }
+    return model;
   }
 
   /**
@@ -181,8 +205,9 @@ MF.gridModel = (() => {
    * @param metrics MF.design.metrics(design)
    */
   function from(page, puzzle, metrics, layout) {
+    if (page?.engine === 'logic') return MF.logicModel.from(page, puzzle, metrics, layout);
     if (!page?.rows?.length) return { cols: 0, rows: 0, band: 0, cells: [], slots: new Map() };
-    return page.engine === 'meles' ? fromMeles(page) : fromBuilder(page, puzzle, metrics, puzzle.game === 'meles' ? 'fleches' : puzzle.game, layout);
+    return page.engine === 'meles' ? fromMeles(page) : fromBuilder(page, puzzle, metrics, ['croises', 'codes', 'cases'].includes(puzzle.game) ? puzzle.game : 'fleches', layout);
   }
 
   /**
@@ -213,5 +238,5 @@ MF.gridModel = (() => {
     }
   }
 
-  return { from, clueText, slotKey, wordKey, isPlaced, placedIn, arrowShape, codesFor, BELOW, U };
+  return { from, fromBuilder, clueText, slotKey, wordKey, isPlaced, placedIn, arrowShape, codesFor, BELOW, U };
 })();

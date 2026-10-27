@@ -79,7 +79,7 @@ MF.dashboard = (() => {
       <div class="dash-quick" ${play ? 'hidden' : ''}>${Object.entries(MF.games.GAMES).map(([id, g]) => `<button class="quick-chip" data-quick="${id}">${ic(g.icon)}<span><b>${esc(g.short)}</b><small>${t('Créer')}</small></span></button>`).join('')}</div>
 
       <div class="dash-grid">
-        <button class="dash-card dash-new" id="dash-new-card" ${play ? 'hidden' : ''}>${ic('plus', 'ic-lg')}<b>${t('Nouvelle grille')}</b><span class="muted small">${t('Fléchés, croisés, mêlés ou codés')}</span></button>
+        <button class="dash-card dash-new" id="dash-new-card" ${play ? 'hidden' : ''}>${ic('plus', 'ic-lg')}<b>${t('Nouvelle grille')}</b><span class="muted small">${t('Mots, chiffres ou logique')}</span></button>
         ${list.map(p => {
           const g = MF.games.get(p.game);
           const svg = thumb(p);
@@ -88,7 +88,7 @@ MF.dashboard = (() => {
             <div class="dash-thumb">${svg || `<div class="dash-empty">${ic('grid', 'ic-lg')}<span>${p.words.length ? t('Pas encore calculée') : t('Aucun mot')}</span></div>`}</div>
             <div class="dash-info">
               <div class="dash-name"><i class="dot"></i><b>${esc(p.name)}</b></div>
-              <div class="dash-meta">${ic(g.icon, 'ic-xs')}${esc(g.short)}${p.options.shape !== 'rect' ? ` · ${esc(MF.shapes.SHAPES[p.options.shape].label)}` : ''} · ${p.game === 'murdoku' ? plural(p.layout?.pages?.[0]?.clues?.length || 0, 'indice') : plural(p.words.length, 'mot')} · ${ago(p.updatedAt)}${best ? ` · <span class="dash-best">${ic('star', 'ic-xs')}${MF.play.clock(best)}</span>` : ''}</div>
+              <div class="dash-meta">${ic(g.icon, 'ic-xs')}${esc(g.short)}${p.options.shape !== 'rect' ? ` · ${esc(MF.shapes.SHAPES[p.options.shape].label)}` : ''} · ${p.game === 'murdoku' ? plural(p.layout?.pages?.[0]?.clues?.length || 0, 'indice') : g.engine === 'logic' ? esc({ easy: t('Facile'), medium: t('Moyen'), hard: t('Difficile'), expert: t('Expert') }[p.layout?.pages?.[0]?.level] || '') : plural(p.words.length, 'mot')} · ${ago(p.updatedAt)}${best ? ` · <span class="dash-best">${ic('star', 'ic-xs')}${MF.play.clock(best)}</span>` : ''}</div>
             </div>
             ${play ? `<span class="dash-play-badge">${ic('play')}${t('Jouer')}</span>` : ''}
             <div class="dash-tools" ${play ? 'hidden' : ''}>

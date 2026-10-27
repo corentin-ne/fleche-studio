@@ -107,14 +107,15 @@ MF.phoneNav = (() => {
     document.body.classList.toggle('m-panel', !!panel);
     const current = panel ? tab : 'grid';
     // Murdoku : un onglet « Enquête » à la place des mots, ni définitions ni décor
-    const mdk = document.body.classList.contains('game-murdoku');
+    const mdk = document.body.classList.contains('game-murdoku'), logic = document.body.classList.contains('game-logic');
     const words = /** @type {HTMLElement | null} */ (root.querySelector('[data-ptab="words"]'));
-    if (words && words.dataset.mdk !== String(mdk)) {
-      words.dataset.mdk = String(mdk);
-      const label = mdk ? t('Enquête') : t('Mots');
+    const kind = mdk ? 'mdk' : logic ? 'logic' : 'words';
+    if (words && words.dataset.mdk !== kind) {
+      words.dataset.mdk = kind;
+      const label = mdk ? t('Enquête') : logic ? t('Énigme') : t('Mots');
       words.setAttribute('aria-label', label);
       words.querySelector('.pn-lbl').textContent = label;
-      words.querySelector('[data-icon]').innerHTML = MF.icons.svg(mdk ? 'magnifier' : 'list');
+      words.querySelector('[data-icon]').innerHTML = MF.icons.svg(mdk ? 'magnifier' : logic ? 'sliders' : 'list');
     }
     root.querySelectorAll('button[data-ptab]').forEach(b => b.classList.toggle('active', b.dataset.ptab === current));
     root.querySelectorAll('[data-badge]').forEach(span => {

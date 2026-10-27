@@ -51,6 +51,31 @@ MF.schema = (() => {
       // Langue des mots de la grille (les anciennes grilles, sans langue, sont en français)
       lang: oneOf(o.lang, MF.lexicon.ids, D.lang),
       murdoku: murdokuOptions(o.murdoku),
+      logic: logicOptions(o.logic),
+    };
+  }
+
+  /* ---------------- Jeux de chiffres et de logique (MF.logic) ---------------- */
+  /** Réglages d'un jeu « logique » (0 / '' : valeur par défaut du jeu, voir MF.logic.DEFAULTS). */
+  function logicOptions(o) {
+    o = obj(o);
+    const emoji = str(o.emoji, 16);
+    return {
+      size: int(o.size, 0, 30, 0),
+      level: oneOf(o.level, ['easy', 'medium', 'hard', 'expert'], 'medium'),
+      variant: oneOf(o.variant, ['', 'classic', 'jigsaw', 'diagonal', 'all', 'add', 'croises', 'fleches'], ''),
+      // Citation, mot mystère, mot caché du wordoku, paires de l'échelle, texte du picross
+      text: str(o.text, 300),
+      author: str(o.author, 60),
+      // Picross : d'où vient le dessin
+      source: oneOf(o.source, ['emoji', 'shape', 'text', 'image'], 'emoji'),
+      emoji: emoji && !/[<>&"'\\]/.test(emoji) ? emoji : '',
+      shape: oneOf(o.shape, MF.shapes.ids, 'heart'),
+      imageId: optId(o.imageId),
+      detail: oneOf(o.detail, ['silhouette', 'details'], 'silhouette'),
+      // Échelles de mots, catégories du logigramme
+      count: int(o.count, 0, 4, 0),
+      universe: oneOf(o.universe, MF.murdokuThemes?.ids || ['manor'], 'manor'),
     };
   }
 
@@ -322,13 +347,21 @@ MF.schema = (() => {
       for (let i = 0; i < L; i++) if (p.rows[r + i * dr]?.[c + i * dc] !== w.word[i]) return null;
       words.push({ word: w.word, r, c, dr, dc, len: L, wid: optId(w.wid) || undefined, label: str(w.label, LIMITS.wordLen) || w.word });
     }
-    return { engine: 'meles', frame: fr, rows: p.rows.slice(), words, unplaced: Array.isArray(p.unplaced) ? p.unplaced.map(optId).filter(Boolean) : [] };
+    const out = { engine: 'meles', frame: fr, rows: p.rows.slice(), words, unplaced: Array.isArray(p.unplaced) ? p.unplaced.map(optId).filter(Boolean) : [] };
+    // Mot mystère : gardé seulement s'il correspond bien aux lettres restantes (ordre de lecture)
+    if (typeof p.mystery === 'string' && /^[A-Z]{1,40}$/.test(p.mystery)) {
+      const used = new Set(words.flatMap(w => Array.from({ length: w.len }, (_, i) => `${w.r + w.dr * i},${w.c + w.dc * i}`)));
+      const left = p.rows.flatMap((row, r) => [...row].filter((ch, c) => ch !== '.' && !used.has(`${r},${c}`))).join('');
+      if (left === p.mystery) out.mystery = p.mystery;
+    }
+    return out;
   }
   function layout(l) {
     if (!isObj(l) || !Array.isArray(l.pages) || !l.pages.length || l.pages.length > 2) return null;
-    const engine = oneOf(l.engine, ['builder', 'meles', 'murdoku'], null);
+    const engine = oneOf(l.engine, ['builder', 'meles', 'logic', 'murdoku'], null);
     if (!engine) return null;
-    const pages = l.pages.slice(0, engine === 'murdoku' ? 1 : 2).map(engine === 'builder' ? builderPage : engine === 'meles' ? melesPage : murdokuPage);
+    const check = { builder: builderPage, meles: melesPage, logic: p => MF.logic?.sanitize(p) || null, murdoku: murdokuPage }[engine];
+    const pages = l.pages.slice(0, engine === 'builder' || engine === 'meles' ? 2 : 1).map(check);
     if (pages.some(p => !p)) return null;
     // Données de jeu propres à la grille (codes des mots codés)
     const extra = {};
@@ -341,8 +374,8 @@ MF.schema = (() => {
     return { engine, pages, hash: str(l.hash, 40), at: num(l.at, 0, 1e15, Date.now()), ...extra };
   }
 
-  /** Images (identifiants MF.assets) utilisées par une grille : fond et photos du décor. */
-  const assetIds = p => [p?.design?.background?.imageId, ...(p?.stickers || []).map(s => s.imageId)].filter(Boolean);
+  /** Images (identifiants MF.assets) utilisées par une grille : fond, photos du décor, photo d'un picross. */
+  const assetIds = p => [p?.design?.background?.imageId, ...(p?.stickers || []).map(s => s.imageId), p?.options?.logic?.imageId].filter(Boolean);
 
   /* ---------------- Grille complète ---------------- */
   function puzzle(p) {
@@ -374,5 +407,5 @@ MF.schema = (() => {
     };
   }
 
-  return { LIMITS, DEFAULT_OPTIONS, options, murdokuOptions, murdokuPage, design, sticker, word, puzzle, layout, assetIds, color, num, int, oneOf, str, bool, isObj, WORD };
+  return { LIMITS, DEFAULT_OPTIONS, options, murdokuOptions, logicOptions, murdokuPage, design, sticker, word, puzzle, layout, assetIds, color, num, int, oneOf, str, bool, isObj, WORD };
 })();

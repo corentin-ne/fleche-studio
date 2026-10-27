@@ -36,14 +36,15 @@
     data: ['js/data/packs.js', 'js/data/packs-en.js', 'js/data/palettes.js', 'js/data/themes.js', 'js/data/murdoku-themes.js', 'js/data/library.js'],
     services: ['js/services/dictionary.js', 'js/services/wiki.js', 'js/services/importer.js'],
     engine: [
-      'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/generator.js',
-      'js/engine/grid-model.js', 'js/engine/murdoku.js', 'js/engine/diagnostics.js', 'js/engine/print-effect.js', 'js/engine/renderers.js', 'js/engine/scene.js',
+      'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/logic-solver.js', 'js/engine/logic-numbers.js',
+      'js/engine/logic-words.js', 'js/engine/logic-pictures.js', 'js/engine/logic.js', 'js/engine/generator.js',
+      'js/engine/grid-model.js', 'js/engine/logic-model.js', 'js/engine/murdoku.js', 'js/engine/diagnostics.js', 'js/engine/print-effect.js', 'js/engine/renderers.js', 'js/engine/scene.js',
     ],
     ui: [
       'js/ui/components.js', 'js/ui/phone-nav.js', 'js/ui/pinch-zoom.js', 'js/ui/brand.js', 'js/ui/grid-view.js',
       'js/ui/live-build.js', 'js/ui/sticker-editor.js', 'js/ui/previews.js', 'js/ui/shape-picker.js', 'js/ui/layout-controls.js',
       'js/ui/pickers.js', 'js/ui/panels/words.js', 'js/ui/panels/clues.js', 'js/ui/panels/design.js', 'js/ui/panels/decor.js',
-      'js/ui/panels/settings.js', 'js/ui/panels/murdoku.js', 'js/ui/exporter.js', 'js/ui/share-dialog.js', 'js/ui/murdoku-view.js', 'js/ui/welcome.js', 'js/ui/dashboard.js',
+      'js/ui/panels/settings.js', 'js/ui/panels/murdoku.js', 'js/ui/logic-input.js', 'js/ui/panels/logic.js', 'js/ui/exporter.js', 'js/ui/share-dialog.js', 'js/ui/murdoku-view.js', 'js/ui/welcome.js', 'js/ui/dashboard.js',
     ],
     app: ['js/app/guard.js', 'js/app/actions.js', 'js/app/export-flow.js', 'js/app/play.js', 'js/app/help.js', 'js/app/shortcuts.js', 'js/app/updates.js', 'js/app.js'],
   };
@@ -55,7 +56,10 @@
   };
 
   /** Moteur seul, pour le worker de calcul (aucun accès au DOM ni au stockage). */
-  const WORKER = ['js/core/i18n.js', 'js/core/utils.js', 'js/core/lexicon.js', 'js/engine/shapes.js', 'js/engine/games.js', 'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/grid-model.js', 'js/engine/murdoku.js'];
+  const WORKER = [
+    'js/core/i18n.js', 'js/core/utils.js', 'js/core/lexicon.js', 'js/engine/shapes.js', 'js/engine/games.js', 'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js',
+    'js/engine/logic-solver.js', 'js/engine/logic-numbers.js', 'js/engine/logic-words.js', 'js/engine/logic-pictures.js', 'js/engine/logic.js', 'js/engine/grid-model.js', 'js/engine/logic-model.js', 'js/engine/murdoku.js',
+  ];
 
   /** Ce que chaque point d'entrée charge. */
   const ENTRIES = {

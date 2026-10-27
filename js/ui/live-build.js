@@ -26,6 +26,7 @@ MF.liveBuild = (() => {
   const STEPS = {
     builder: [t('Placement de tes mots'), t('Remplissage'), t('Choix final')],
     meles: [t('Cachette de tes mots'), t('Lettres de remplissage')],
+    logic: [t('Tirage d\'une solution'), t('Vérification : une seule solution')],
   };
   const DRAIN_FRAMES = 22; // la file est rattrapée en ~22 images : visible sans prendre de retard
   const HOLD_MS = 650; // la grille terminée reste un instant avant le rendu final

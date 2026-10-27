@@ -16,7 +16,7 @@ MF.createExportFlow = app => {
 
   /** Pages exportables d'une grille de mots : { name, puzzle, model } (Murdoku a son propre export). */
   function pagesOf(pz) {
-    if (!MF.games.compatible(pz) || MF.games.get(pz.game).words === false) return [];
+    if (!MF.games.compatible(pz) || pz.game === 'murdoku') return [];
     const m = MF.design.metrics(pz.design);
     const many = pz.layout.pages.length > 1;
     return pz.layout.pages.map((pg, i) => ({

@@ -280,19 +280,23 @@ MF.createActions = app => {
       const look = res.game === 'murdoku' ? MF.murdokuThemes.get(res.mdkTheme) : null;
       const mdk = look ? { theme: res.mdkTheme, size: +res.mdkSize, difficulty: res.mdkDifficulty, render: res.mdkRender, look: look.look, mood: look.mood, seed: MF.util.randomSeed() % 2147483647 } : undefined;
       const mdkName = look ? `Murdoku · ${MF.murdokuThemes.card(res.mdkTheme, res.lang).label}` : '';
-      const pz = store.makePuzzle({ name: res.name || mdkName || pack?.label || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang, murdoku: mdk } });
+      // Jeu de chiffres ou de logique : son niveau, et un dessin / un univers tirés au hasard pour commencer
+      const isLogic = MF.games.get(res.game).engine === 'logic';
+      const any = list => list[Math.floor(Math.random() * list.length)];
+      const logic = isLogic ? { level: res.level, emoji: any(MF.logicInput.EMOJIS), universe: any(MF.murdokuThemes.ids) } : undefined;
+      const pz = store.makePuzzle({ name: res.name || mdkName || pack?.label || MF.games.get(res.game).label, game: res.game, options: { shape: isLogic ? 'rect' : res.shape, lang: res.lang, murdoku: mdk, logic } });
       await MF.lexicon.ensure(res.lang).catch(() => {}); // tirage au hasard : dictionnaire de la langue choisie
       MF.dictionary.use(res.lang);
       // Enquête : la version 2D de son univers habille la page (titre, polices, export)
       pz.design = MF.themes.apply(pz.design, mdk ? MF.library.byUniverse(res.mdkTheme)?.grid || 'kraft' : res.theme);
       let words = [];
-      if (mdk) words = [];
+      if (mdk || isLogic) words = [];
       else if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
       else if (pack) words = pack.words.map(([text, clue]) => ({ text, clue }));
       pz.words = words.map(S.word).filter(Boolean);
       view.page = 0; view.selected = null; view.filter = ''; view.home = false; view.play = false;
       store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; }, 'puzzles');
-      if (mdk) { app.regenerate(pz.id); return; }
+      if (mdk || isLogic) { app.regenerate(pz.id); return; }
       if (!words.length) requestAnimationFrame(() => /** @type {HTMLInputElement | null} */ (document.querySelector('#add-form [name=text]'))?.focus());
     },
     quickStart(game) {

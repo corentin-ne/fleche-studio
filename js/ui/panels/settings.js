@@ -19,7 +19,9 @@ MF.panels.settings = (() => {
     const fmt = MF.design.FORMATS[puzzle.design.poster.format] || MF.design.FORMATS.fit;
     const pageLabel = `${fmt.label}${fmt.mm || !fmt.ratio ? ` · ${MF.paper.isLandscape(fr) ? t('Paysage') : t('Portrait')}` : ''}`;
     // Murdoku : ni forme ni taille de grille de mots (réglées dans « Enquête »)
-    const TABS = [['game', t('Jeu'), 'grid'], ['shape', t('Forme'), 'heart'], ['size', t('Taille'), 'page-portrait'], ['data', t('Données'), 'shield']].filter(([k]) => puzzle.game !== 'murdoku' || k === 'game' || k === 'data');
+    // Murdoku et jeux de logique : forme et taille se règlent dans leur propre panneau
+    const own = puzzle.game === 'murdoku' || game.engine === 'logic';
+    const TABS = [['game', t('Jeu'), 'grid'], ['shape', t('Forme'), 'heart'], ['size', t('Taille'), 'page-portrait'], ['data', t('Données'), 'shield']].filter(([k]) => !own || k === 'game' || k === 'data');
     const tab = TABS.some(([k]) => k === view.settingsTab) ? view.settingsTab : 'game';
     const S = (id, title, icon, html) => (id === tab || (id === 'fill' && tab === 'size') ? `<div class="pgroup">${id === 'fill' ? `<div class="pgroup-title">${esc(title)}</div>` : ''}${html}</div>` : '');
     const builder = game.engine === 'builder';
@@ -28,11 +30,13 @@ MF.panels.settings = (() => {
       <nav class="subtabs" id="settings-tabs">${TABS.map(([k, l, i]) => `<button type="button" data-stab="${k}" class="${k === tab ? 'active' : ''}">${ic(i)}<span>${l}</span></button>`).join('')}</nav>
       ${tab === 'game' ? `<label class="field"><span>${t('Nom de la grille')}</span><input class="input" id="set-name" value="${esc(puzzle.name)}" maxlength="${MF.schema.LIMITS.name}"></label>` : ''}
 
-      ${S('game', t('Type de jeu'), 'grid', `<div class="game-grid">${Object.entries(MF.games.GAMES).map(([id, g]) => `
-        <button type="button" class="game-card ${puzzle.game === id ? 'active' : ''}" data-game="${id}">${ic(g.icon)}<b>${esc(g.label)}</b><small>${esc(g.desc)}</small></button>`).join('')}</div>
+      ${S('game', t('Type de jeu'), 'grid', `${MF.games.FAMILIES.map(([f, label]) => `<div class="pgroup-title">${esc(label)}</div><div class="game-grid">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `
+        <button type="button" class="game-card ${puzzle.game === id ? 'active' : ''}" data-game="${id}">${ic(g.icon)}<b>${esc(g.label)}</b><small>${esc(g.desc)}</small></button>`).join('')}</div>`).join('')}
         <div class="field"><span>${t('Langue des mots')}</span>${ui.segmented('lang', MF.lexicon.ids.map(l => [l, MF.lexicon.LANGS[l].label]), o.lang, 'data-opt')}
           <span class="field-hint">${t('Mots ajoutés, définitions proposées et recherches en ligne dans cette langue.')}</span></div>
         ${puzzle.game === 'codes' ? ui.slider('opt.givens', t('Lettres données au départ'), o.givens, 0, 8, 1) : ''}
+        ${puzzle.game === 'mystere' ? `<label class="field"><span>${t('Mot mystère')} <span class="field-hint">${t('vide : un mot du dictionnaire')}</span></span><input class="input" id="set-mystery" maxlength="30" value="${esc(o.logic.text)}" autocapitalize="characters">
+          <span class="field-hint">${t('Les lettres qui restent, une fois tous les mots trouvés, l\'écrivent dans l\'ordre de lecture.')}</span></label>` : ''}
         ${MF.games.get(puzzle.game).wordSearch ? `<div class="field"><span>${t('Sens des mots cachés')}</span>${ui.segmented('directions', [['easy', t('Facile →↓')], ['normal', t('Normal + diagonales')], ['hard', t('Expert : tous sens')]], o.directions, 'data-opt')}</div>` : ''}`)}
 
       ${S('shape', t('Forme de la grille'), 'heart', `${MF.shapePicker.html(o.shape)}
@@ -127,6 +131,7 @@ MF.panels.settings = (() => {
   function bind(root, puzzle, actions, view) {
     const on = (sel, ev, fn) => root.querySelector(sel)?.addEventListener(ev, fn);
     on('#set-name', 'change', e => actions.setPuzzle({ name: e.target.value.trim() || puzzle.name }));
+    on('#set-mystery', 'change', e => actions.setOptions({ logic: { ...puzzle.options.logic, text: e.target.value.trim() } }));
     root.addEventListener('click', e => {
       const btn = e.target.closest('button');
       if (!btn) return;

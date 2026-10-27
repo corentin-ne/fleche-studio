@@ -25,8 +25,8 @@ self.onmessage = async e => {
   const signal = { cancelled: false };
   running.set(id, signal);
   try {
-    const meles = engine === 'meles';
-    if (!meles) MF.loader.lexicon(MF.lexicon.pick(options?.lang)); // synchrone dans un worker
+    // Dictionnaire : pour les grilles de mots croisés, le mot mystère, l'échelle et le wordoku
+    if (engine !== 'meles' || options?.game === 'mystere') MF.loader.lexicon(MF.lexicon.pick(options?.lang)); // synchrone dans un worker
     const { generate } = MF.games.engineModule(engine);
     let last = 0, lastSnap = 0;
     const result = await generate(words, options, {

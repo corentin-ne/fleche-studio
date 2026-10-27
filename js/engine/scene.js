@@ -12,6 +12,8 @@ window.MF = window.MF || {};
 MF.scene = (() => {
   const U = 100;
   const GAP = 56;              // espace entre titre, grille et listes
+  // Jeux où une case porte un chiffre ou une lettre, solution montrée à part des cases données
+  const LETTER_GAMES = new Set(['sudoku', 'wordoku', 'calcudoku', 'futoshiki', 'kakuro', 'echelle', 'cases']);
   const { font, weightFor } = MF.design;
 
   /* ---------------- Cases ---------------- */
@@ -28,7 +30,7 @@ MF.scene = (() => {
 
     model.cells.forEach((row, r) => row.forEach((cell, c) => {
       const x = X(c), y = Y(r);
-      if (cell.type === 'out') return;
+      if (cell.type === 'out' || cell.type === 'hint' || cell.type === 'label' || cell.type === 'sym') return;
       if (cell.type === 'void') {
         if (inBand(r)) return; // bande libre : couleur du cadre (déjà peinte) ou fond de l'affiche
         if (d.voids === 'frame' && shaped) ops.push({ op: 'rect', x, y, w: U, h: U, fill: C.frame });
@@ -49,7 +51,9 @@ MF.scene = (() => {
 
       if (m.gap === 0 && m.line > 0) ops.push({ op: 'rect', x, y, w: U, h: U, fill: C.line });
       const MC = ctx.MC;
-      const fill = cell.type === 'clue' ? (MC ? MC.clueFill(r, c) : C.clue) : (MC ? MC.cellFill(r, c) : C.letter);
+      let fill = cell.type === 'clue' ? (MC ? MC.clueFill(r, c) : C.clue) : (MC ? MC.cellFill(r, c) : C.letter);
+      // Diagonales du sudoku X, lettres du mot mystère (solution)
+      if (cell.tint || (cell.left && opts.letters)) fill = MF.util.mix(fill, C.frame, 0.16);
       const meta = interactive ? { cls: `cell ${cell.type}`, data: { r, c } } : {};
       const shadow = m.gap > 0 && d.cell.shadow;
       if (cell.type === 'letter' && d.cell.letterShape === 'circle') ops.push({ op: 'circle', cx: x + U / 2, cy: y + U / 2, r: m.inner / 2, fill, shadow, ...meta });
@@ -117,13 +121,46 @@ MF.scene = (() => {
         }
         return;
       }
+      if (cell.type === 'block' && cell.sums) {
+        const ink = MF.util.onColor(C.frame), a = m.inset + 4, b = U - m.inset - 4;
+        ops.push({ op: 'line', x1: x + a, y1: y + a, x2: x + b, y2: y + b, stroke: ink, sw: 2.5, opacity: 0.6 });
+        if (cell.sums.a) ops.push({ op: 'text', x: x + U - m.inset - 9, y: y + m.inset + 34, text: String(cell.sums.a), size: 30, font: m.letterFont, weight: 700, fill: ink, anchor: 'end' });
+        if (cell.sums.d) ops.push({ op: 'text', x: x + m.inset + 9, y: y + U - m.inset - 10, text: String(cell.sums.d), size: 30, font: m.letterFont, weight: 700, fill: ink });
+        return;
+      }
+      if (cell.type === 'hint') { ops.push({ op: 'text', x: x + U / 2, y: y + U * 0.66, text: cell.text, size: U * 0.44, font: m.letterFont, weight: 700, fill: C.list, anchor: 'middle' }); return; }
+      if (cell.type === 'sym') { ops.push({ op: 'text', x: x + U / 2, y: y + U * 0.7, text: cell.ch, size: U * 0.6, font: m.letterFont, weight: 700, fill: C.list, anchor: 'middle' }); return; }
+      if (cell.type === 'label') {
+        const len = cell.span * U - 16;
+        const size = Math.min(U * 0.4, (U * 0.4 * len) / Math.max(1, MF.text.measure(cell.text, U * 0.4, m.clueFont, 700)));
+        ops.push(cell.rot
+          ? { op: 'group', tx: x + U / 2, ty: y + cell.span * U - 8, rot: -90, children: [{ op: 'text', x: 0, y: size * 0.36, text: cell.text, size, font: m.clueFont, weight: 700, fill: C.list }] }
+          : { op: 'text', x: x + cell.span * U - 8, y: y + U / 2 + size * 0.36, text: cell.text, size, font: m.clueFont, weight: 700, fill: C.list, anchor: 'end' });
+        return;
+      }
       if (cell.type !== 'letter') return;
 
-      if (model.game === 'meles') { ops.push({ ...letterText(x, y, cell.ch, letterInk(r, c, C.ink), U * 0.52, 0.68), cls: undefined }); return; }
+      if (model.game === 'meles') { ops.push({ ...letterText(x, y, cell.ch, letterInk(r, c, cell.left && opts.letters ? C.solution : C.ink), U * 0.52, 0.68), cls: undefined }); return; }
+      // Picross (case pleine) et logigramme (rond) : la solution, et les cases données
+      if (cell.mark) {
+        const on = cell.ch === '1' || cell.ch === 'O';
+        if (cell.mark === 'fill' && on && (opts.letters || cell.given)) ops.push({ op: 'rect', x: x + m.inset + 4, y: y + m.inset + 4, w: m.inner - 8, h: m.inner - 8, r: Math.min(m.radius, 14), fill: letterInk(r, c, C.ink) });
+        else if (cell.mark === 'fill' && !on && cell.given) ops.push({ op: 'path', d: `M${x + 34} ${y + 34}L${x + 66} ${y + 66}M${x + 66} ${y + 34}L${x + 34} ${y + 66}`, fill: 'none', stroke: C.ink, sw: 5, cap: 'round', opacity: 0.55 });
+        else if (cell.mark === 'dot' && on && opts.letters) ops.push({ op: 'circle', cx: x + U / 2, cy: y + U / 2, r: U * 0.22, fill: letterInk(r, c, C.solution) });
+        return;
+      }
+      if (LETTER_GAMES.has(model.game)) {
+        if (cell.corner) ops.push({ op: 'text', x: x + m.inset + 7, y: y + m.inset + 24, text: cell.corner, size: 22, font: m.letterFont, weight: 700, fill: inkAt(r, c, C.ink), opacity: 0.85 });
+        if (opts.letters || cell.given) {
+          const tx = letterText(x, y, cell.ch, letterInk(r, c, cell.given ? C.ink : C.solution), U * (cell.corner ? 0.5 : 0.56), cell.corner ? 0.78 : 0.7);
+          ops.push(cell.given ? { ...tx, weight: Math.max(700, m.letterWeight), cls: undefined } : tx);
+        }
+        return;
+      }
       if (model.game === 'croises' || model.game === 'codes') {
         const label = model.game === 'codes' ? cell.code : cell.num;
         if (label) ops.push({ op: 'text', x: x + m.inset + 7, y: y + m.inset + 23, text: String(label), size: model.game === 'codes' ? 22 : 21, font: m.letterFont, weight: 700, fill: inkAt(r, c, C.ink), opacity: 0.8 });
-        const given = model.game === 'codes' && model.givens?.has(cell.ch);
+        const given = (model.game === 'codes' && model.givens?.has(cell.ch)) || cell.given;
         if (opts.letters || given) ops.push(letterText(x, y, cell.ch, letterInk(r, c, given && !opts.letters ? C.ink : C.solution), U * 0.5, 0.76));
         return;
       }
@@ -140,6 +177,16 @@ MF.scene = (() => {
         if (g.dot) ops.push({ op: 'circle', cx: x + dx + g.dot[0], cy: y + dy + g.dot[1], r: g.dot[2], fill: arrowC });
       }
     }));
+
+    // Traits épais (régions du sudoku, cages du calcudoku, blocs du logigramme, repères du picross)
+    const wallW = Math.max(5, (m.line || 2.5) * 2.4);
+    for (const w of model.walls || []) ops.push({ op: 'line', x1: ox + w.x1 * U, y1: oy + w.y1 * U, x2: ox + w.x2 * U, y2: oy + w.y2 * U, stroke: C.frame, sw: wallW, cap: 'round' });
+    // Signes du futoshiki, posés à cheval sur deux cases
+    for (const sg of model.signs || []) {
+      const cx = sg.dir === 'H' ? X(sg.c + 1) : X(sg.c) + U / 2, cy = sg.dir === 'H' ? Y(sg.r) + U / 2 : Y(sg.r + 1);
+      ops.push({ op: 'circle', cx, cy, r: U * 0.2, fill: C.letter, stroke: C.line, sw: 2 });
+      ops.push({ op: 'text', x: cx, y: cy + U * 0.12, text: sg.sym, size: U * 0.34, font: m.letterFont, weight: 800, fill: C.ink, anchor: 'middle' });
+    }
     return ops;
   }
 
@@ -187,38 +234,49 @@ MF.scene = (() => {
     const fs = d.lists.size;
     const lh = 1.3;
     const wN = weightFor(d.lists.font, 500), wB = weightFor(d.lists.font, 800);
+    const parts = [];
 
-    if (model.game === 'croises' && (model.across?.length || model.down?.length)) {
-      const twoCols = width >= 900;
+    // Listes de textes : croisés (horizontalement / verticalement), mots casés, indices, étapes…
+    const lists = model.lists || (model.game === 'croises' && (model.across?.length || model.down?.length)
+      ? [{ title: MF.i18n.t('Horizontalement'), items: model.across }, { title: MF.i18n.t('Verticalement'), items: model.down }] : null);
+    if (lists?.length) {
+      const twoCols = width >= 900 && lists.length > 1;
       const colGap = 60;
       const colW = twoCols ? (width - colGap) / 2 : width;
       const column = (title, list) => {
         const items = [];
         let h = fs * 1.2 * lh;
         for (const e of list) {
-          const lines = MF.text.wrap(`${e.num}. ${e.text || '…'}`, fs, colW, fam, wN) || [''];
+          const text = e.num !== undefined ? `${e.num}. ${e.text || '…'}` : e.text || '';
+          const lines = MF.text.wrap(text, fs, colW, fam, wN) || [''];
           items.push({ lines, y: h });
           h += lines.length * fs * lh + fs * 0.25;
         }
-        return { title, items, h };
+        return { title, items, h: h + fs * 0.6 };
       };
-      const cols = [column(MF.i18n.t('Horizontalement'), model.across), column(MF.i18n.t('Verticalement'), model.down)];
-      const h = twoCols ? Math.max(...cols.map(c => c.h)) : cols[0].h + fs + cols[1].h;
-      return {
-        h,
+      // Deux colonnes : chaque liste va dans la colonne la moins remplie
+      const cols = [[], []], heights = [0, 0];
+      for (const b of lists.map(l => column(l.title, l.items))) {
+        const k = twoCols && heights[1] < heights[0] ? 1 : 0;
+        cols[k].push(b);
+        heights[k] += b.h;
+      }
+      parts.push({
+        h: Math.max(...heights) - fs * 0.6,
         draw(x, y) {
           const ops = [];
-          let cy = y;
           cols.forEach((col, i) => {
-            const cx = twoCols ? x + i * (colW + colGap) : x;
-            const y0 = twoCols ? y : cy;
-            ops.push(...textLines([col.title], cx, y0, fs * 1.2, fam, wB, C.list, lh));
-            col.items.forEach(it => ops.push(...textLines(it.lines, cx, y0 + it.y, fs, fam, wN, C.list, lh)));
-            cy = y0 + col.h + fs;
+            let cy = y;
+            const cx = x + i * (colW + colGap);
+            for (const b of col) {
+              ops.push(...textLines([b.title], cx, cy, fs * 1.2, fam, wB, C.list, lh));
+              b.items.forEach(it => ops.push(...textLines(it.lines, cx, cy + it.y, fs, fam, wN, C.list, lh)));
+              cy += b.h;
+            }
           });
           return ops;
         },
-      };
+      });
     }
 
     if (model.game === 'meles' && model.words?.length) {
@@ -235,7 +293,7 @@ MF.scene = (() => {
         cur.push({ l, lw, key, fill: wc ? MF.design.readable(wc, MF.design.backgroundTone(d), 3) : C.list });
       }
       if (cur.length) rows.push({ items: cur, w: curW });
-      return {
+      parts.push({
         h: rows.length * size * 1.55,
         draw(x, y) {
           const ops = [];
@@ -248,13 +306,36 @@ MF.scene = (() => {
           });
           return ops;
         },
-      };
+      });
+    }
+
+    // Mot mystère : une case par lettre (le joueur l'écrit en jeu)
+    if (model.mystery?.word) {
+      const n = model.mystery.word.length;
+      const label = MF.i18n.t('Mot mystère');
+      const lw = MF.text.measure(label, fs, fam, wB) + fs;
+      const bw = Math.min(110, (width - lw) / n);
+      const total = lw + n * bw;
+      parts.push({
+        h: bw,
+        draw(x, y, opts) {
+          const x0 = x + Math.max(0, (width - total) / 2);
+          /** @type {any[]} */
+          const ops = [{ op: 'text', x: x0, y: y + bw * 0.62, text: label, size: fs, font: fam, weight: wB, fill: C.list }];
+          [...model.mystery.word].forEach((ch, i) => {
+            const bx = x0 + lw + i * bw;
+            ops.push({ op: 'rect', x: bx + 3, y, w: bw - 6, h: bw - 6, r: Math.min(12, d.cell.radius), fill: C.letter, stroke: C.line, sw: 2.5, ...(opts.forExport ? {} : { cls: 'mys-box', data: { i } }) });
+            if (opts.letters) ops.push({ op: 'text', x: bx + bw / 2, y: y + bw * 0.66, text: ch, size: bw * 0.5, font: font(d.font.letter).css, weight: 700, fill: C.solution, anchor: 'middle' });
+          });
+          return ops;
+        },
+      });
     }
 
     if (model.game === 'codes' && model.codes) {
       const per = 13, bw = width / per, bh = bw * 1.3;
       const inv = Object.fromEntries(Object.entries(model.codes).map(([l, n]) => [n, l]));
-      return {
+      parts.push({
         h: bh * 2 + 12,
         draw(x, y, opts) {
           const ops = [];
@@ -267,9 +348,41 @@ MF.scene = (() => {
           }
           return ops;
         },
-      };
+      });
     }
-    return null;
+
+    // Lettres à placer (wordoku)
+    if (model.bank?.length) {
+      const bw = Math.min(110, width / model.bank.length);
+      parts.push({
+        h: bw - 8,
+        draw(x, y) {
+          const x0 = x + (width - bw * model.bank.length) / 2;
+          return model.bank.flatMap((ch, i) => [
+            { op: 'rect', x: x0 + i * bw + 4, y, w: bw - 8, h: bw - 8, r: Math.min(14, d.cell.radius), fill: C.letter, stroke: C.line, sw: 2.5 },
+            { op: 'text', x: x0 + i * bw + bw / 2, y: y + bw * 0.6, text: ch, size: bw * 0.48, font: font(d.font.letter).css, weight: 700, fill: C.ink, anchor: 'middle' },
+          ]);
+        },
+      });
+    }
+
+    // Remarque (auteur d'une citation, mot caché du wordoku)
+    if (model.note) {
+      const lines = MF.text.wrap(model.note, fs, width, fam, wN) || [model.note];
+      parts.push({ h: lines.length * fs * lh, draw: (x, y) => textLines(lines, x + width / 2, y, fs, fam, wN, C.list, lh, 'middle') });
+    }
+
+    if (!parts.length) return null;
+    const gap = fs * 1.2;
+    return {
+      h: parts.reduce((s, p) => s + p.h, 0) + gap * (parts.length - 1),
+      draw(x, y, opts) {
+        const ops = [];
+        let cy = y;
+        for (const p of parts) { ops.push(...p.draw(x, cy, opts)); cy += p.h + gap; }
+        return ops;
+      },
+    };
   }
 
   /* ---------------- Titre ---------------- */

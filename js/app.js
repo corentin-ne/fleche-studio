@@ -20,6 +20,9 @@
 
   const engineOf = pz => MF.games.get(pz.game).engine;
   const isMurdoku = pz => pz?.game === 'murdoku';
+  /** Jeu de chiffres ou de logique (réglé dans son panneau « Énigme », sans liste de mots). */
+  const isLogic = pz => engineOf(pz) === 'logic';
+  const LEVEL = () => ({ easy: t('Facile'), medium: t('Moyen'), hard: t('Difficile'), expert: t('Expert') });
   let murdokuPlay = null; // Murdoku affiché : partie { check, reveal, clear }, null au studio, undefined pour un autre jeu
   const engine = pz => MF.games.engine(pz.game);
   const hashOf = pz => engine(pz).layoutHash(pz);
@@ -62,6 +65,7 @@
     const pz = store.puzzle(pzId);
     if (!pz) return;
     if (isMurdoku(pz)) { regenerateMurdoku(pz); return; }
+    if (isLogic(pz)) { regenerateLogic(pz); return; }
     if (!prepared(pz).length) { MF.ui.toast(t('Ajoute au moins un mot (2 lettres minimum).'), 'warn'); renderGrid(); return; }
     jobs.get(pzId)?.cancel();
     const job = { cancelled: false, run: null, live: null, cancel() { this.cancelled = true; this.run?.cancel(); } };
@@ -116,6 +120,37 @@
     const total = prepared(pz).length;
     const placed = pages.reduce((n, pg) => n + MF.gridModel.placedIn(pg).length, 0);
     MF.ui.toast(t(pages.length > 1 ? '2 grilles prêtes : {placed} / {total} de tes mots placés' : 'Grille prête : {placed} / {total} de tes mots placés', { placed, total }), placed === total ? 'ok' : 'warn', 4000);
+  }
+
+  /** Jeu de chiffres ou de logique : une seule page, calculée dans le worker (solution unique vérifiée). */
+  async function regenerateLogic(pz) {
+    jobs.get(pz.id)?.cancel();
+    const job = { cancelled: false, run: null, live: { engine: 'logic', page: 0, pages: 1, progress: 0, snapshot: null }, cancel() { this.cancelled = true; this.run?.cancel(); } };
+    jobs.set(pz.id, job);
+    setBusy(true, 0);
+    renderGrid();
+    const shown = () => !job.cancelled && store.get().activeId === pz.id && !view.home;
+    const hash = hashOf(pz);
+    // Dessin du picross, catégories du logigramme : préparés dans la page
+    const extra = await MF.logicInput.prepare(pz);
+    if (job.cancelled) return;
+    job.run = MF.generator.run(
+      { engine: 'logic', words: [], options: { ...MF.paper.gridOptions(pz), ...extra }, seed: MF.util.randomSeed(), exclude: [], banned: [] },
+      p => { job.live.progress = p; if (shown()) { setBusy(true, p); renderLive(job); } },
+    );
+    const out = await job.run.promise;
+    if (job.cancelled || out.cancelled) return;
+    jobs.delete(pz.id);
+    setBusy(false);
+    const layout = out.result ? MF.schema.layout({ engine: 'logic', pages: [out.result], hash, at: Date.now() }) : null;
+    if (!layout) {
+      MF.ui.toast(t('Le calcul a échoué : {error}', { error: out.error || t('grille introuvable, essaie d\'autres réglages') }), 'err', 5000);
+      renderAll();
+      return;
+    }
+    view.page = 0;
+    store.update(s => { const p = s.puzzles.find(x => x.id === pz.id); if (p) p.layout = layout; }, 'layout');
+    MF.ui.toast(t('{game} prêt : une seule solution possible.', { game: MF.games.get(pz.game).label }), 'ok', 3000);
   }
 
   /** Murdoku : nouvelle énigme (calcul rapide, sur place). */
@@ -228,7 +263,9 @@
     const missing = missingClues(pz, d);
     $('#page-switch').hidden = d.pages.length < 2;
     $('#page-switch').innerHTML = d.pages.map((pg, i) => `<button data-page="${i}" class="${i === d.page ? 'active' : ''}">${t('Grille {n}', { n: i + 1 })}</button>`).join('');
-    $('#grid-stats').innerHTML = d.layout
+    $('#grid-stats').innerHTML = d.layout && isLogic(pz)
+      ? `<span class="badge">${d.model.cols} × ${d.model.rows}</span><span class="badge ok"><span class="dot"></span>${esc(LEVEL()[d.layout.level] || '')}</span>`
+      : d.layout
       ? `<span class="badge">${d.model.cols} × ${d.model.rows}</span>
          <span class="badge ${d.pageOf.size === total ? 'ok' : 'warn'}"><span class="dot"></span>${t('{placed} / {total} mots placés', { placed: d.pageOf.size, total })}</span>
          ${game.clues ? `<span class="badge ${missing ? 'warn' : 'ok'}"><span class="dot"></span>${missing ? t('{n} à écrire', { n: plural(missing, 'définition') }) : t('Tout est défini')}</span>` : ''}`
@@ -245,7 +282,7 @@
     syncClock();
     $('#btn-fit').classList.toggle('active', !!s.ui.fit);
     $('#btn-hint-word').hidden = game.wordSearch;
-    $('#btn-hint').innerHTML = `${ic('bulb')}${t(game.wordSearch || isMurdoku(pz) ? 'Indice' : 'Lettre')}`;
+    $('#btn-hint').innerHTML = `${ic('bulb')}${t(game.wordSearch || isMurdoku(pz) || isLogic(pz) ? 'Indice' : 'Lettre')}`;
 
     const entriesFor = MF.play.keyOf(pz, d.page);
     if (view.entriesFor !== entriesFor) {
@@ -265,7 +302,9 @@
     }
     if (!d.model.cols) {
       lastView = null;
-      box.innerHTML = total
+      box.innerHTML = isLogic(pz)
+        ? `<div class="empty">${ic(game.icon)}<h3>${esc(game.label)}</h3><p>${esc(game.desc)}</p><p><button class="btn btn-primary" data-regen>${ic('sparkle')}${t('Construire la grille')}</button></p></div>`
+        : total
           ? `<div class="empty">${ic('grid')}<h3>${t('Prêt à construire')}</h3><p>${t('{n} dans ta liste.', { n: plural(total, 'mot') })}</p><p><button class="btn btn-primary" data-regen>${ic('sparkle')}${t('Construire la grille')}</button></p></div>`
           : `<div class="empty start-hint">${ic('edit')}<h3>${t('Commence par ajouter des mots')}</h3><p>${t('Tape-les dans le panneau « Mots », ou pioche dans la bibliothèque et les thèmes. La grille se construit toute seule.')}</p></div>`;
       return;
@@ -342,7 +381,9 @@
     if (!pz) return;
     const d = derive(pz);
     $$('#side-tabs button').forEach(b => { const on = b.dataset.tab === s.ui.tab; b.classList.toggle('active', on); b.setAttribute('aria-selected', on); });
+    // Jeux de logique et Murdoku : pas de liste de mots à compter
     $('#count-words').textContent = pz.words.length;
+    $('#count-words').hidden = isLogic(pz) || isMurdoku(pz);
     const missing = missingClues(pz, d, false);
     const errs = d.issues.filter(i => i.level === 'err').length;
     const badge = $('#count-diag');
@@ -355,16 +396,17 @@
     const scroll = body.scrollTop;
     const ctx = { puzzle: pz, derived: d, actions, state: s, view };
     // Murdoku : « Enquête » remplace les mots ; ni définitions ni décor
-    const mdk = isMurdoku(pz);
+    const mdk = isMurdoku(pz), logic = isLogic(pz);
     document.body.classList.toggle('game-murdoku', mdk);
-    $('#side-tabs [data-tab="words"] .lbl').textContent = mdk ? t('Enquête') : t('Mots');
-    const tab = mdk && ['diag', 'decor'].includes(s.ui.tab) ? 'words' : s.ui.tab;
-    const panel = { diag: MF.panels.clues, design: MF.panels.design, decor: MF.panels.decor, settings: MF.panels.settings }[tab] || (mdk ? MF.panels.murdoku : MF.panels.words);
-    const sameTab = body.dataset.tab === `${tab}${mdk}`;
+    document.body.classList.toggle('game-logic', logic);
+    $('#side-tabs [data-tab="words"] .lbl').textContent = mdk ? t('Enquête') : logic ? t('Énigme') : t('Mots');
+    const tab = (mdk && ['diag', 'decor'].includes(s.ui.tab)) || (logic && s.ui.tab === 'diag') ? 'words' : s.ui.tab;
+    const panel = { diag: MF.panels.clues, design: MF.panels.design, decor: MF.panels.decor, settings: MF.panels.settings }[tab] || (mdk ? MF.panels.murdoku : logic ? MF.panels.logic : MF.panels.words);
+    const sameTab = body.dataset.tab === `${tab}${mdk}${logic}`;
     // Animation d'entrée seulement quand on change d'onglet (pas à chaque réglage)
     body.classList.toggle('enter', !sameTab);
     panel(body, ctx);
-    body.dataset.tab = `${tab}${mdk}`;
+    body.dataset.tab = `${tab}${mdk}${logic}`;
     if (sameTab) body.scrollTop = scroll;
     MF.phoneNav.sync({ tab: s.ui.tab, panel: view.phonePanel });
   }

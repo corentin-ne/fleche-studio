@@ -340,6 +340,7 @@
   });
   test('jeux : registre des moteurs', () => {
     assert(MF.games.engine('meles') === MF.wordsearch && MF.games.engine('croises') === MF.builder && MF.games.engine('inconnu') === MF.builder);
+    assert(MF.games.engine('mystere') === MF.wordsearch && MF.games.engine('cases') === MF.builder && MF.logic.KINDS.every(id => MF.games.engine(id) === MF.logic), 'nouveaux jeux');
   });
 
   test('jeux : particularités déclarées une seule fois', () => {
@@ -813,6 +814,145 @@
     eq(MF.murdoku.solve(back).length, 1, 'solution unique');
     assert(!MF.schema.layout({ engine: 'murdoku', pages: [{ ...pz, people: pz.people.slice(1) }] }), 'personne manquante acceptée');
     assert(!MF.schema.layout({ engine: 'murdoku', pages: [{ ...pz, cells: pz.cells.slice(1) }] }), 'plateau tronqué accepté');
+  });
+
+  /* ---------------- Jeux de chiffres et de logique ---------------- */
+  const logicPage = async (game, logic = {}, extra = {}) => {
+    const raw = await MF.logic.generate([], { game, logic, lang: 'fr', aspect: 0.75, ...extra }, { seed: 7 + game.length });
+    const page = MF.logic.sanitize(JSON.parse(JSON.stringify(raw)));
+    assert(page, `${game} : page refusée par le schéma`);
+    return page;
+  };
+  /** Nombre de solutions d'une grille latine (sudoku, wordoku, calcudoku, futoshiki), avec ses cases données. */
+  function latinSolutions(pg) {
+    const n = pg.n, S = MF.solver;
+    const symbols = [...new Set(pg.rows.join(''))].sort();
+    const val = ch => (/[0-9]/.test(ch) ? +ch : symbols.indexOf(ch) + 1);
+    const fixed = {};
+    pg.rows.join('').split('').forEach((ch, i) => { if (pg.given.join('')[i] === '1') fixed[i] = val(ch); });
+    const full = S.latinGroups(n);
+    if (pg.regions) for (let g = 0; g < n; g++) full.push([...pg.regions.join('')].map((x, i) => (x.charCodeAt(0) - 65 === g ? i : -1)).filter(i => i >= 0));
+    if (pg.variant === 'diagonal') { full.push(Array.from({ length: n }, (_, i) => i * n + i)); full.push(Array.from({ length: n }, (_, i) => i * n + n - 1 - i)); }
+    const target = (vals, op) => (op === '=' ? vals[0] : op === '-' ? Math.abs(vals[0] - vals[1]) : op === '/' ? Math.max(...vals) / Math.min(...vals) : op === '+' ? vals.reduce((a, b) => a + b) : vals.reduce((a, b) => a * b));
+    const tuples = (pg.cages || []).map(cg => {
+      const list = [];
+      const rec = (cur) => { if (cur.length === cg.cells.length) { if (target(cur, cg.op) === cg.target) list.push(cur); return; } for (let v = 1; v <= n; v++) rec([...cur, v]); };
+      rec([]);
+      return { cells: cg.cells, list };
+    });
+    const res = S.solve({ size: n * n, values: S.range(n), full, tuples, less: pg.signs || [], fixed }, { limit: 2, maxNodes: 500000 });
+    return { count: res.aborted ? -1 : res.count, same: res.solution?.join('') === pg.rows.join('').split('').map(val).join('') };
+  }
+
+  test('logique : sudoku, wordoku, calcudoku, futoshiki à solution unique', async () => {
+    for (const [game, logic] of [['sudoku', {}], ['sudoku', { variant: 'jigsaw' }], ['sudoku', { variant: 'diagonal', size: 6, level: 'expert' }], ['wordoku', { size: 6, text: 'PLANTE' }], ['calcudoku', { size: 6 }], ['futoshiki', { level: 'hard' }]]) {
+      const pg = await logicPage(game, logic);
+      for (let i = 0; i < pg.n; i++) {
+        eq(new Set(pg.rows[i]).size, pg.n, `${game} : ligne ${i}`);
+        eq(new Set(pg.rows.map(r => r[i])).size, pg.n, `${game} : colonne ${i}`);
+      }
+      const r = latinSolutions(pg);
+      assert(r.count === 1 && r.same, `${game} ${JSON.stringify(logic)} : ${r.count} solution(s)`);
+    }
+    // Wordoku : le mot choisi se lit dans la première ligne de la solution
+    eq((await logicPage('wordoku', { size: 6, text: 'PLANTE' })).rows[0], 'PLANTE');
+  });
+  test('logique : kakuro (sommes justes, chiffres distincts, solution unique)', async () => {
+    const pg = await logicPage('kakuro', { size: 7 });
+    const black = Uint8Array.from(pg.rows.join(''), ch => (ch === '#' ? 1 : 0));
+    const runs = MF.logicNumbers.runsOf(black, pg.w, pg.h);
+    assert(runs.length > 4, 'trop peu de suites');
+    const sol = pg.rows.join('');
+    for (const run of runs) { const d = run.cells.map(i => sol[i]); eq(new Set(d).size, d.length, 'chiffre répété'); }
+    const fixed = {};
+    [...sol].forEach((ch, i) => { if (ch === '#') fixed[i] = 0; else if (pg.given.join('')[i] === '1') fixed[i] = +ch; });
+    const sums = runs.map(r => ({ cells: r.cells, combos: MF.solver.combos(r.cells.length, r.cells.reduce((s, i) => s + +sol[i], 0)) }));
+    const res = MF.solver.solve({ size: pg.w * pg.h, values: MF.solver.range(9), groups: runs.map(r => r.cells), sums, fixed }, { limit: 2, maxNodes: 500000 });
+    eq(res.count, 1, 'solutions');
+  });
+  test('logique : nombres fléchés et croisés (chaque formule donne le nombre)', async () => {
+    const value = f => ({ add: f.a + f.b, sub: f.a - f.b, mul: f.a * f.b, div: f.a / f.b, sq: f.a ** 2, cube: f.a ** 3, sqp: f.a ** 2 + f.b, mix: f.a * f.b + f.c, mix2: f.a * f.b - f.c, dbl: f.a * 2, half: f.a / 2 }[f.t]);
+    for (const logic of [{ variant: 'croises', level: 'easy' }, { variant: 'fleches', level: 'expert' }]) {
+      const pg = await logicPage('nombres', logic);
+      assert(pg.words.length > 5, 'trop peu de nombres');
+      for (const w of pg.words) {
+        eq(value(w.clue), Number(w.word), `${w.word} (${MF.logic.formula(w.clue, 'fr')})`);
+        assert(w.word[0] !== '0', `${w.word} commence par 0`);
+      }
+      const model = MF.gridModel.from(pg, MF.schema.puzzle({ game: 'nombres' }), MF.design.metrics(MF.design.DEFAULT), { at: 1 });
+      assert(model.digits && model.slots.size === pg.words.length, 'modèle');
+    }
+  });
+  test('logique : picross résolu ligne à ligne, logigramme à solution unique', async () => {
+    const rows = ['0110110', '1111111', '1111111', '0111110', '0011100', '0001000'];
+    const pg = await logicPage('picross', {}, { picture: { rows } });
+    eq(pg.rows, rows, 'dessin');
+    const sol = Int8Array.from(rows.join(''), ch => +ch);
+    const W = rows[0].length;
+    const known = Int8Array.from(pg.given.join(''), (g, i) => (g === '1' ? sol[i] : -1));
+    const rc = rows.map(r => MF.solver.runs([...r].map(Number)));
+    const cc = Array.from({ length: W }, (_, c) => MF.solver.runs(rows.map(r => +r[c])));
+    eq([...MF.solver.picross(rc, cc, known)].join(''), [...sol].join(''), 'déduction complète');
+    const cats = ['person', 'place', 'thing', 'time'].map((kind, k) => ({ kind, name: kind, items: ['A', 'B', 'C', 'D'].map(x => ({ label: `${x}${k}`, ph: `${x}${k}` })) }));
+    for (const level of ['easy', 'expert']) {
+      const lg = await logicPage('logigramme', { level }, { cats: level === 'easy' ? cats.slice(0, 3) : cats });
+      const S = MF.logicPictures.solver(lg.cats.length, lg.m, lg.cats.findIndex(c => c.kind === 'time'));
+      eq(S.count(lg.clues), 1, `logigramme ${level}`);
+      assert(lg.clues.every(c => MF.logic.clueText(c, lg.cats, 'fr').endsWith('.')), 'texte des indices');
+    }
+  });
+  test('logique : échelle de mots et citation codée', async () => {
+    const pg = await logicPage('echelle', { size: 4, count: 2 });
+    for (const l of pg.ladders) {
+      for (let i = 1; i < l.words.length; i++) eq([...l.words[i]].filter((ch, k) => ch !== l.words[i - 1][k]).length, 1, `${l.words[i - 1]} → ${l.words[i]}`);
+      assert(l.words.slice(1, -1).every(w => MF.cluesFr[w]), 'mots définis');
+    }
+    const cit = await logicPage('citation', { text: 'Qui vivra verra !', author: 'Proverbe' });
+    eq(cit.rows.join(' ').replace(/\s+/g, ' ').trim(), 'QUI VIVRA VERRA !');
+    const model = MF.gridModel.from(cit, MF.schema.puzzle({ game: 'citation' }), MF.design.metrics(MF.design.DEFAULT), { at: 3 });
+    assert(model.game === 'codes' && model.note === '— Proverbe', 'modèle');
+  });
+  test('logique : pages trafiquées refusées', async () => {
+    const sudoku = await logicPage('sudoku', { size: 4 });
+    assert(!MF.logic.sanitize({ ...sudoku, rows: sudoku.rows.slice(1) }), 'lignes manquantes');
+    assert(!MF.logic.sanitize({ ...sudoku, rows: sudoku.rows.map(r => r.replace('1', '<')) }), 'caractère inconnu');
+    const calc = await logicPage('calcudoku', { size: 4 });
+    assert(!MF.logic.sanitize({ ...calc, cages: [...calc.cages, calc.cages[0]] }), 'cases dans deux cages');
+    assert(!MF.logic.sanitize({ kind: 'inconnu' }), 'jeu inconnu');
+    assert(!MF.schema.layout({ engine: 'logic', pages: [{ ...sudoku, regions: ['ZZZZ', 'ZZZZ', 'ZZZZ', 'ZZZZ'] }] }), 'régions hors limites');
+  });
+  test('logique : chaque jeu se dessine (écran et export)', async () => {
+    const cats = ['person', 'place', 'thing'].map((kind, k) => ({ kind, name: kind, items: ['A', 'B', 'C', 'D'].map(x => ({ label: `${x}${k}`, ph: `${x}${k}` })) }));
+    for (const game of MF.logic.KINDS) {
+      const page = await logicPage(game, {}, { cats, picture: { rows: ['01110', '11111', '01110', '00100', '01010'] } });
+      const pz = MF.schema.puzzle({ game, layout: { engine: 'logic', pages: [page], hash: 'x', at: 5 } });
+      assert(MF.games.compatible(pz), `${game} : grille incompatible`);
+      const model = MF.gridModel.from(pz.layout.pages[0], pz, MF.design.metrics(pz.design), pz.layout);
+      assert(model.cols > 0 && model.cells.length === model.rows, `${game} : modèle`);
+      for (const letters of [true, false]) {
+        const svg = MF.renderers.svg(MF.scene.compose(model, pz, { letters, forExport: !letters }));
+        assert(svg.includes('<svg') && !svg.includes('NaN') && !svg.includes('undefined'), `${game} : dessin`);
+      }
+    }
+  });
+  test('mot mystère : les lettres restantes forment le mot', async () => {
+    const words = randomWords(10, 9);
+    const page = await MF.wordsearch.generate(words, { game: 'mystere', lang: 'fr', logic: { text: 'Énigme' }, directions: 'normal', aspect: 0.75 }, { seed: 11 });
+    eq(page.mystery, 'ENIGME');
+    const clean = MF.schema.layout({ engine: 'meles', pages: [page] });
+    eq(clean.pages[0].mystery, 'ENIGME', 'gardé par le schéma');
+    const model = MF.gridModel.from(clean.pages[0], MF.schema.puzzle({ game: 'mystere' }), MF.design.metrics(MF.design.DEFAULT), clean);
+    eq(model.mystery.cells.map(([r, c]) => model.cells[r][c].ch).join(''), 'ENIGME', 'lettres restantes');
+    assert(!MF.schema.layout({ engine: 'meles', pages: [{ ...page, mystery: 'FAUX' }] }).pages[0].mystery, 'mot trafiqué retiré');
+  });
+  test('mots casés : liste par longueur et un mot de départ', async () => {
+    const words = randomWords(12, 4);
+    const page = await MF.builder.generate(words, MF.schema.options({ effort: 'fast' }), { seed: 3 });
+    const pz = MF.schema.puzzle({ game: 'cases', words });
+    const model = MF.gridModel.from(page, pz, MF.design.metrics(pz.design), { at: 1 });
+    const listed = model.lists.flatMap(l => l.items[0].text.split(/\s+/));
+    eq(listed.sort(), page.words.map(w => w.word).sort(), 'tous les mots listés');
+    assert(model.cells.flat().some(c => c.given), 'mot de départ');
   });
 
   /* ---------------- Traductions ---------------- */

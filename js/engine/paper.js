@@ -34,7 +34,7 @@ MF.paper = (() => {
   }
 
   /** Options de calcul d'une grille : les siennes, plus le cadre donné par sa page. */
-  const gridOptions = pz => ({ ...pz.options, ...frame(pz.design?.poster) });
+  const gridOptions = pz => ({ ...pz.options, game: pz.game, ...frame(pz.design?.poster) });
 
   const aspectOf = o => o.aspect || RATIO;
   const isLandscape = o => aspectOf(o) > 1;

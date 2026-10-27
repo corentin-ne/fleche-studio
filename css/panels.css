@@ -651,3 +651,20 @@ button.brand:hover { background: var(--glass-hover); }
   .wz-steps button { justify-content: center; padding: 6px 2px; }
   .wizard .modal-foot .btn-ghost { flex: 0 0 auto; }
 }
+
+/* Jeux rangés par famille (accueil, assistant, réglages) */
+.quick-family { display: flex; flex-direction: column; gap: var(--sp-3); }
+.quick-family h2 { margin: 0; font: 700 var(--fs-md) var(--font-display, var(--font-sans)); color: var(--text-2); letter-spacing: .02em; }
+.wz-family { margin: var(--sp-2) 0 calc(-1 * var(--sp-2)); font: 700 var(--fs-xs) var(--font-sans); color: var(--text-3); text-transform: uppercase; letter-spacing: .08em; }
+
+/* Panneau « Énigme » des jeux de chiffres et de logique */
+.logic-panel { display: flex; flex-direction: column; gap: var(--sp-4, 14px); }
+.logic-head { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: var(--r-lg); background: rgba(var(--accent-rgb), .1); }
+.logic-head > .ic-lg { flex: none; color: var(--accent); width: 30px; height: 30px; }
+.logic-head > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.logic-head small { font-size: 12px; line-height: 1.4; }
+.logic-panel .mdk-themes { max-height: 340px; overflow: auto; }
+.emoji-pick { display: grid; grid-template-columns: repeat(auto-fill, minmax(40px, 1fr)); gap: 4px; }
+.emoji-pick button { aspect-ratio: 1; border: 1px solid var(--line); border-radius: var(--r-md, 10px); background: var(--glass-bg-soft); font-size: 22px; line-height: 1; cursor: pointer; transition: transform var(--t-fast), border-color var(--t-fast); }
+.emoji-pick button:hover { transform: scale(1.08); border-color: rgba(var(--accent-rgb), .5); }
+.emoji-pick button.active { border-color: var(--accent); background: rgba(var(--accent-rgb), .16); }

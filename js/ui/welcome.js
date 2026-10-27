@@ -15,16 +15,16 @@ MF.welcome = (() => {
       <div class="welcome-hero">
         <span class="hero-logo">${MF.brand.svg()}</span>
         <h1>${t('Crée ta grille de mots, en quelques clics.')}</h1>
-        <p class="lead">${t('Mots fléchés, mots croisés, mots mêlés ou mots codés : avec tes mots, tes définitions, ton style. Prête à imprimer ou à partager.')}</p>
+        <p class="lead">${t('Mots fléchés, croisés, mêlés, sudoku, picross, logigrammes… : avec tes mots, ton style. Prêts à imprimer ou à partager.')}</p>
         <div class="row hero-actions">
           <button class="btn btn-primary btn-lg" data-w="new">${ic('plus')}${t('Nouvelle grille')}</button>
           <button class="btn btn-lg" data-w="open">${ic('upload')}${t('Ouvrir une sauvegarde')}</button>
         </div>
         ${legacy ? `<button class="btn btn-ghost btn-sm legacy" data-w="legacy">${ic('archive')}${t('Récupérer mes {n} anciennes grilles enregistrées dans ce navigateur', { n: legacy })}</button>` : ''}
       </div>
-      <div class="quick-grid">
-        ${Object.entries(MF.games.GAMES).map(([id, g]) => `<button class="quick-card glass" data-quick="${id}">${ic(g.icon, 'ic-lg')}<b>${esc(g.label)}</b><span>${esc(g.desc)}</span><em>${t('Créer')} ${ic('chevronRight', 'ic-sm')}</em></button>`).join('')}
-      </div>
+      ${MF.games.FAMILIES.map(([f, label]) => `<section class="quick-family"><h2>${esc(label)}</h2><div class="quick-grid">
+        ${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `<button class="quick-card glass" data-quick="${id}">${ic(g.icon, 'ic-lg')}<b>${esc(g.label)}</b><span>${esc(g.desc)}</span><em>${t('Créer')} ${ic('chevronRight', 'ic-sm')}</em></button>`).join('')}
+      </div></section>`).join('')}
       <div class="welcome-foot">
         <span>${ic('lock')}${t('Rien n\'est envoyé sur un serveur : tout reste dans ton navigateur.')}</span>
         <span>${ic('book')}${t('{n} mots définis + Wiktionnaire', { n: MF.i18n.num(MF.dictionary.size()) })}</span>
@@ -45,7 +45,8 @@ MF.welcome = (() => {
    * Renvoie { name, game, shape, theme, start, lang, … } ou null.
    */
   function wizard(defaults = {}) {
-    const st = { game: 'fleches', shape: 'rect', theme: 'violet', start: 'empty', lang: MF.lexicon.preferred(), mdkSize: '6', mdkDifficulty: 'medium', mdkTheme: 'manor', mdkRender: '3d', ...defaults };
+    const st = { game: 'fleches', shape: 'rect', theme: 'violet', start: 'empty', lang: MF.lexicon.preferred(), mdkSize: '6', mdkDifficulty: 'medium', mdkTheme: 'manor', mdkRender: '3d', level: 'medium', ...defaults };
+    const isLogic = () => MF.games.get(st.game).engine === 'logic';
     let step = defaults.game ? 1 : 0;
     const STEPS = 3;
     // Tous les packs à thème de chaque langue, rendus d'avance : changer de langue bascule sur place
@@ -53,7 +54,7 @@ MF.welcome = (() => {
     // Styles de grille dans l'ordre de la bibliothèque (MF.library)
     const themes = MF.library.list('2d').map(e => [e.grid, MF.themes.THEMES[e.grid]]);
     const mdkThemes = lang => MF.panels.murdoku.themeCards(st.mdkTheme, lang, 'data-wz-mdk-theme');
-    const stepNames = () => (st.game === 'murdoku' ? [t('Jeu'), t('Univers'), t('Enquête')] : [t('Jeu'), t('Mots'), t('Style')]);
+    const stepNames = () => (st.game === 'murdoku' ? [t('Jeu'), t('Univers'), t('Enquête')] : isLogic() ? [t('Jeu'), t('Niveau'), t('Style')] : [t('Jeu'), t('Mots'), t('Style')]);
     const sizeCard = n => `<button type="button" class="wz-size ${String(n) === st.mdkSize ? 'active' : ''}" data-wz="mdkSize" data-v="${n}"><b>${n} × ${n}</b><small>${esc(t('{n} suspects', { n: n - 1 }))}</small></button>`;
     return MF.ui.modal({
       title: t('Nouvelle grille'), wide: true, icon: 'sparkle', className: 'wizard',
@@ -62,7 +63,7 @@ MF.welcome = (() => {
 
         <section class="wz-step" data-step="0">
           <h4 class="wz-title">${t('Que veux-tu créer ?')}</h4>
-          <div class="wz-games">${Object.entries(MF.games.GAMES).map(([id, g]) => `<button type="button" class="wz-game ${id === st.game ? 'active' : ''}" data-wz="game" data-v="${id}">${ic(g.icon, 'ic-lg')}<span><b>${esc(g.label)}</b><small>${esc(g.desc)}</small></span>${ic('chevronRight', 'ic-sm')}</button>`).join('')}</div>
+          ${MF.games.FAMILIES.map(([f, label]) => `<h5 class="wz-family">${esc(label)}</h5><div class="wz-games">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `<button type="button" class="wz-game ${id === st.game ? 'active' : ''}" data-wz="game" data-v="${id}">${ic(g.icon, 'ic-lg')}<span><b>${esc(g.label)}</b><small>${esc(g.desc)}</small></span>${ic('chevronRight', 'ic-sm')}</button>`).join('')}</div>`).join('')}
         </section>
 
         <section class="wz-step" data-step="1" hidden>
@@ -80,6 +81,12 @@ MF.welcome = (() => {
               <label class="field mini"><span class="field-hint">${t('Lettres max.')}</span><input class="input" type="number" inputmode="numeric" id="wz-max" min="2" max="15" value="9"></label>
             </div>
           </div>
+          <div class="wz-logic">
+            <h4 class="wz-title">${t('Quel niveau ?')}</h4>
+            <div class="field">${MF.ui.segmented('level', [['easy', t('Facile')], ['medium', t('Moyen')], ['hard', t('Difficile')], ['expert', t('Expert')]], st.level, 'data-wz-seg')}</div>
+            <div class="field"><span>${t('Langue')}</span>${MF.ui.segmented('lang', MF.lexicon.ids.map(l => [l, MF.lexicon.LANGS[l].label]), st.lang, 'data-wz-lang')}</div>
+            <p class="field-hint">${t('Taille, variante et contenu (dessin, univers, citation…) se règlent ensuite dans l\'onglet « Énigme ». Chaque grille a une seule solution.')}</p>
+          </div>
           <div class="wz-mdk">
             <h4 class="wz-title">${t('Choisis ton univers')}</h4>
             <p class="field-hint">${t('Chaque univers a ses lieux, ses objets, ses suspects et son histoire. Tout reste modifiable ensuite.')}</p>
@@ -89,8 +96,8 @@ MF.welcome = (() => {
         </section>
 
         <section class="wz-step" data-step="2" hidden>
-          <div class="wz-words">
-            <div class="field"><span>${t('Forme')}</span>${MF.shapePicker.html(st.shape, { compact: true, attrs: id => `data-wz="shape" data-v="${id}"` })}</div>
+          <div class="wz-style">
+            <div class="field wz-shape"><span>${t('Forme')}</span>${MF.shapePicker.html(st.shape, { compact: true, attrs: id => `data-wz="shape" data-v="${id}"` })}</div>
             <div class="field"><span>${t('Style')} <span class="field-hint">${t('modifiable à tout moment dans Design')}</span></span><div class="theme-strip">${themes.map(([id, th]) => {
               const { bg, C } = MF.themes.swatch(id);
               return `<button type="button" class="theme-chip ${id === st.theme ? 'active' : ''}" data-wz="theme" data-v="${id}"><span style="background:${esc(bg)}"><i style="background:${C.frame}"></i><i style="background:${C.clue}"></i></span>${esc(th.label)}</button>`;
@@ -108,8 +115,11 @@ MF.welcome = (() => {
         MF.shapePicker.bind(root);
         const foot = i => /** @type {HTMLElement} */ (root.querySelector(`.modal-foot [data-i="${i}"]`));
         const sync = () => {
-          const mdk = st.game === 'murdoku';
-          root.querySelectorAll('.wz-words').forEach(x => { x.hidden = mdk; });
+          const mdk = st.game === 'murdoku', logic = isLogic();
+          root.querySelectorAll('.wz-words').forEach(x => { x.hidden = mdk || logic; });
+          root.querySelectorAll('.wz-logic').forEach(x => { x.hidden = !logic; });
+          root.querySelectorAll('.wz-style').forEach(x => { x.hidden = mdk; });
+          root.querySelectorAll('.wz-shape').forEach(x => { x.hidden = logic; });
           root.querySelectorAll('.wz-mdk').forEach(x => { x.hidden = !mdk; });
           root.querySelectorAll('.wz-step').forEach(x => { x.hidden = +x.dataset.step !== step; });
           root.querySelector('.wz-steps').innerHTML = stepNames().map((n, i) => `<li><button type="button" data-goto="${i}" class="${i === step ? 'active' : i < step ? 'done' : ''}" aria-current="${i === step ? 'step' : 'false'}"><i>${i < step ? ic('check', 'ic-xs') : i + 1}</i>${esc(n)}</button></li>`).join('');

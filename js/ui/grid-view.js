@@ -2,8 +2,9 @@
 /* =========================================================================
    Vue de la grille à l'écran : affiche (SVG, identique aux exports) + jeu.
    Modes : 'solution' (lettres visibles), 'blank' (grille vierge), 'play' (on joue).
-   Jeu : saisie case par case (fléchés, croisés, codés) ou sélection à la
-   souris / au doigt des mots cachés (mêlés).
+   Jeu : saisie case par case (fléchés, croisés, codés, sudoku…), sélection à
+   la souris / au doigt des mots cachés (mêlés, mot mystère), ou cases à
+   cocher (picross, logigramme).
    ========================================================================= */
 window.MF = window.MF || {};
 
@@ -42,7 +43,10 @@ MF.gridView = (() => {
     container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''} ${o.animate ? 'enter' : ''}" style="width:${width}px">${markup}</div>`;
     const sheet = container.firstElementChild;
     ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: keep?.dir || 'H', o, cellPx: cell, markup, key: o.key };
-    if (mode === 'play') (model.game === 'meles' ? mountWordSearch : mountPlay)(sheet);
+    if (mode === 'play') {
+      (model.game === 'meles' ? mountWordSearch : model.toggle ? mountToggle : mountPlay)(sheet);
+      if (model.mystery) mountMystery(sheet);
+    }
     if (keep) container.querySelector(`.play-cell[data-r="${keep.r}"][data-c="${keep.c}"]`)?.focus({ preventScroll: true });
     sheet.querySelector('.mf-svg').addEventListener('click', e => {
       const m = e.target.closest('.missing');
@@ -89,6 +93,9 @@ MF.gridView = (() => {
     layer.style.setProperty('--play-font', MF.design.font(ctx.puzzle.design.font.letter).css);
     const MC = MF.design.multiColors(ctx.puzzle.design, C, ctx.model);
     const codes = ctx.model.game === 'codes';
+    const digits = !!ctx.model.digits;
+    // Chiffre ou lettre dans le coin de la case (numéros, codes, cages) : la saisie descend un peu
+    const corner = codes || ctx.model.game === 'croises' || ctx.model.game === 'calcudoku';
     ctx.model.cells.forEach((row, r) => row.forEach((cell, c) => {
       if (cell.type !== 'letter') return;
       const inp = document.createElement('input');
@@ -97,17 +104,18 @@ MF.gridView = (() => {
       inp.autocomplete = 'off';
       inp.spellcheck = false;
       inp.setAttribute('autocapitalize', 'characters');
+      if (digits) inp.inputMode = 'numeric';
       inp.setAttribute('aria-label', MF.i18n.t('Case ligne {row}, colonne {col}', { row: r + 1, col: c + 1 }));
       // Lecteur d'écran : la définition du mot en cours est lue avec la case
       inp.setAttribute('aria-describedby', 'clue-text');
       inp.dataset.r = r; inp.dataset.c = c;
-      const given = codes && ctx.model.givens.has(cell.ch);
+      const given = cell.given || (codes && ctx.model.givens.has(cell.ch));
       if (given) { inp.value = cell.ch; inp.readOnly = true; inp.classList.add('given'); } else inp.value = ctx.entries[key(r, c)] || '';
       const { x, y } = cellBox(r, c);
       Object.assign(inp.style, {
         left: pct(x, W), top: pct(y, H), width: pct(U, W), height: pct(U, H),
-        fontSize: `${ctx.cellPx * (codes || ctx.model.game === 'croises' ? 0.46 : 0.52)}px`,
-        paddingTop: codes || ctx.model.game === 'croises' ? `${ctx.cellPx * 0.16}px` : '0',
+        fontSize: `${ctx.cellPx * (corner ? 0.46 : 0.52)}px`,
+        paddingTop: corner ? `${ctx.cellPx * 0.16}px` : '0',
       });
       // Multicolore : chaque lettre saisie prend la couleur de sa case
       if (MC) inp.style.setProperty('--play-ink', MC.letter(r, c, C.ink));
@@ -136,7 +144,7 @@ MF.gridView = (() => {
     layer.addEventListener('input', e => {
       const t = /** @type {HTMLInputElement} */ (e.target);
       if (t.readOnly) return;
-      const ch = MF.util.normalize(t.value).slice(-1);
+      const ch = (digits ? t.value.replace(/[^0-9]/g, '') : MF.util.normalize(t.value)).slice(-1);
       t.value = ch;
       const r = +t.dataset.r, c = +t.dataset.c;
       if (codes) {
@@ -206,6 +214,153 @@ MF.gridView = (() => {
     (ctx.model.slots.get(wid)?.cells || []).forEach(([rr, cc]) => inputAt(rr, cc)?.classList.add('cur'));
     highlight(wid, { flash: false, scroll: false });
     ctx.o.onWord?.(wid);
+  }
+
+  /* ---------- Picross et logigramme : cases à cocher ---------- */
+  // Picross : vide -> pleine -> croix ; logigramme : vide -> croix -> rond (oui)
+  const CYCLE = { picross: ['', '1', 'x'], logic: ['', 'x', 'O'] };
+  function mountToggle(sheet) {
+    const { W, H } = ctx.scene;
+    const layer = document.createElement('div');
+    layer.className = 'play-layer toggle-layer';
+    const C = MF.design.resolve(ctx.puzzle.design);
+    const MC = MF.design.multiColors(ctx.puzzle.design, C, ctx.model);
+    layer.style.setProperty('--play-ink', C.ink);
+    const cycle = CYCLE[ctx.model.toggle];
+    ctx.marks = MF.schema.isObj(ctx.entries.marks) ? { ...ctx.entries.marks } : {};
+    ctx.model.cells.forEach((row, r) => row.forEach((cell, c) => {
+      if (cell.type !== 'letter') return;
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'play-cell toggle-cell';
+      b.dataset.r = r; b.dataset.c = c;
+      b.setAttribute('aria-label', MF.i18n.t('Case ligne {row}, colonne {col}', { row: r + 1, col: c + 1 }));
+      const { x, y } = cellBox(r, c);
+      Object.assign(b.style, { left: pct(x, W), top: pct(y, H), width: pct(U, W), height: pct(U, H) });
+      if (MC) b.style.setProperty('--play-ink', MC.letter(r, c, C.ink));
+      if (cell.given) { b.disabled = true; b.classList.add('given'); }
+      layer.appendChild(b);
+    }));
+    sheet.appendChild(layer);
+    const paint = (b, v) => {
+      b.dataset.v = v;
+      b.classList.remove('wrong', 'right');
+      b.setAttribute('aria-pressed', String(v === '1' || v === 'O'));
+    };
+    /** @type {NodeListOf<HTMLButtonElement>} */ (layer.querySelectorAll('.toggle-cell')).forEach(b => paint(b, ctx.marks[key(b.dataset.r, b.dataset.c)] || ''));
+    const set = (b, v) => {
+      if (b.disabled) return;
+      const k = key(b.dataset.r, b.dataset.c);
+      if (v) ctx.marks[k] = v; else delete ctx.marks[k];
+      paint(b, v);
+    };
+    const commit = () => { ctx.entries = { ...ctx.entries, marks: { ...ctx.marks } }; ctx.o.onEntries?.(ctx.entries); checkDone(); };
+    // Glisser : toutes les cases survolées prennent l'état de la première
+    let drag = null;
+    layer.addEventListener('pointerdown', e => {
+      const b = /** @type {HTMLButtonElement | null} */ (/** @type {HTMLElement} */ (e.target).closest('.toggle-cell'));
+      if (!b || b.disabled) return;
+      e.preventDefault();
+      const cur = cycle.indexOf(b.dataset.v || '');
+      const v = e.button === 2 ? (b.dataset.v === 'x' ? '' : 'x') : cycle[(cur + 1) % cycle.length];
+      drag = v;
+      set(b, v);
+      layer.setPointerCapture(e.pointerId);
+    });
+    layer.addEventListener('pointermove', e => {
+      if (drag === null) return;
+      const el = /** @type {HTMLButtonElement | null | undefined} */ (document.elementFromPoint(e.clientX, e.clientY)?.closest('.toggle-cell'));
+      if (el && layer.contains(el) && el.dataset.v !== drag) set(el, drag);
+    });
+    const end = () => { if (drag !== null) { drag = null; commit(); } };
+    layer.addEventListener('pointerup', end);
+    layer.addEventListener('pointercancel', end);
+    layer.addEventListener('contextmenu', e => e.preventDefault());
+    // Clavier : flèches pour se déplacer, Espace / Entrée pour changer la case, X pour une croix
+    layer.addEventListener('keydown', e => {
+      const b = /** @type {HTMLButtonElement | null} */ (/** @type {HTMLElement} */ (e.target).closest('.toggle-cell'));
+      if (!b) return;
+      const moves = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+      if (moves[e.key]) {
+        e.preventDefault();
+        const [dr, dc] = moves[e.key];
+        for (let r = +b.dataset.r + dr, c = +b.dataset.c + dc; ctx.model.cells[r]?.[c]; r += dr, c += dc) {
+          const next = /** @type {HTMLElement | null} */ (layer.querySelector(`.toggle-cell[data-r="${r}"][data-c="${c}"]`));
+          if (next) { next.focus(); break; }
+        }
+      } else if (e.key === ' ' || e.key === 'Enter') {
+        e.preventDefault();
+        set(b, cycle[(cycle.indexOf(b.dataset.v || '') + 1) % cycle.length]);
+        commit();
+      } else if (e.key.toLowerCase() === 'x') {
+        set(b, b.dataset.v === 'x' ? '' : 'x');
+        commit();
+      }
+    });
+  }
+  /** Bonne réponse d'une case à cocher : '1' (pleine) / 'O' (oui), sinon rien. */
+  const markOn = cell => cell.ch === '1' || cell.ch === 'O';
+  const isOn = v => v === '1' || v === 'O';
+
+  /* ---------- Mot mystère : une case par lettre sous la liste ---------- */
+  function mountMystery(sheet) {
+    const boxes = [...sheet.querySelectorAll('.mf-svg .mys-box')];
+    if (!boxes.length) return;
+    const layer = document.createElement('div');
+    layer.className = 'play-layer mystery-layer';
+    const C = MF.design.resolve(ctx.puzzle.design);
+    layer.style.setProperty('--play-ink', C.ink);
+    layer.style.setProperty('--play-font', MF.design.font(ctx.puzzle.design.font.letter).css);
+    const svg = /** @type {SVGSVGElement} */ (sheet.querySelector('.mf-svg'));
+    const vb = svg.viewBox.baseVal;
+    const saved = typeof ctx.entries.mystery === 'string' ? ctx.entries.mystery : '';
+    boxes.forEach((box, i) => {
+      const bb = /** @type {SVGGraphicsElement} */ (box).getBBox();
+      const inp = document.createElement('input');
+      inp.className = 'play-cell mystery-cell';
+      inp.maxLength = 1;
+      inp.autocomplete = 'off';
+      inp.spellcheck = false;
+      inp.setAttribute('autocapitalize', 'characters');
+      inp.setAttribute('aria-label', MF.i18n.t('Mot mystère, lettre {n}', { n: i + 1 }));
+      inp.dataset.i = String(i);
+      inp.value = saved[i]?.trim() || '';
+      Object.assign(inp.style, { left: pct(bb.x - vb.x, vb.width), top: pct(bb.y - vb.y, vb.height), width: pct(bb.width, vb.width), height: pct(bb.height, vb.height), fontSize: `${(ctx.cellPx * bb.height) / U * 0.55}px` });
+      layer.appendChild(inp);
+    });
+    sheet.appendChild(layer);
+    const inputs = [...layer.querySelectorAll('input')];
+    const save = () => { ctx.entries = { ...ctx.entries, mystery: inputs.map(x => x.value || ' ').join('') }; ctx.o.onEntries?.(ctx.entries); checkDone(); };
+    layer.addEventListener('focusin', e => /** @type {HTMLInputElement} */ (e.target).select?.());
+    layer.addEventListener('input', e => {
+      const t = /** @type {HTMLInputElement} */ (e.target);
+      t.value = MF.util.normalize(t.value).slice(-1);
+      t.classList.remove('wrong', 'right');
+      if (t.value) inputs[+t.dataset.i + 1]?.focus();
+      save();
+    });
+    layer.addEventListener('keydown', e => {
+      const t = /** @type {HTMLInputElement} */ (e.target);
+      const i = +t.dataset.i;
+      if (e.key === 'Backspace' && !t.value && i > 0) { e.preventDefault(); inputs[i - 1].value = ''; inputs[i - 1].focus(); save(); }
+      else if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); inputs[i - 1].focus(); }
+      else if (e.key === 'ArrowRight' && i < inputs.length - 1) { e.preventDefault(); inputs[i + 1].focus(); }
+    });
+  }
+  /** Mot mystère : lettres justes, et nombre de lettres écrites. */
+  function checkMystery(mark) {
+    const inputs = [.../** @type {NodeListOf<HTMLInputElement>} */ (ctx.container.querySelectorAll('.mystery-cell'))];
+    const word = ctx.model.mystery.word;
+    let filled = 0, wrong = 0;
+    inputs.forEach((inp, i) => {
+      if (mark) inp.classList.remove('wrong', 'right');
+      if (!inp.value) return;
+      filled++;
+      const ok = inp.value === word[i];
+      if (!ok) wrong++;
+      if (mark) inp.classList.add(ok ? 'right' : 'wrong');
+    });
+    return { filled, total: inputs.length, wrong };
   }
 
   /* ---------- Mots mêlés : sélection par glisser ---------- */
@@ -344,7 +499,25 @@ MF.gridView = (() => {
   /** Vérifie les lettres saisies. Renvoie { filled, total, wrong }. */
   function check({ mark = true } = {}) {
     if (!ctx || ctx.mode !== 'play') return null;
-    if (ctx.model.game === 'meles') return { filled: ctx.found.size, total: ctx.model.slots.size, wrong: 0 };
+    if (ctx.model.game === 'meles') {
+      const res = { filled: ctx.found.size, total: ctx.model.slots.size, wrong: 0 };
+      // Mot mystère : il faut aussi l'écrire (compté comme un mot de plus)
+      if (ctx.model.mystery) { const m = checkMystery(mark); res.total++; if (m.filled === m.total && !m.wrong) res.filled++; res.wrong = m.wrong; }
+      return res;
+    }
+    if (ctx.model.toggle) {
+      let filled = 0, total = 0, wrong = 0;
+      /** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell')).forEach(b => {
+        const cell = ctx.model.cells[+b.dataset.r][+b.dataset.c];
+        const v = cell.given ? (markOn(cell) ? '1' : 'x') : b.dataset.v || '';
+        if (markOn(cell)) total++;
+        if (mark) b.classList.remove('wrong', 'right');
+        // Une case cochée à tort, ou (picross) une croix sur une case pleine
+        const bad = (isOn(v) && !markOn(cell)) || (v === 'x' && markOn(cell) && ctx.model.toggle === 'picross');
+        if (bad) { wrong++; if (mark) b.classList.add('wrong'); } else if (isOn(v)) { filled++; if (mark && !cell.given) b.classList.add('right'); }
+      });
+      return { filled, total, wrong };
+    }
     let filled = 0, total = 0, wrong = 0;
     ctx.container.querySelectorAll('.play-cell').forEach(inp => {
       const sol = ctx.model.cells[+inp.dataset.r][+inp.dataset.c].ch;
@@ -365,9 +538,34 @@ MF.gridView = (() => {
   /** Révèle la lettre de la case active, ou tout le mot courant. */
   function reveal(what = 'letter') {
     if (!ctx || ctx.mode !== 'play') return false;
+    if (ctx.model.toggle) {
+      // Une case à cocher (ou à corriger) au hasard parmi les fausses ou manquantes
+      const todo = [.../** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell:not(:disabled)'))].filter(b => {
+        const cell = ctx.model.cells[+b.dataset.r][+b.dataset.c];
+        return isOn(b.dataset.v || '') !== markOn(cell);
+      });
+      if (!todo.length) return false;
+      const b = /** @type {HTMLElement} */ (todo[Math.floor(Math.random() * todo.length)]);
+      const v = markOn(ctx.model.cells[+b.dataset.r][+b.dataset.c]) ? CYCLE[ctx.model.toggle].find(isOn) : 'x';
+      ctx.marks[key(b.dataset.r, b.dataset.c)] = v;
+      b.dataset.v = v;
+      b.classList.add('revealed');
+      ctx.entries = { ...ctx.entries, marks: { ...ctx.marks } };
+      ctx.o.onEntries?.(ctx.entries);
+      checkDone();
+      return true;
+    }
     if (ctx.model.game === 'meles') {
       const k = [...ctx.model.slots.keys()].find(x => !ctx.found.has(x));
-      if (!k) return false;
+      if (!k) {
+        // Tous les mots trouvés : une lettre du mot mystère
+        const inp = /** @type {HTMLInputElement | undefined} */ ([...ctx.container.querySelectorAll('.mystery-cell')].find(x => x.value !== ctx.model.mystery?.word[+x.dataset.i]));
+        if (!inp) return false;
+        inp.value = ctx.model.mystery.word[+inp.dataset.i];
+        inp.classList.add('revealed');
+        inp.dispatchEvent(new Event('input', { bubbles: true }));
+        return true;
+      }
       ctx.found.add(k);
       ctx.entries.found = [...ctx.found];
       ctx.o.onEntries?.(ctx.entries);
@@ -392,7 +590,7 @@ MF.gridView = (() => {
 
   /** Passe au mot suivant / précédent et place le curseur sur sa première case vide. */
   function stepWord(delta) {
-    if (!ctx || ctx.mode !== 'play' || ctx.model.game === 'meles') return false;
+    if (!ctx || ctx.mode !== 'play' || ctx.model.game === 'meles' || ctx.model.toggle) return false;
     const ids = [...ctx.model.slots.keys()];
     if (!ids.length) return false;
     const i = ids.indexOf(ctx.current);
@@ -419,7 +617,9 @@ MF.gridView = (() => {
 
   function clearEntries() {
     if (!ctx) return;
-    ctx.container.querySelectorAll('.play-cell').forEach(inp => { if (!inp.readOnly) { inp.value = ''; inp.classList.remove('wrong', 'right', 'revealed'); } });
+    ctx.container.querySelectorAll('input.play-cell').forEach(inp => { if (!inp.readOnly) { inp.value = ''; inp.classList.remove('wrong', 'right', 'revealed'); } });
+    /** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell:not(:disabled)')).forEach(b => { b.dataset.v = ''; b.classList.remove('wrong', 'right', 'revealed'); b.setAttribute('aria-pressed', 'false'); });
+    if (ctx.marks) ctx.marks = {};
     ctx.entries = {};
     if (ctx.found) { ctx.found.clear(); ctx.redrawFound?.(); }
     ctx.o.onEntries?.(ctx.entries);

@@ -40,9 +40,10 @@ const fail = msg => { failed++; console.error(`✘ ${msg}`); };
 
 /**
  * Budget de poids (Ko, non compressé) : une hausse involontaire (fichier dupliqué, données
- * collées par erreur) fait échouer la vérification. À relever consciemment si nécessaire.
+ * collées par erreur) fait échouer la vérification. À relever consciemment si nécessaire
+ * (1200 Ko pour l'application depuis les 12 jeux de chiffres et de logique de la version 5).
  */
-const BUDGET = { app: 1000, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 900 };
+const BUDGET = { app: 1200, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 900 };
 
 /** Fichiers listés par js/loader.js (même liste que la page et le service worker). */
 async function loaderLists() {
@@ -270,6 +271,41 @@ try {
       if (errors.length) throw new Error(errors.join('\n    '));
       console.log(`✔ murdoku : ${pz.size} × ${pz.size}, ${pz.clues.length} indices, partie gagnée`);
     } catch (e) { fail(`murdoku : ${e.message}`); }
+    await ctx.close();
+  }
+
+  /* ---------- Nouveaux jeux : création, grille à solution unique, mode jeu ---------- */
+  {
+    const ctx = await browser.newContext({ locale: 'fr-FR', serviceWorkers: 'block' });
+    await offlineApis(ctx);
+    const page = await ctx.newPage();
+    const errors = [];
+    page.on('pageerror', e => errors.push(e.message));
+    page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
+    await page.goto(`${base}/index.html`);
+    await page.waitForSelector('[data-quick="sudoku"]', { timeout: 30000 });
+    const games = ['cases', 'mystere', 'citation', 'echelle', 'wordoku', 'sudoku', 'kakuro', 'nombres', 'calcudoku', 'futoshiki', 'picross', 'logigramme'];
+    const ok = [];
+    for (const game of games) {
+      try {
+        await page.click(ok.length ? '#btn-new-puzzle' : '[data-w="new"]');
+        await page.click(`.wz-game[data-v="${game}"]`);
+        // Jeux de mots : des mots tirés au hasard
+        if (await page.locator('.start-card[data-v="random"]:visible').count()) await page.click('.start-card[data-v="random"]:visible');
+        await page.click('.modal-foot .btn-primary');
+        await page.waitForFunction(() => document.querySelector('#grid-scroll svg.mf-svg') && !document.querySelector('.live-build') && !document.querySelector('.modal'), null, { timeout: 60000 });
+        await page.click('#btn-play');
+        await page.waitForSelector('.play-cell', { timeout: 10000 });
+        const cells = await page.locator('.play-cell').count();
+        // Une case cochée ou remplie, puis vérification
+        if (await page.locator('.toggle-cell:not(:disabled)').count()) await page.locator('.toggle-cell:not(:disabled)').first().click();
+        await page.click('#btn-check');
+        await page.click('#btn-play-exit');
+        ok.push(`${game} ${cells}`);
+      } catch (e) { fail(`nouveaux jeux : ${game}\n    ${e.message.split('\n')[0]}`); await page.keyboard.press('Escape').catch(() => {}); }
+    }
+    if (errors.length) fail(`nouveaux jeux : erreurs dans la console\n    ${errors.join('\n    ')}`);
+    else console.log(`✔ nouveaux jeux : ${ok.length} / ${games.length} créés et jouables (${ok.join(', ')})`);
     await ctx.close();
   }
 

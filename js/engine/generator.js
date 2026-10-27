@@ -39,8 +39,7 @@ MF.generator = (() => {
   }
 
   async function inPage(task, onProgress, onSnapshot, signal) {
-    const meles = task.engine === 'meles';
-    if (!meles) await MF.lexicon.ensure(task.options?.lang);
+    if (task.engine !== 'meles' || task.options?.game === 'mystere') await MF.lexicon.ensure(task.options?.lang);
     const { generate } = MF.games.engineModule(task.engine);
     // Même cadence que dans le worker (voir worker.js)
     let lastSnap = 0;
