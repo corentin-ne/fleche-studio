@@ -117,6 +117,22 @@ vue est haute, plus tout ce qui a une hauteur penche vers l'arrière (`standUpAn
 `src3d/looks.js`), pour que figurines et meubles montrent leur face. Seule l'image est cisaillée :
 lumière, ombres et clic sur les cases voient la vraie scène. Les figurines se tournent vers la caméra.
 
+## Meubles et personnages par univers
+
+Chaque type d'objet a un modèle 3D qui correspond au nom que lui donne l'univers : le « futon » est
+un futon, le « hamac » un hamac, la « harpe » une harpe. `src3d/kit/index.js` (KITS) donne, pour
+chaque univers, le modèle et les couleurs de chaque type ; les modèles sont dans `src3d/kit/`
+(`seats.js` : lits, sièges, bancs, tapis ; `things.js` : tables, bureaux, étagères, instruments,
+bains ; `scenery.js` : tableaux, feux, comptoirs, coffres, lampes, arbres, fontaines, plantes). Un
+type absent du kit garde le modèle classique de `src3d/furniture.js` (celui du manoir). Ajouter un
+univers : sa ligne dans KITS, ses entrées dans `styles.js`, `clutter.js` et les chapeaux de
+`figures.js`, sa tenue dans `outfits.js`.
+
+Les figurines (`src3d/outfits.js`) ont un visage, une coiffure, la tenue de leur univers (kimono,
+toge, robe Régence, scaphandre, queue de sirène…) et un objet en main ; le chapeau suit la
+silhouette (bonnet pour une robe, haut-de-forme pour un habit). Chaque personne garde ses variantes
+(empreinte de son identifiant).
+
 ## Décor 3D
 
 `src3d/clutter.js` ajoute des accessoires purement décoratifs (nourriture, livres, tonneaux,

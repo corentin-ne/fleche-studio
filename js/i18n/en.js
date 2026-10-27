@@ -1329,4 +1329,5 @@ MF.i18n.add('en', {
   "Vue classique": "Standard view",
   "Angle actuel": "Current angle",
   "Murdoku : vue 3D plongeante par défaut, sans taches sur le sol ; export avec la vue classique ou l'angle actuel (tourné, zoomé, déplacé)": "Murdoku: a steep bird's-eye 3D view by default, with no more blots on the floor; export with the standard view or the current angle (turned, zoomed, moved)",
+  "Murdoku : chaque univers a ses propres meubles 3D, fidèles à leur nom (futon, hamac, trône, brasero, sarcophage, capsule de sommeil…), et des personnages habillés pour leur monde avec visage, coiffure et objet en main ; noms de pièces sur deux lignes quand ils sont longs": "Murdoku: every world has its own 3D furniture, true to its name (futon, hammock, throne, brazier, sarcophagus, sleep pod…), and characters dressed for their world with a face, a hairstyle and something in hand; long room names now wrap onto two lines",
 });

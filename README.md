@@ -20,7 +20,8 @@ listes de mots par thème), sans cookie ni référent.
   25 univers (manoir, sirènes, samouraïs, Paris, bal de la Régence, pharaons, pirates, Far West,
   station spatiale, château hanté, forêt enchantée, Noël, anniversaire, Saint-Valentin, Halloween, Pâques, carnaval,
   Nouvel an chinois…) avec leurs lieux, objets, suspects et histoire, tous modifiables ; 4 niveaux, de Facile à
-  Expert. Caméra libre sur le plateau 3D : tourner, incliner, zoomer, déplacer.
+  Expert. Caméra libre sur le plateau 3D : tourner, incliner, zoomer, déplacer. Chaque univers a ses
+  meubles 3D (futon, hamac, trône, brasero…) et ses personnages en costume (`src3d/kit/`, `src3d/outfits.js`).
 - **Bibliothèque de thèmes** commune à tous les jeux (`js/data/library.js`) : un seul ordre, rangé en rayons
   (Styles, Univers, Fêtes). Un thème a sa version 2D (grilles), 3D (univers Murdoku) ou les deux ; les styles
   simples restent en 2D. Réorganiser = déplacer un identifiant dans la liste des rayons.

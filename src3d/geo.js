@@ -783,6 +783,20 @@ export function patternTexture(pattern, c1, c2) {
       speckle(500, 0.06);
       break;
     }
+    case 'stripes': {
+      // wide bands (deckchairs, awnings, circus canvas)
+      g.fillStyle = c2;
+      for (let i = 0; i < 4; i++) g.fillRect(i * (S / 4), 0, S / 8, S);
+      speckle(300, 0.05);
+      break;
+    }
+    case 'lines': {
+      // thin weave lines (mats, rush, tatami)
+      g.fillStyle = c2;
+      for (let i = 0; i < 16; i++) g.fillRect(0, i * (S / 16), S, 2);
+      speckle(400, 0.08);
+      break;
+    }
     case 'stone': {
       g.fillStyle = c2;
       g.fillRect(0, 0, S, S);

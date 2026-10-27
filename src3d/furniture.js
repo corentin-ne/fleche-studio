@@ -3,47 +3,18 @@
 // building-builder (src/catalog.js and src/props.js): bed, sofa, chairs, tables,
 // counter, cabinet, bookshelf, TV, fireplace, rug, lamp, bath, bench, fountain,
 // trees and potted plants. Sink, desk props and the grand piano are new.
+// These are the manor's furniture; each other world swaps in its own models
+// and colours (kit/index.js), and falls back on these for what it leaves out.
 // Every model sits on y = 0, centred on (0, 0), its front facing +z.
 import * as THREE from 'three';
 import { Builder, foliage, patternMaterial, rng, seedBuilders } from './geo.js';
+import { BRASS, WOODS, bookRow, pottedPlant } from './kit/common.js';
+import { KIT_MODELS, kitEntry } from './kit/index.js';
 
 const DARK = '#1c1a1a';
-const BRASS = { metalness: 0.8, roughness: 0.3 };
 
 // Per-room accent colours, so two bedrooms don't get the same bed.
 const ACCENTS = ['#c0392b', '#2f6f7e', '#7a3fa0', '#d9a441', '#3f7a4a', '#d8432e', '#33405a', '#c46aa8'];
-const WOODS = ['#8a5a36', '#a8703f', '#6b4a34', '#b98552'];
-
-function bookRow(b, w, x, y, z, d, r, maxH) {
-  const cols = ['#a33b2b', '#2f5d8a', '#d9b44a', '#3f7a4a', '#7a3f7a', '#e4dccb', '#c56b2c', '#1f2c3c'];
-  let cx = x - w / 2 + 0.02;
-  while (cx < x + w / 2 - 0.06) {
-    const bw = 0.03 + r() * 0.05;
-    const bh = maxH * (0.6 + r() * 0.38);
-    if (r() < 0.08) { cx += bw * 2; continue; }
-    b.box(bw, bh, d * (0.7 + r() * 0.2), cx + bw / 2, y, z, cols[Math.floor(r() * cols.length)]);
-    cx += bw + 0.004;
-  }
-}
-
-function pottedPlant(b, s, seed, plant = 'leafy', pot = '#b8673f', palette = 'green', flowers = null, x = 0, y = 0, z = 0) {
-  const r = rng(seed);
-  b.cyl(s / 2, s * 0.38, s * 0.8, x, y, z, pot, { seg: 14 });
-  b.cyl(s / 2 + 0.02, s / 2 + 0.02, s * 0.1, x, y + s * 0.72, z, pot, { seg: 14 });
-  b.cyl(s / 2 - 0.02, s / 2 - 0.02, 0.01, x, y + s * 0.8, z, '#3a2a1e', { seg: 14 });
-  if (plant === 'palm') {
-    const pal = ['#2f5e2c', '#3f7a35', '#5a9440', '#7cae4f', '#a9c96c'];
-    for (let i = 0; i < 11; i++) {
-      const a = (i / 11) * Math.PI * 2 + r();
-      const L = s * (1.4 + r() * 1.0);
-      const tilt = 0.5 + r() * 0.6;
-      b.cbox(0.16 * s, L, 0.02, x + Math.cos(a) * L * 0.3, y + s * 0.8 + L * 0.38, z + Math.sin(a) * L * 0.3, pal[1 + (i % 4)], { rz: -Math.cos(a) * tilt, rx: Math.sin(a) * tilt, flat: true });
-    }
-  } else {
-    const rr = s * 0.72;
-    foliage(b, { seed, rx: rr, ry: s * 0.75, palette, voxel: Math.max(0.06, s * 0.17), flowers, flowerRate: 0.2 }, x, y + s * 0.7, z);
-  }
-}
 
 // --- the models --------------------------------------------------------------
 // Each returns its footprint (w along x, d along z), the height of its top,
@@ -52,7 +23,7 @@ function pottedPlant(b, s, seed, plant = 'leafy', pot = '#b8673f', palette = 'gr
 const MODELS = {
   bed(b, o) {
     const w = 1.3, d = 1.95;
-    const frame = WOODS[o.k % WOODS.length], sheet = ACCENTS[o.k % ACCENTS.length];
+    const frame = o.wood ?? WOODS[o.k % WOODS.length], sheet = o.sheet ?? ACCENTS[o.k % ACCENTS.length];
     b.box(w, 0.3, d, 0, 0.05, 0, frame);
     b.box(w - 0.06, 0.2, d - 0.06, 0, 0.35, 0, '#f2f0ea', { round: 0.07 });
     b.box(w + 0.04, 0.09, d * 0.62, 0, 0.5, d * 0.19, sheet, { round: 0.04 });
@@ -65,7 +36,7 @@ const MODELS = {
   },
 
   sofa(b, o) {
-    const w = 1.9, d = 0.9, color = ['#f1ede2', '#86a6bf', '#9fb08a', '#d9a3a0'][o.k % 4];
+    const w = 1.9, d = 0.9, color = o.c ?? ['#f1ede2', '#86a6bf', '#9fb08a', '#d9a3a0'][o.k % 4];
     const r = rng(o.seed);
     b.box(w, 0.25, d, 0, 0.1, 0, color, { round: 0.06 });
     b.box(w, 0.5, 0.24, 0, 0.3, -d / 2 + 0.12, color, { round: 0.09 });
@@ -83,7 +54,7 @@ const MODELS = {
   },
 
   armchair(b, o) {
-    const color = ['#c0392b', '#2f6f7e', '#d9a441', '#7a3fa0'][o.k % 4];
+    const color = o.c ?? ['#c0392b', '#2f6f7e', '#d9a441', '#7a3fa0'][o.k % 4];
     b.box(0.85, 0.4, 0.85, 0, 0.05, 0, color, { round: 0.08 });
     b.box(0.85, 0.55, 0.22, 0, 0.4, -0.32, color, { round: 0.09 });
     b.box(0.17, 0.27, 0.85, -0.34, 0.42, 0, color, { round: 0.08 });
@@ -94,7 +65,7 @@ const MODELS = {
   },
 
   chair(b, o) {
-    const color = ['#c0392b', '#3f7a4a', '#2f5d8a', '#d9a441'][o.k % 4], frame = '#5a3b26';
+    const color = o.c ?? ['#c0392b', '#3f7a4a', '#2f5d8a', '#d9a441'][o.k % 4], frame = o.wood ?? '#5a3b26';
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.box(0.04, 0.45, 0.04, sx * 0.2, 0, sz * 0.2, frame);
     b.box(0.48, 0.07, 0.48, 0, 0.45, 0, frame);
     b.box(0.42, 0.04, 0.42, 0, 0.52, 0.01, color, { round: 0.015 });
@@ -106,7 +77,7 @@ const MODELS = {
   rug(b, o) {
     const w = 1.75, d = 1.75;
     const pals = [['#8a2f3a', '#e9d9b8', '#2c3a6a'], ['#2c4a6a', '#efe6c8', '#c9762a'], ['#3f6b4a', '#f1ead2', '#a33b2b'], ['#6a3f7a', '#efe6c8', '#d9a441']];
-    const [field, light, accent] = pals[o.k % pals.length];
+    const [field, light, accent] = o.pal ?? pals[o.k % pals.length];
     b.box(w, 0.012, d, 0, 0, 0, light, { jitter: 0 });
     b.box(w - 0.12, 0.018, d - 0.12, 0, 0, 0, accent, { jitter: 0, roughness: 1 });
     b.box(w - 0.26, 0.022, d - 0.26, 0, 0, 0, field, { jitter: 0, roughness: 1 });
@@ -120,14 +91,14 @@ const MODELS = {
 
   bench(b, o) {
     const w = 1.6, garden = o.room === 'garden';
-    const color = garden ? '#4f6f5a' : '#a8703f', frame = garden ? '#2a2523' : '#6b4a34';
+    const color = o.c ?? (garden ? '#4f6f5a' : '#a8703f'), frame = o.wood ?? (garden ? '#2a2523' : '#6b4a34');
     for (const s of [-1, 1]) {
       b.box(0.06, 0.42, 0.5, s * (w / 2 - 0.15), 0, 0, frame);
       b.box(0.06, 0.25, 0.06, s * (w / 2 - 0.15), 0.42, -0.2, frame);
     }
     for (let i = 0; i < 3; i++) b.box(w, 0.04, 0.12, 0, 0.42, -0.14 + i * 0.14, color);
     for (let i = 0; i < 2; i++) b.cbox(w, 0.11, 0.035, 0, 0.62 + i * 0.15, -0.25 - i * 0.03, color, { rx: -0.2 });
-    if (!garden) b.box(w - 0.3, 0.06, 0.34, 0, 0.46, 0.0, '#c46aa8', { round: 0.03 });
+    if (!garden && !o.c) b.box(w - 0.3, 0.06, 0.34, 0, 0.46, 0.0, '#c46aa8', { round: 0.03 });
     return { w, d: 0.6, h: 0.85, seat: 0.48, up: 1.05 };
   },
 
@@ -173,7 +144,7 @@ const MODELS = {
 
   desk(b, o) {
     const r = rng(o.seed);
-    const wood = WOODS[(o.k + 1) % WOODS.length], w = 1.45, d = 0.75, h = 0.75;
+    const wood = o.c ?? WOODS[(o.k + 1) % WOODS.length], w = 1.45, d = 0.75, h = 0.75;
     b.box(w, 0.05, d, 0, h - 0.05, 0, wood);
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.box(0.06, h - 0.05, 0.06, sx * (w / 2 - 0.06), 0, sz * (d / 2 - 0.06), '#5a3b26');
     b.box(0.45, h - 0.1, d - 0.06, w / 2 - 0.25, 0, 0, wood);
@@ -196,7 +167,7 @@ const MODELS = {
   },
 
   bookshelf(b, o) {
-    const r = rng(o.seed), w = 1.5, h = 1.6, d = 0.42, color = ['#7a3fa0', '#6b4a34', '#2f5a46', '#8a5a36'][o.k % 4];
+    const r = rng(o.seed), w = 1.5, h = 1.6, d = 0.42, color = o.c ?? ['#7a3fa0', '#6b4a34', '#2f5a46', '#8a5a36'][o.k % 4];
     b.box(w, h, 0.03, 0, 0, -d / 2 + 0.015, color);
     b.box(0.04, h, d, -w / 2 + 0.02, 0, 0, color);
     b.box(0.04, h, d, w / 2 - 0.02, 0, 0, color);
@@ -210,7 +181,7 @@ const MODELS = {
   },
 
   // Grand piano: the curved case reads at once from above.
-  piano(b) {
+  piano(b, o) {
     const s = new THREE.Shape();
     s.moveTo(-0.7, 0.75);
     s.lineTo(0.7, 0.75);
@@ -221,14 +192,15 @@ const MODELS = {
     const body = new THREE.ExtrudeGeometry(s, { depth: 0.3, bevelEnabled: true, bevelSize: 0.02, bevelThickness: 0.02, bevelSegments: 2, curveSegments: 24 });
     body.rotateX(Math.PI / 2);
     body.translate(0, 0.95, 0.1);
-    b.geo(body, '#1d1716', { roughness: 0.3, tess: false });
+    const case_ = o.c ?? '#1d1716';
+    b.geo(body, case_, { roughness: 0.3, tess: false });
     // open lid, propped on the right side
     const lid = new THREE.ExtrudeGeometry(s, { depth: 0.025, bevelEnabled: false, curveSegments: 24 });
     lid.rotateX(Math.PI / 2);
     lid.translate(0.7, 0, 0);
     lid.rotateZ(0.55);
     lid.translate(-0.7, 0.98, 0.1);
-    b.geo(lid, '#2a201d', { roughness: 0.25, tess: false });
+    b.geo(lid, o.c ? new THREE.Color(case_).offsetHSL(0, 0, 0.04).getStyle() : '#2a201d', { roughness: 0.25, tess: false });
     b.cbox(0.02, 0.6, 0.02, 0.3, 1.25, -0.2, '#c9a24a', { rz: 0.2, ...BRASS });
     // gold harp inside, strings
     for (let i = 0; i < 9; i++) b.box(0.012, 0.01, 1.2 - i * 0.07, -0.55 + i * 0.12, 0.97, 0.1 - (i * 0.05), '#c9a24a', { ...BRASS, shadow: false });
@@ -281,7 +253,7 @@ const MODELS = {
   },
 
   tv(b, o) {
-    const wood = WOODS[o.k % WOODS.length];
+    const wood = o.c ?? WOODS[o.k % WOODS.length];
     b.box(1.5, 0.45, 0.45, 0, 0.05, 0, wood);
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) b.box(0.04, 0.06, 0.04, sx * 0.68, 0, sz * 0.18, '#3a2a22');
     for (const sx of [-1, 1]) b.frame(0.68, 0.36, 0.025, sx * 0.36, 0.09, 0.226, '#3a2a22', 0.02);
@@ -294,15 +266,20 @@ const MODELS = {
   },
 
   fireplace(b, o) {
-    const w = 1.4, h = 1.1, d = 0.5, color = '#9a4a3a';
+    const w = 1.4, h = 1.1, d = 0.5, color = o.c ?? (o.marble ? '#efe9dc' : '#9a4a3a');
     const ow = w * 0.55, oh = h * 0.6;
     const side = (w - ow) / 2;
-    const m = { material: patternMaterial('brick', color, '#d9c9b4', 2, 2) };
+    const m = o.marble ? { roughness: 0.25 } : { material: patternMaterial(o.stone ? 'stone' : 'brick', color, o.stone ? '#6e6a62' : '#d9c9b4', 2, 2) };
     b.box(side, h, d, -w / 2 + side / 2, 0, 0, color, m);
     b.box(side, h, d, w / 2 - side / 2, 0, 0, color, m);
     b.box(ow, h - oh, d, 0, oh, 0, color, m);
     b.box(ow, oh, 0.05, 0, 0, -d / 2 + 0.025, '#1a1412');
-    b.box(w + 0.2, 0.08, d + 0.12, 0, h, 0.03, '#c4a27a');
+    b.box(w + 0.2, 0.08, d + 0.12, 0, h, 0.03, o.marble ? '#d9b44a' : '#c4a27a', o.marble ? BRASS : {});
+    if (o.stockings) for (let i = 0; i < 3; i++) {
+      b.box(0.14, 0.3, 0.06, -0.45 + i * 0.45, h - 0.3, d / 2 + 0.06, ['#b3202c', '#2f5a3a', '#f6f2ea'][i]);
+      b.box(0.2, 0.08, 0.06, -0.42 + i * 0.45, h - 0.32, d / 2 + 0.06, ['#b3202c', '#2f5a3a', '#f6f2ea'][i]);
+      b.box(0.16, 0.06, 0.065, -0.45 + i * 0.45, h - 0.06, d / 2 + 0.06, '#f6f2ea');
+    }
     b.box(ow + 0.4, 0.04, 0.4, 0, 0, d / 2 + 0.14, '#2a2220');
     foliage(b, { seed: 7, rx: ow * 0.3, ry: oh * 0.3, rz: 0.12, voxel: 0.06, palette: 'autumn', sparse: 0.2 }, 0, 0.02, 0);
     b.sphere(0.12, 0, 0.12, 0, '#ff9a3a', { sy: 0.8, emissive: '#ff7a1a', ei: 1.6, shadow: false });
@@ -321,7 +298,7 @@ const MODELS = {
   },
 
   counter(b, o) {
-    const w = 1.7, d = 0.65, h = 0.9, color = ['#f3eee4', '#9fb08a', '#86a6bf'][o.k % 3];
+    const w = 1.7, d = 0.65, h = 0.9, color = o.c ?? ['#f3eee4', '#9fb08a', '#86a6bf'][o.k % 3];
     b.box(w, h - 0.04, d - 0.05, 0, 0, -0.025, color);
     b.box(w, 0.04, d, 0, h - 0.04, 0, '#d8d8d4', { roughness: 0.4 });
     b.box(w, 0.08, d - 0.1, 0, 0, -0.07, '#2a2626');
@@ -341,7 +318,7 @@ const MODELS = {
   },
 
   cabinet(b, o) {
-    const w = 1.2, d = 0.5, h = 1.0, color = ['#f3eee4', '#86a6bf', '#8a5a36', '#9fb08a'][o.k % 4];
+    const w = o.w ?? 1.2, d = 0.5, h = 1.0, color = o.c ?? ['#f3eee4', '#86a6bf', '#8a5a36', '#9fb08a'][o.k % 4];
     const trim = new THREE.Color(color).offsetHSL(0, 0, -0.08).getStyle();
     b.box(w, h, d, 0, 0, 0, color);
     b.box(w + 0.03, 0.03, d + 0.03, 0, h, 0, color);
@@ -364,7 +341,7 @@ const MODELS = {
     // a floor lamp next to a little round side table
     b.cyl(0.18, 0.2, 0.03, -0.12, 0, 0, '#2a2523');
     b.cyl(0.015, 0.015, 1.4, -0.12, 0, 0, '#2a2523');
-    b.cyl(0.17, 0.26, 0.3, -0.12, 1.3, 0, '#f3e2b8', glow);
+    b.cyl(0.17, 0.26, 0.3, -0.12, 1.3, 0, o.c ?? '#f3e2b8', glow);
     b.cyl(0.22, 0.22, 0.03, 0.3, 0.5, 0.15, WOODS[o.k % WOODS.length], { seg: 18 });
     b.cyl(0.025, 0.025, 0.5, 0.3, 0, 0.15, '#3a2a22');
     b.cyl(0.12, 0.12, 0.02, 0.3, 0, 0.15, '#3a2a22');
@@ -407,13 +384,15 @@ export const OBJECT_TYPES = Object.keys(MODELS);
 
 // Builds one object, scaled to fit a footprint of `fit` (metres).
 // Returns { group, h (top height), seat (height a person stands at), wall }.
-export function buildObject(type, { room = 'living', k = 0, seed = 1, fit = 1.7 } = {}) {
-  const fn = MODELS[type];
+// The world (theme) picks the model and its colours (kit/index.js).
+export function buildObject(type, { room = 'living', k = 0, seed = 1, fit = 1.7, theme = '' } = {}) {
+  const kit = kitEntry(theme, type);
+  const fn = (kit && (KIT_MODELS[kit.model] ?? MODELS[kit.model])) || MODELS[type];
   const group = new THREE.Group();
   if (!fn) return { group, h: 0, seat: 0, wall: false, size: [0, 0] };
   seedBuilders(seed * 7919);
   const b = new Builder();
-  const info = fn(b, { room, k, seed }) ?? {};
+  const info = fn(b, { room, k, seed, ...(kit?.params ?? {}) }) ?? {};
   const model = b.build();
   const s = Math.min(info.up ?? 1.4, fit / Math.max(info.w, info.d));
   model.scale.setScalar(s);

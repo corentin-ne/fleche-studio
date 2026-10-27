@@ -186,6 +186,9 @@ MF.createActions = app => {
       const grid = MF.library.byUniverse(id)?.grid;
       mutate(p => {
         const o = MF.murdokuView.options(p.options.murdoku);
+        // Le nom donné à la création (« Murdoku · Manoir ») suit l'univers ; un nom choisi reste
+        const lang = p.options.lang === 'en' ? 'en' : 'fr';
+        if (p.name === `Murdoku · ${MF.murdokuThemes.card(o.theme, lang).label}`) p.name = `Murdoku · ${MF.murdokuThemes.card(id, lang).label}`;
         p.options = S.options({ ...p.options, murdoku: { ...o, theme: id, names: [], victim: '', roomNames: {}, objectNames: {}, story: '', look: look.look, mood: look.mood, seed: MF.util.randomSeed() % 2147483647, flavor: 0 } });
         if (grid) p.design = MF.themes.apply(p.design, grid);
       }, 'options');

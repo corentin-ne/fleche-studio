@@ -1,11 +1,13 @@
-// People as little painted figurines: a coloured base, a pawn-like body in the
-// person's colour, a round head with hair, and a floating badge with their
-// initial (a sprite, always facing the camera and drawn on top). The victim
-// lies on the floor in a muted colour inside a chalk outline.
+// People as little painted figurines: a coloured base, a body in the person's
+// colour dressed for their world (outfits.js: face, hair, outfit, something in
+// hand), the world's headwear, and a floating badge with their initial (a
+// sprite, always facing the camera and drawn on top). The victim lies on the
+// floor in a muted colour inside a chalk outline.
 // Built with building-builder's Builder (handmade wobble, merged parts).
 import * as THREE from 'three';
 import { Builder, handmade, hashStr, seedBuilders } from './geo.js';
 import { markText } from './textmask.js';
+import { dressBody } from './outfits.js';
 
 const SKIN = ['#f2d2b6', '#e8be9a', '#c68e6a', '#8d5a3f', '#f5dcc6', '#b07850'];
 const HAIR = ['#2a1d18', '#5a3b26', '#8a5a2a', '#d9b45a', '#9c9c9c', '#a33b2b', '#1d1b1c'];
@@ -24,62 +26,43 @@ export function muted(hex) {
   return '#' + c.getHexString();
 }
 
-const PROFILE = [[0.0, 0], [0.3, 0], [0.31, 0.04], [0.27, 0.1], [0.21, 0.28], [0.175, 0.44], [0.215, 0.54], [0.21, 0.6], [0.12, 0.665], [0.0, 0.675]].map(([x, y]) => new THREE.Vector2(x, y));
-
-// The figure's body parts, standing at the origin and facing +z.
-function body(b, color, skin, hair, pose) {
-  const dark = new THREE.Color(color).offsetHSL(0, 0, -0.14).getStyle();
-  b.geo(new THREE.LatheGeometry(PROFILE, 22), color, { roughness: 0.6 });
-  // belt and collar
-  b.cyl(0.18, 0.18, 0.03, 0, 0.43, 0, dark, { seg: 20 });
-  b.cyl(0.13, 0.15, 0.04, 0, 0.64, 0, '#f6f2ea', { seg: 18 });
-  // arms
-  for (const s of [-1, 1]) {
-    b.cbox(0.09, 0.34, 0.11, s * 0.22, 0.43, 0.01, color, { rz: s * 0.18, round: 0.04, roughness: 0.6 });
-    b.sphere(0.055, s * 0.26, 0.26, 0.03, skin, { seg: 10 });
-  }
-  b.sphere(0.19, 0, 0.84, 0, skin, { seg: 20, roughness: 0.7 });
-  b.sphere(0.2, 0, 0.9, -0.03, hair, { seg: 18, sy: 0.72, roughness: 0.8 });
-  b.sphere(0.12, 0, 0.82, -0.12, hair, { seg: 12 });
-  if (pose === 'dead') {
-    for (const s of [-1, 1]) {
-      b.cbox(0.06, 0.015, 0.012, s * 0.07, 0.86, 0.182, '#1d1b1c', { rz: 0.785, jitter: 0, shadow: false });
-      b.cbox(0.06, 0.015, 0.012, s * 0.07, 0.86, 0.182, '#1d1b1c', { rz: -0.785, jitter: 0, shadow: false });
-    }
-  } else {
-    for (const s of [-1, 1]) b.sphere(0.025, s * 0.07, 0.86, 0.175, '#1d1b1c', { seg: 8, shadow: false });
-    b.sphere(0.03, 0, 0.8, 0.188, new THREE.Color(skin).offsetHSL(0, 0.1, -0.08).getStyle(), { seg: 8, shadow: false });
-  }
-}
-
 // Headwear of each world (puzzle.theme): a few variants, picked per person.
+// Where a world dresses people in gowns and suits (outfits.js), the hat goes
+// with the silhouette: { gown: […], any: […] }.
 // The head's top is at y ≈ 1.03 (body space), its centre at y = 0.84.
 const HATS = {
   pirates: ['tricorne', 'bandana', 'tricorne'],
   western: ['cowboy', 'cowboy', 'bandana'],
   japan: ['kasa', 'topknot', 'headband'],
-  regency: ['tophat', 'bonnet', 'tophat'],
+  regency: { gown: ['bonnet', 'flowerCrown'], any: ['tophat'] },
   egypt: ['nemes', 'nemes', 'headband'],
-  circus: ['partyHat', 'tophat', 'partyHat'],
+  circus: { gown: ['partyHat', 'flowerCrown'], any: ['tophat', 'partyHat'] },
   chalet: ['beanie', 'beanie', 'earmuffs'],
   space: ['helmet', 'helmet', 'antennae'],
   haunted: ['witch', 'witch', 'tophat'],
   medieval: ['crown', 'helm', 'hood'],
   prehistory: ['bone', 'feather', 'bone'],
   mermaids: ['shellCrown', 'starfish', 'shellCrown'],
-  paris: ['beret', 'beret', 'boater'],
-  train: ['bowler', 'cloche', 'bowler'],
+  paris: { gown: ['cloche', 'beret'], any: ['beret', 'boater'] },
+  train: { gown: ['cloche'], any: ['bowler'] },
   rome: ['laurel', 'laurel', 'hood'],
   world: ['boater', 'cap', 'beanie'],
   halloween: ['witch', 'devilHorns', 'witch'],
-  easter: ['bunnyEars', 'bonnet', 'bunnyEars'],
+  easter: { gown: ['bonnet', 'bunnyEars'], any: ['bunnyEars'] },
   carnival: ['mask', 'partyHat', 'mask'],
   lunar: ['mandarinCap', 'topknot', 'mandarinCap'],
   xmas: ['santa', 'elf', 'santa'],
   birthday: ['partyHat', 'partyHat', 'crown'],
-  love: ['flowerCrown', 'tophat', 'bonnet'],
+  love: { gown: ['flowerCrown', 'bonnet'], any: ['tophat'] },
   forest: ['flowerCrown', 'hood', 'feather'],
 };
+/** The hats a person of this world and silhouette may wear. */
+function hatsFor(theme, shape) {
+  const hv = HATS[theme];
+  if (!hv || Array.isArray(hv)) return hv;
+  return hv[shape] ?? hv.any;
+}
+
 function hat(b, kind, c, r) {
   const y = 0.98;
   switch (kind) {
@@ -251,8 +234,8 @@ export function buildFigure(person, { victim = false, selected = false, theme = 
   const b = new Builder();
   if (victim) {
     const sub = new Builder();
-    body(sub, color, skin, hair, 'dead');
-    const hv = HATS[theme];
+    const shape = dressBody(sub, { color, skin, hair, pose: 'dead', theme, h });
+    const hv = hatsFor(theme, shape);
     if (hv) hat(sub, hv[(h >>> 8) % hv.length], color, () => ((h >>> 12) % 100) / 100);
     // lying on its back, head towards -x, a little turned
     b.merge(sub);
@@ -271,9 +254,9 @@ export function buildFigure(person, { victim = false, selected = false, theme = 
     b.cyl(0.41, 0.41, 0.012, 0, 0.06, 0, '#f6f2ea', { seg: 28, roughness: 0.5 });
     b.cyl(0.36, 0.36, 0.014, 0, 0.062, 0, dark, { seg: 28, roughness: 0.5 });
     const sub = new Builder();
-    body(sub, color, skin, hair, 'stand');
+    const shape = dressBody(sub, { color, skin, hair, pose: 'stand', theme, h });
     // the theme's headwear, in the person's colour where it has one
-    const hv = HATS[theme];
+    const hv = hatsFor(theme, shape);
     if (hv) hat(sub, hv[(h >>> 8) % hv.length], new THREE.Color(color).offsetHSL(0, 0, -0.08).getStyle(), () => ((h >>> 12) % 100) / 100);
     b.merge(sub, 0, 0, 0.07, 0);
     const model = b.build();

@@ -23,6 +23,7 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Murdoku : chaque univers a ses propres meubles 3D, fidèles à leur nom (futon, hamac, trône, brasero, sarcophage, capsule de sommeil…), et des personnages habillés pour leur monde avec visage, coiffure et objet en main ; noms de pièces sur deux lignes quand ils sont longs',
     'Murdoku : vue 3D plongeante par défaut, sans taches sur le sol ; export avec la vue classique ou l\'angle actuel (tourné, zoomé, déplacé)',
     'Murdoku : vue 3D plus haute et plus lisible, jusqu\'au fond du plateau ; figurines et meubles légèrement couchés vers l\'arrière pour rester lisibles vu de haut, aussi dans les exports',
     'Bibliothèque de thèmes commune à tous les jeux, rangée en rayons (Styles, Univers, Fêtes) : chaque univers Murdoku a sa version 2D pour les grilles, et inversement',

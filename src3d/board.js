@@ -244,10 +244,23 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
     let span = 1;
     while (best.cc + span < n && roomOf(best.rr, best.cc + span) === id && !hasObj.has(`${best.rr},${best.cc + span}`)) span++;
     for (let k = 0; k < span; k++) plates.add(`${best.rr},${best.cc + k}`);
-    const tex = plateTexture(text.toUpperCase());
-    const maxW = span * CELL - 0.3, h = 0.46;
-    const w = Math.min(maxW, (h * tex.image.width) / tex.image.height);
-    const hh = Math.min(h, (w * tex.image.height) / tex.image.width);
+    // one line, or two when a long name would otherwise print too small
+    const maxW = span * CELL - 0.3, up = text.toUpperCase();
+    const layout = (lines) => {
+      const tex = plateTexture(lines), asp = tex.image.width / tex.image.height;
+      const w = Math.min(maxW, 0.46 * lines.length * 0.92 * asp);
+      return { tex, w, hh: w / asp, line: w / asp / lines.length };
+    };
+    let plate = layout([up]);
+    const two = splitName(up);
+    if (plate.line < 0.36 && two) {
+      const alt = layout(two);
+      if (alt.line > plate.line) {
+        plate.tex.dispose();
+        plate = alt;
+      }
+    }
+    const { tex, w, hh } = plate;
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, hh).rotateX(-Math.PI / 2), new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthWrite: false, toneMapped: false }));
     const p = cellCenter(n, best.rr, best.cc);
     m.position.set(p.x - CELL / 2 + 0.16 + w / 2, 0.03, p.z - CELL / 2 + 0.16 + hh / 2);
@@ -285,7 +298,7 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
     const room = typeOf(id);
     const k = (counts.get(o.type) ?? 0) + id;
     counts.set(o.type, (counts.get(o.type) ?? 0) + 1);
-    const obj = buildObject(o.type, { room, k, seed: seed + o.r * 17 + o.c * 131 + 1, fit: CELL * 0.82 });
+    const obj = buildObject(o.type, { room, k, seed: seed + o.r * 17 + o.c * 131 + 1, fit: CELL * 0.82, theme: puzzle.theme });
     const p = cellCenter(n, o.r, o.c);
     let ry = 0;
     if (obj.wall) {
@@ -323,16 +336,26 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
 }
 
 // Room-name plate: a cream pill with a dark outline and serif capitals.
-function plateTexture(text) {
-  const H = 96, font = '700 54px Georgia, "Times New Roman", serif';
+// A long room name cut in two lines at the space nearest its middle (null: one word).
+function splitName(text) {
+  const mid = text.length / 2;
+  let best = -1;
+  for (let i = 0; i < text.length; i++) if (text[i] === ' ' && (best < 0 || Math.abs(i - mid) < Math.abs(best - mid))) best = i;
+  return best > 0 ? [text.slice(0, best), text.slice(best + 1)] : null;
+}
+
+// A rounded name plate with one or more lines of text.
+function plateTexture(lines) {
+  const LH = 64, font = '700 54px Georgia, "Times New Roman", serif';
   const cv = document.createElement('canvas');
   const g0 = cv.getContext('2d');
   g0.font = font;
-  const W = Math.ceil(g0.measureText(text).width + H * 0.9);
+  const H = 96 + (lines.length - 1) * LH;
+  const W = Math.ceil(Math.max(...lines.map((l) => g0.measureText(l).width)) + 96 * 0.9);
   cv.width = W;
   cv.height = H;
   const g = cv.getContext('2d');
-  const R = H / 2 - 6;
+  const R = Math.min(H, 96) / 2 - 6;
   g.beginPath();
   g.moveTo(6 + R, 6);
   g.arcTo(W - 6, 6, W - 6, H - 6, R);
@@ -349,7 +372,7 @@ function plateTexture(text) {
   g.font = font;
   g.textAlign = 'center';
   g.textBaseline = 'middle';
-  g.fillText(text, W / 2, H / 2 + 3);
+  lines.forEach((l, i) => g.fillText(l, W / 2, 48 + i * LH + 3));
   const t = new THREE.CanvasTexture(cv);
   t.colorSpace = THREE.SRGBColorSpace;
   t.anisotropy = 8;
