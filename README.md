@@ -27,6 +27,8 @@ listes de mots par thème), sans cookie ni référent.
   import texte, CSV, JSON ou Excel.
 - **Définitions** : dictionnaire local, Wiktionnaire, Wikipédia et Wikidata.
 - **Multicolore** : lettres, cases, définitions et mots en plusieurs couleurs (palettes ou couleurs au choix).
+- **Effet impression art-book** : trame de points, couleurs légèrement décalées, papier et grain,
+  comme les plateaux Murdoku en 3D ; les textes restent nets, à l'écran comme dans les exports.
 - **Design** : thèmes, formes (cœur, étoile, lettres…), polices, fonds, stickers, photos,
   formats de page (A4, carré, story…).
 - **Jeu** : mode jeu avec chronomètre, indices, vérification et meilleur temps ; lien de

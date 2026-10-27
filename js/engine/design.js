@@ -117,6 +117,8 @@ MF.design = (() => {
     lists: { font: 'inter', size: 30, color: 'auto' },
     // Multicolore : coupé par défaut (les anciennes grilles, sans ce réglage, ne changent pas)
     multi: { on: false, targets: { letters: true, cells: false, clues: false, words: false }, mode: 'letter', preset: 'rainbow', palette: ['#e53935', '#fb8c00', '#fdd835', '#43a047', '#1e88e5', '#3949ab', '#8e24aa'], seed: 0 },
+    // Effet « impression art-book » (trame, papier, grain), comme les plateaux Murdoku : coupé par défaut
+    print: { on: false, strength: 0.6 },
   };
 
   /** Fusion profonde (objets simples uniquement), sans muter les entrées. */

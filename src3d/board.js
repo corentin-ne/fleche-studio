@@ -9,6 +9,7 @@ import { buildObject } from './furniture.js';
 import { buildClutter, PROPS } from './clutter.js';
 import { PLANTS, LANDMARKS } from './deco.js';
 import { styleFor, WALL_COLORS } from './styles.js';
+import { markText } from './textmask.js';
 
 export const CELL = 2; // one board cell, in metres
 export const WALL_H = 0.42;
@@ -217,7 +218,7 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
       m.userData.edge = edge;
       m.position.set(x, 0.02, z);
       m.renderOrder = 2;
-      labels.add(m);
+      labels.add(markText(m));
     }
   }
   group.add(labels);
@@ -251,7 +252,7 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
     const p = cellCenter(n, best.rr, best.cc);
     m.position.set(p.x - CELL / 2 + 0.16 + w / 2, 0.03, p.z - CELL / 2 + 0.16 + hh / 2);
     m.renderOrder = 3;
-    roomLabels.add(m);
+    roomLabels.add(markText(m));
   }
   group.add(roomLabels);
 

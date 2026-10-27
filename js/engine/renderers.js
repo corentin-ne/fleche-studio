@@ -130,7 +130,14 @@ MF.renderers = (() => {
       }
     }
 
-    const body = scene.ops.map(draw).join('');
+    // Effet impression : le décor passe dans le filtre, les textes restent nets par-dessus
+    const k = scene.print || 0;
+    let body;
+    if (k > 0) {
+      const id = MF.printEffect.idFor(scene.W, scene.H, k);
+      defs.push(MF.printEffect.filter(id, scene.W, scene.H, k));
+      body = MF.printEffect.layers(scene.ops).map(l => `<g filter="url(#${id})">${l.art.map(draw).join('')}</g>${l.text.map(draw).join('')}`).join('');
+    } else body = scene.ops.map(draw).join('');
     const dims = forExport ? ` width="${f(scene.W)}" height="${f(scene.H)}"` : '';
     return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${f(scene.W)} ${f(scene.H)}"${dims} class="${cls}">${defs.length ? `<defs>${defs.join('')}</defs>` : ''}${body}</svg>`;
   }
@@ -168,8 +175,27 @@ MF.renderers = (() => {
     return { images, patterns };
   }
 
-  /** @param matte couleur peinte sous l'affiche (formats sans transparence, ex. JPEG) */
+  /**
+   * Image de l'affiche (export PNG / JPEG).
+   * @param matte couleur peinte sous l'affiche (formats sans transparence, ex. JPEG)
+   */
   async function canvas(scene, { scale = 2, matte = null } = {}) {
+    const k = scene.print || 0;
+    if (!k) return rasterize(scene, { scale, matte });
+    // Effet impression : comme à l'écran, décor filtré puis textes nets, couche par couche
+    const out = document.createElement('canvas');
+    out.width = Math.round(scene.W * scale); out.height = Math.round(scene.H * scale);
+    const g = out.getContext('2d');
+    if (matte) { g.fillStyle = matte; g.fillRect(0, 0, out.width, out.height); }
+    for (const l of MF.printEffect.layers(scene.ops)) {
+      if (l.art.length) g.drawImage(await MF.printEffect.apply(await rasterize({ ...scene, ops: l.art }, { scale }), scene.W, scene.H, k), 0, 0);
+      if (l.text.length) g.drawImage(await rasterize({ ...scene, ops: l.text }, { scale }), 0, 0);
+    }
+    return out;
+  }
+
+  /** Dessin direct des opérations sur un canvas. */
+  async function rasterize(scene, { scale = 2, matte = null } = {}) {
     const cv = document.createElement('canvas');
     cv.width = Math.round(scene.W * scale); cv.height = Math.round(scene.H * scale);
     const g = cv.getContext('2d');

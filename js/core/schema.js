@@ -159,7 +159,7 @@ MF.schema = (() => {
     const fonts = Object.keys(MF.design.FONTS);
     const c = obj(d.colors), b = obj(d.background), f = obj(d.frame), ce = obj(d.cell), fo = obj(d.font);
     const ar = obj(d.arrows), po = obj(d.poster), ti = obj(d.title), li = obj(d.lists);
-    const mu = obj(d.multi), mt = obj(mu.targets), DM = D.multi;
+    const mu = obj(d.multi), mt = obj(mu.targets), DM = D.multi, pe = obj(d.print);
     const pal = (Array.isArray(mu.palette) ? mu.palette : []).slice(0, MF.design.MULTI_MAX).map(x => color(x, null)).filter(Boolean);
     return {
       theme: str(d.theme, 30, D.theme),
@@ -222,6 +222,7 @@ MF.schema = (() => {
         palette: pal.length >= MF.design.MULTI_MIN ? pal : DM.palette.slice(),
         seed: int(mu.seed, 0, 99999, DM.seed),
       },
+      print: { on: bool(pe.on, D.print.on), strength: num(pe.strength, 0.2, 1, D.print.strength) },
     };
   }
 

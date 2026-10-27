@@ -28,7 +28,16 @@ MF.panels.design = (() => {
       + `<div class="pgroup"><div class="pgroup-title">${t('Thème')}</div><div class="chips theme-filters" role="toolbar" aria-label="${t('Filtrer les thèmes')}">${filters.map(([k, l]) => `<button type="button" class="chip chip-btn ${k === filter ? 'active' : ''}" data-theme-filter="${k}">${esc(l)}</button>`).join('')}</div>
       <div class="theme-grid">${Object.entries(MF.themes.THEMES).map(([id, th]) => `
       <button type="button" class="theme-card ${d.theme === id ? 'active' : ''}" data-theme-id="${id}" data-moods="${esc(th.moods.join(' '))}" ${filter === 'all' || th.moods.includes(filter) ? '' : 'hidden'} title="${esc(th.label)}">
-        <span class="theme-thumb">${MF.previews.theme(id)}</span><span class="theme-name">${esc(th.label)}</span></button>`).join('')}</div></div>`;
+        <span class="theme-thumb">${MF.previews.theme(id)}</span><span class="theme-name">${esc(th.label)}</span></button>`).join('')}</div></div>`
+      + printGroup(d);
+  }
+
+  /** Effet « impression art-book » : trame, papier et grain, comme les plateaux Murdoku. */
+  function printGroup(d) {
+    const pe = d.print;
+    return group(t('Effet'), `<label class="check"><input type="checkbox" data-toggle="print.on" ${pe.on ? 'checked' : ''}> ${t('Impression art-book : trame, papier et grain')}</label>
+      ${pe.on ? ui.slider('print.strength', t('Intensité'), pe.strength, 20, 100, 5, '%', { div: 100 }) : ''}
+      <p class="field-hint">${t('Le rendu des plateaux Murdoku, à l\'écran comme dans les exports. Les textes restent nets.')}</p>`);
   }
 
   /** Nuancier rangé par familles ; `attr` porte la valeur (ex. data-accent="#e8212b"). */

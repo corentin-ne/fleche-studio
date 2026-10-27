@@ -117,6 +117,50 @@
     eq([o.cols, o.rows, o.pages, o.shape], [50, 5, 2, 'rect']);
   });
 
+  /* ---------------- Effet impression ---------------- */
+  test('effet impression : réglage borné, coupé par défaut', () => {
+    eq(MF.schema.design({}).print, { on: false, strength: 0.6 });
+    eq(MF.schema.design({ print: { on: true, strength: 9 } }).print, { on: true, strength: 1 });
+    eq(MF.schema.design({ print: { on: 'oui', strength: -1 } }).print, { on: false, strength: 0.2 });
+    eq(MF.printEffect.strengthOf({ print: { on: false, strength: 0.8 } }), 0);
+  });
+  test('effet impression : textes à part, décor du premier plan au-dessus', () => {
+    const text = (s) => ({ op: 'text', text: s });
+    const ops = [
+      { op: 'rect' },
+      { op: 'group', children: [{ op: 'rect' }, text('A')] },
+      text('B'),
+      { op: 'group', top: true, children: [{ op: 'path' }, text('C')] },
+    ];
+    const ls = MF.printEffect.layers(ops);
+    eq(ls.length, 2, 'deux couches');
+    eq(ls[0].art.map(o => o.op), ['rect', 'group']);
+    eq(ls[0].art[1].children.map(o => o.op), ['rect'], 'texte retiré du groupe filtré');
+    eq(ls[0].text.map(o => (o.op === 'group' ? o.children[0].text : o.text)), ['A', 'B'], 'textes gardés, groupes compris');
+    eq([ls[1].art[0].children[0].op, ls[1].text[0].children[0].text], ['path', 'C']);
+  });
+  test('effet impression : affiche filtrée, textes nets', () => {
+    const pz = MF.schema.puzzle({ words: [{ text: 'chat', clue: 'Félin' }], design: { print: { on: true, strength: 0.5 } } });
+    const layout = { engine: 'builder', frame: { w: 4, h: 3 }, rows: ['#CHA', '####', '####'], words: [{ r: 0, c: 1, dir: 'H', len: 3, word: 'CHA', sr: 0, sc: 0, arrow: 'right', src: 'curated' }] };
+    const model = MF.gridModel.from(MF.schema.layout({ engine: 'builder', pages: [layout] }).pages[0], pz, MF.design.metrics(pz.design), null);
+    const scene = MF.scene.compose(model, pz, { letters: true, forExport: true });
+    assert(scene.print === 0.5, 'intensité transmise');
+    const doc = new DOMParser().parseFromString(MF.renderers.svg(scene, { forExport: true }), 'image/svg+xml');
+    const filter = doc.querySelector('filter[id^="mfx-"]');
+    assert(filter && filter.querySelector('feTurbulence') && filter.querySelector('feImage'), 'filtre complet');
+    assert(doc.querySelectorAll(`g[filter="url(#${filter.id})"] text`).length === 0, 'aucun texte dans le filtre');
+    assert(doc.querySelectorAll('text').length > 0, 'textes présents');
+    const plain = MF.renderers.svg({ ...scene, print: 0 }, { forExport: true });
+    assert(!plain.includes('<filter id="mfx-'), 'sans effet : aucun filtre');
+  });
+  test('effet impression : export PNG à la bonne taille', async () => {
+    const scene = { W: 200, H: 100, print: 0.6, ops: [{ op: 'rect', x: 0, y: 0, w: 200, h: 100, fill: '#7b3fe4' }, { op: 'text', x: 10, y: 60, text: 'AB', size: 40, font: 'sans-serif', fill: '#000000' }] };
+    const cv = await MF.renderers.canvas(scene, { scale: 2 });
+    eq([cv.width, cv.height], [400, 200]);
+    const [r, g, b] = cv.getContext('2d').getImageData(300, 100, 1, 1).data;
+    assert(r + g + b > 0, 'fond dessiné');
+  });
+
   /* ---------------- Imports ---------------- */
   test('import texte : tous les séparateurs', () => {
     const r = MF.importer.parseText('Chat ; Félin\nChien : Aboie\nSoleil - Astre\nLune\n- Mer = Océan');

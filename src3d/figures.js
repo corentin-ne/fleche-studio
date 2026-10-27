@@ -5,6 +5,7 @@
 // Built with building-builder's Builder (handmade wobble, merged parts).
 import * as THREE from 'three';
 import { Builder, handmade, hashStr, seedBuilders } from './geo.js';
+import { markText } from './textmask.js';
 
 const SKIN = ['#f2d2b6', '#e8be9a', '#c68e6a', '#8d5a3f', '#f5dcc6', '#b07850'];
 const HAIR = ['#2a1d18', '#5a3b26', '#8a5a2a', '#d9b45a', '#9c9c9c', '#a33b2b', '#1d1b1c'];
@@ -362,7 +363,7 @@ export function buildBadge(person, { victim = false, selected = false, name = fa
   // anchor at the pointer tip
   s.center.set(0.5, 1 - (cy + R + 16) / H);
   s.renderOrder = 10;
-  return s;
+  return markText(s);
 }
 
 function roundRect(g, x, y, w, h, r) {

@@ -377,8 +377,10 @@ MF.scene = (() => {
     y += grid.h;
     if (aside) ops.push(...aside.draw(cx, y + GAP, opts));
 
-    stickers.filter(s => s.layer !== 'below').forEach(s => ops.push(stickerOps(s, W, H, opts)));
-    return { W, H, ops, grid: { x: cx, y: gy, w: grid.w, h: grid.h, ox: g.ox, oy: g.oy, U } };
+    // Décor au premier plan (top) : il reste au-dessus des textes nets de l'effet impression
+    stickers.filter(s => s.layer !== 'below').forEach(s => ops.push({ ...stickerOps(s, W, H, opts), top: true }));
+    // print : intensité de l'effet « impression » (0 = coupé), appliqué par les rendus (MF.printEffect)
+    return { W, H, ops, print: MF.printEffect.strengthOf(d), grid: { x: cx, y: gy, w: grid.w, h: grid.h, ox: g.ox, oy: g.oy, U } };
   }
 
   return { compose, stickerOps };

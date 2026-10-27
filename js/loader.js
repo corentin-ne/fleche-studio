@@ -37,7 +37,7 @@
     services: ['js/services/dictionary.js', 'js/services/wiki.js', 'js/services/importer.js'],
     engine: [
       'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/generator.js',
-      'js/engine/grid-model.js', 'js/engine/murdoku.js', 'js/engine/diagnostics.js', 'js/engine/renderers.js', 'js/engine/scene.js',
+      'js/engine/grid-model.js', 'js/engine/murdoku.js', 'js/engine/diagnostics.js', 'js/engine/print-effect.js', 'js/engine/renderers.js', 'js/engine/scene.js',
     ],
     ui: [
       'js/ui/components.js', 'js/ui/phone-nav.js', 'js/ui/pinch-zoom.js', 'js/ui/brand.js', 'js/ui/grid-view.js',

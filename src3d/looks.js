@@ -30,11 +30,15 @@ export const StyleShader = {
     shadowTint: { value: 0 },
     paper: { value: new THREE.Color('#f6eedb') },
     alphaOut: { value: 0 },
+    // text mask (textmask.js): those pixels are printed as clean solid ink
+    tText: { value: null },
+    textKeep: { value: 0 },
   },
   vertexShader: /* glsl */ `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
   fragmentShader: /* glsl */ `
     uniform sampler2D tDiffuse; uniform vec2 resolution; uniform vec3 paper;
     uniform float alphaOut;
+    uniform sampler2D tText; uniform float textKeep;
     uniform float pixel, posterize, halftone, dotSize, misreg, grain, saturation, lens, chroma, mist, tilt, vignette, warmth, fade, ink, wash, hatch, shadowTint;
     varying vec2 vUv;
     float hash(vec2 p){ return fract(sin(dot(p, vec2(12.9898,78.233))) * 43758.5453); }
@@ -80,6 +84,17 @@ export const StyleShader = {
       float k = 1.0 - max(c.r, max(c.g, c.b));
       vec3 cmy = (1.0 - c - k) / max(1.0 - k, 1e-3);
       return vec4(cmy, k);
+    }
+    // Text mask, widened by a pixel or two so the letters keep a clean edge
+    float textMask(vec2 uv){
+      if (textKeep <= 0.0) return 0.0;
+      vec2 px = 1.6 / resolution;
+      float m = texture2D(tText, uv).a;
+      for (int i = 0; i < 8; i++) {
+        float a = float(i) * 0.785398;
+        m = max(m, texture2D(tText, uv + vec2(cos(a), sin(a)) * px).a);
+      }
+      return m * textKeep;
     }
     void main(){
       vec2 uv = distort(vUv);
@@ -163,6 +178,9 @@ export const StyleShader = {
         vec3 cont = col * paper;
         col = mix(col, mix(p, cont, 0.28), halftone);
       }
+      // texts: a clean solid print (no dots, offset plates, blur or ink lines)
+      float keep = textMask(uv);
+      if (keep > 0.0) col = mix(col, grade(src(uv)), keep);
       // paper fibres and grain
       vec2 fp = vUv * resolution;
       float fib = vnoise(fp * vec2(0.02, 0.05)) * 0.6 + vnoise(fp * 0.25) * 0.4;

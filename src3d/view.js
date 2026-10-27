@@ -13,6 +13,7 @@ import { WOBBLE } from './geo.js';
 import { StyleShader, STYLES, MOOD_SETTINGS, SkewCamera, distortUV } from './looks.js';
 import { buildBoard, cellCenter, CELL, MARGIN, PLINTH_H } from './board.js';
 import { buildFigure, buildBadge, chalkOutline, FIGURE_H } from './figures.js';
+import { TextMask, disposeText } from './textmask.js';
 
 // iso: a gentle 3/4 diorama through a long lens with a hand-drawn slant;
 // top: a near top-down orthographic view, best for reading the grid.
@@ -20,6 +21,9 @@ const CAMERAS = {
   iso: { az: 16, el: 52, fov: 20, skew: 0.07, lean: -0.02 },
   top: { az: 0, el: 76, ortho: true },
 };
+
+// How much the texts escape the look (1: clean solid print, 0: printed like the rest)
+const TEXT_KEEP = 0.92;
 
 const DEFAULTS = { look: 'print', mood: 'day', camera: 'iso', labels: true, roomLabels: true, names: false, clutter: 'some', interactive: true, ao: true, padding: 0.04, maxPixelRatio: 2, background: null };
 
@@ -79,6 +83,7 @@ export class BoardView {
     this.makeHelpers();
 
     this.size = { w: 1, h: 1 };
+    this.textMask = new TextMask();
     this.setupComposer();
     this.applyLook();
     this.applyMood();
@@ -112,6 +117,7 @@ export class BoardView {
     this.composer.addPass(this.overlayPass);
     this.composer.addPass(new OutputPass());
     this.stylePass = new ShaderPass(StyleShader);
+    this.stylePass.uniforms.tText.value = this.textMask.target.texture;
     this.composer.addPass(this.stylePass);
     if (this.look) this.resize();
   }
@@ -424,6 +430,7 @@ export class BoardView {
     }
     this.renderer.setSize(w, h, false);
     this.composer.setSize(w, h);
+    this.textMask.setSize(w * pr, h * pr);
     this.stylePass.uniforms.resolution.value.set(w * pr, h * pr);
     this.syncStyleUniforms(1);
     this.fit();
@@ -442,6 +449,9 @@ export class BoardView {
   render() {
     if (this.disposed) return;
     WOBBLE.value = this.look?.wobble ?? 1;
+    // texts kept readable through the look (before the shadow update below: no shadow pass here)
+    const texts = this.textMask.render(this.renderer, this.camera, this.scene, this.overlay);
+    this.stylePass.uniforms.textKeep.value = texts ? TEXT_KEEP : 0;
     if (this.shadowDirty !== false) {
       this.renderer.shadowMap.needsUpdate = true;
       this.shadowDirty = false;
@@ -528,6 +538,7 @@ export class BoardView {
     this.composer.setPixelRatio(1);
     this.renderer.setSize(W, H, false);
     this.composer.setSize(W, H);
+    this.textMask.setSize(W, H);
     this.stylePass.uniforms.resolution.value.set(W, H);
     // print dots and pixels grow with the picture, so it looks the same
     this.syncStyleUniforms(Math.max(1, Math.min(W, H) / 900));
@@ -571,6 +582,7 @@ export class BoardView {
     this.xMat.dispose();
     for (const t of this.owned) t.dispose();
     this.envRT.dispose();
+    this.textMask.dispose();
     this.disposeComposer();
     this.renderer.dispose();
     this.renderer.forceContextLoss();
@@ -582,6 +594,7 @@ export class BoardView {
 // pattern textures (module caches in geo.js) are kept for the next board.
 function disposeTree(root) {
   root.traverse((o) => {
+    disposeText(o);
     if (o.geometry && !o.isSprite) o.geometry.dispose();
     const mats = Array.isArray(o.material) ? o.material : o.material ? [o.material] : [];
     for (const m of mats) {
