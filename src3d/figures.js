@@ -51,8 +51,154 @@ function body(b, color, skin, hair, pose) {
   }
 }
 
+// Headwear of each world (puzzle.theme): a few variants, picked per person.
+// The head's top is at y ≈ 1.03 (body space), its centre at y = 0.84.
+const HATS = {
+  pirates: ['tricorne', 'bandana', 'tricorne'],
+  western: ['cowboy', 'cowboy', 'bandana'],
+  japan: ['kasa', 'topknot', 'headband'],
+  regency: ['tophat', 'bonnet', 'tophat'],
+  egypt: ['nemes', 'nemes', 'headband'],
+  circus: ['partyHat', 'tophat', 'partyHat'],
+  chalet: ['beanie', 'beanie', 'earmuffs'],
+  space: ['helmet', 'helmet', 'antennae'],
+  haunted: ['witch', 'witch', 'tophat'],
+  medieval: ['crown', 'helm', 'hood'],
+  prehistory: ['bone', 'feather', 'bone'],
+  mermaids: ['shellCrown', 'starfish', 'shellCrown'],
+  paris: ['beret', 'beret', 'boater'],
+  train: ['bowler', 'cloche', 'bowler'],
+  rome: ['laurel', 'laurel', 'hood'],
+  world: ['boater', 'cap', 'beanie'],
+};
+function hat(b, kind, c, r) {
+  const y = 0.98;
+  switch (kind) {
+    case 'tricorne':
+      b.cyl(0.27, 0.27, 0.03, 0, y, -0.02, '#2a2220', { seg: 3 });
+      b.cyl(0.13, 0.16, 0.1, 0, y + 0.02, -0.02, '#2a2220', { seg: 12 });
+      b.cyl(0.272, 0.272, 0.012, 0, y + 0.025, -0.02, '#d9b44a', { seg: 3 });
+      break;
+    case 'bandana':
+      b.sphere(0.205, 0, 0.9, -0.02, c, { sy: 0.72, seg: 16 });
+      b.sphere(0.045, 0.12, 0.88, -0.18, c, { seg: 8 });
+      for (let i = 0; i < 5; i++) b.sphere(0.02, Math.cos(i * 1.2) * 0.17, 0.95, Math.sin(i * 1.2) * 0.17 - 0.02, '#f6f2ea', { seg: 6 });
+      break;
+    case 'cowboy':
+      b.cyl(0.3, 0.3, 0.025, 0, y - 0.02, 0, '#8a5a32', { seg: 22, rx: -0.12 });
+      b.cyl(0.14, 0.16, 0.15, 0, y - 0.01, 0, '#8a5a32', { seg: 16 });
+      b.cyl(0.162, 0.162, 0.03, 0, y + 0.01, 0, '#3a2618', { seg: 16 });
+      break;
+    case 'kasa':
+      b.cyl(0.0, 0.34, 0.16, 0, y - 0.04, 0, '#d8c08a', { seg: 20 });
+      break;
+    case 'topknot':
+      b.sphere(0.07, 0, y + 0.04, -0.06, '#1d1b1c', { seg: 10, sy: 1.1 });
+      break;
+    case 'headband':
+      b.cyl(0.196, 0.196, 0.05, 0, 0.88, 0, c, { seg: 18 });
+      b.sphere(0.04, 0, 0.9, 0.19, '#d9b44a', { seg: 8 });
+      break;
+    case 'tophat':
+      b.cyl(0.24, 0.24, 0.02, 0, y, 0, '#1d1b1c', { seg: 20 });
+      b.cyl(0.13, 0.14, 0.28, 0, y, 0, '#1d1b1c', { seg: 18 });
+      b.cyl(0.141, 0.141, 0.04, 0, y + 0.03, 0, c, { seg: 18 });
+      break;
+    case 'bonnet':
+      b.sphere(0.23, 0, 0.9, -0.05, '#f4e2c8', { sy: 0.8, seg: 16 });
+      b.cyl(0.24, 0.24, 0.03, 0, 0.92, 0.03, c, { seg: 18, rx: 1.2 });
+      break;
+    case 'nemes':
+      b.sphere(0.215, 0, 0.88, -0.02, '#e0b23a', { sy: 0.8, seg: 16 });
+      for (let i = 0; i < 4; i++) b.cyl(0.217, 0.217, 0.02, 0, 0.8 + i * 0.05, -0.02, '#2f5e8c', { seg: 16, t0: Math.PI * 0.75, tl: Math.PI * 1.5 });
+      for (const s of [-1, 1]) b.box(0.08, 0.22, 0.05, s * 0.18, 0.62, 0.03, '#e0b23a');
+      break;
+    case 'partyHat':
+      b.cyl(0.0, 0.12, 0.3, 0, y - 0.02, 0, c, { seg: 14, rz: (r() - 0.5) * 0.4 });
+      b.sphere(0.04, 0, y + 0.3, 0, '#f2c94c', { seg: 8 });
+      break;
+    case 'beanie':
+      b.sphere(0.205, 0, 0.92, -0.01, c, { sy: 0.78, seg: 16 });
+      b.cyl(0.205, 0.205, 0.05, 0, 0.86, -0.01, '#f6f2ea', { seg: 16 });
+      b.sphere(0.06, 0, y + 0.1, 0, '#f6f2ea', { seg: 10 });
+      break;
+    case 'earmuffs':
+      b.cyl(0.21, 0.21, 0.02, 0, 0.84, 0, '#c9c9c9', { rz: 1.57, seg: 16, t0: 0, tl: Math.PI });
+      for (const s of [-1, 1]) b.sphere(0.065, s * 0.2, 0.84, 0, c, { seg: 10 });
+      break;
+    case 'helmet':
+      b.sphere(0.27, 0, 0.84, 0, '#dff4ff', { seg: 20, roughness: 0.05, opacity: 0.35 });
+      b.cyl(0.27, 0.27, 0.05, 0, 0.6, 0, '#c9d1db', { seg: 20, metalness: 0.5 });
+      break;
+    case 'antennae':
+      for (const s of [-1, 1]) {
+        b.cbox(0.015, 0.2, 0.015, s * 0.08, y + 0.06, 0, '#2a2523', { rz: -s * 0.3 });
+        b.sphere(0.035, s * 0.12, y + 0.17, 0, c, { seg: 8, emissive: c, ei: 0.6 });
+      }
+      break;
+    case 'witch':
+      b.cyl(0.28, 0.28, 0.02, 0, y - 0.02, 0, '#2a2236', { seg: 20 });
+      b.cyl(0.0, 0.15, 0.38, 0, y - 0.02, 0, '#2a2236', { seg: 14, rx: -0.2 });
+      b.cyl(0.152, 0.152, 0.035, 0, y, 0, c, { seg: 14 });
+      break;
+    case 'crown':
+      b.cyl(0.15, 0.15, 0.08, 0, y - 0.02, 0, '#e0b23a', { seg: 18, metalness: 0.7, roughness: 0.3 });
+      for (let i = 0; i < 6; i++) b.cyl(0, 0.03, 0.07, Math.cos(i * 1.047) * 0.14, y + 0.06, Math.sin(i * 1.047) * 0.14, '#e0b23a', { seg: 4, metalness: 0.7 });
+      b.sphere(0.025, 0, y + 0.02, 0.15, '#c0283a', { seg: 8 });
+      break;
+    case 'helm':
+      b.sphere(0.22, 0, 0.88, 0, '#9aa6b4', { sy: 0.9, seg: 16, metalness: 0.6, roughness: 0.35 });
+      b.box(0.04, 0.2, 0.04, 0, 0.74, 0.2, '#9aa6b4', { metalness: 0.6 });
+      break;
+    case 'hood':
+      b.sphere(0.23, 0, 0.87, -0.04, c, { sy: 0.95, seg: 16 });
+      break;
+    case 'bone':
+      b.cbox(0.26, 0.035, 0.035, 0, y + 0.01, 0, '#efe6d0', { rz: 0.3 });
+      for (const s of [-1, 1]) b.sphere(0.035, s * 0.125, y + 0.01 + s * 0.04, 0, '#efe6d0', { seg: 6 });
+      break;
+    case 'feather':
+      b.cyl(0.196, 0.196, 0.04, 0, 0.9, 0, '#8a5a32', { seg: 16 });
+      b.cbox(0.05, 0.28, 0.015, 0.06, y + 0.08, -0.12, c, { rz: -0.3, round: 0.012 });
+      break;
+    case 'shellCrown':
+      for (let i = 0; i < 5; i++) b.sphere(0.05, Math.cos(i * 0.6 - 1.2) * 0.17, y - 0.01, Math.sin(i * 0.6 - 1.2) * 0.17 + 0.04, ['#f6d3c9', '#f8f4ff', '#f0a8c4'][i % 3], { sy: 1.3, seg: 8 });
+      break;
+    case 'starfish':
+      for (let i = 0; i < 5; i++) b.cbox(0.1, 0.02, 0.035, 0.1 + Math.cos(i * 1.256) * 0.04, 0.95, 0.08 + Math.sin(i * 1.256) * 0.04, '#e8743a', { ry: -i * 1.256, rz: 0.6 });
+      break;
+    case 'beret':
+      b.cyl(0.2, 0.2, 0.05, 0.03, y - 0.03, 0, c, { seg: 18, rz: 0.25 });
+      b.cyl(0.01, 0.01, 0.04, 0.05, y + 0.01, 0, c, { seg: 4 });
+      break;
+    case 'boater':
+      b.cyl(0.27, 0.27, 0.02, 0, y - 0.01, 0, '#e8d49a', { seg: 20 });
+      b.cyl(0.15, 0.15, 0.09, 0, y - 0.01, 0, '#e8d49a', { seg: 18 });
+      b.cyl(0.152, 0.152, 0.03, 0, y + 0.01, 0, c, { seg: 18 });
+      break;
+    case 'bowler':
+      b.cyl(0.22, 0.22, 0.02, 0, y - 0.01, 0, '#2a2220', { seg: 20 });
+      b.sphere(0.15, 0, y, 0, '#2a2220', { sy: 0.8, seg: 16 });
+      break;
+    case 'cloche':
+      b.sphere(0.215, 0, 0.9, 0, c, { sy: 0.8, seg: 16 });
+      b.cyl(0.24, 0.24, 0.02, 0, 0.84, 0, c, { seg: 18 });
+      break;
+    case 'cap':
+      b.sphere(0.2, 0, 0.92, 0, c, { sy: 0.7, seg: 16 });
+      b.box(0.24, 0.02, 0.16, 0, 0.9, 0.2, c);
+      break;
+    case 'laurel':
+      for (let i = 0; i < 12; i++) {
+        const a = Math.PI * 0.15 + (i / 11) * Math.PI * 0.7 + Math.PI;
+        b.cbox(0.07, 0.015, 0.035, Math.cos(a) * 0.19, 0.95, -Math.sin(a) * 0.19, '#7aa84a', { ry: a, rz: 0.4 });
+      }
+      break;
+  }
+}
+
 // Builds a person's figurine (meshes for the main scene).
-export function buildFigure(person, { victim = false, selected = false } = {}) {
+export function buildFigure(person, { victim = false, selected = false, theme = '' } = {}) {
   const h = hashStr(person.id ?? person.name ?? 'p');
   const skin = SKIN[h % SKIN.length], hair = HAIR[(h >>> 4) % HAIR.length];
   const color = victim ? muted(person.color ?? '#888888') : person.color ?? '#888888';
@@ -62,6 +208,8 @@ export function buildFigure(person, { victim = false, selected = false } = {}) {
   if (victim) {
     const sub = new Builder();
     body(sub, color, skin, hair, 'dead');
+    const hv = HATS[theme];
+    if (hv) hat(sub, hv[(h >>> 8) % hv.length], color, () => ((h >>> 12) % 100) / 100);
     // lying on its back, head towards -x, a little turned
     b.merge(sub);
     const model = b.build();
@@ -80,6 +228,9 @@ export function buildFigure(person, { victim = false, selected = false } = {}) {
     b.cyl(0.36, 0.36, 0.014, 0, 0.062, 0, dark, { seg: 28, roughness: 0.5 });
     const sub = new Builder();
     body(sub, color, skin, hair, 'stand');
+    // the theme's headwear, in the person's colour where it has one
+    const hv = HATS[theme];
+    if (hv) hat(sub, hv[(h >>> 8) % hv.length], new THREE.Color(color).offsetHSL(0, 0, -0.08).getStyle(), () => ((h >>> 12) % 100) / 100);
     b.merge(sub, 0, 0, 0.07, 0);
     const model = b.build();
     model.scale.setScalar(1.12);

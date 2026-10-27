@@ -302,8 +302,9 @@ export class BoardView {
       const info = cells[pos.r][pos.c];
       const y = info.object ? (info.occupiable ? info.seat : info.top) : 0;
       const at = cellCenter(n, pos.r, pos.c);
-      const fk = `f|${p.id}|${p.color}|${victim}|${selected}`;
-      const fig = this.cached(fk, () => buildFigure(p, { victim, selected }));
+      const theme = this.puzzle.theme ?? '';
+      const fk = `f|${p.id}|${p.color}|${victim}|${selected}|${theme}`;
+      const fig = this.cached(fk, () => buildFigure(p, { victim, selected, theme }));
       fig.position.set(at.x, y, at.z);
       fig.traverse((o) => (o.userData.cell = [pos.r, pos.c]));
       this.dyn.add(fig);

@@ -66,7 +66,10 @@ MF.murdokuView = (() => {
     const W = N * U + M * 2, X = c => M + c * U, Y = r => M + r * U;
     const room = (r, c) => (r < 0 || c < 0 || r >= N || c >= N ? -1 : pz.cells[r][c]);
     const out = [];
-    out.push(`<rect x="${M - 14}" y="${M - 14}" width="${N * U + 28}" height="${N * U + 28}" rx="18" fill="#3b2f2a"/>`);
+    // Cadre aux couleurs de l'univers
+    const tc = pz.theme ? MF.murdokuThemes.get(pz.theme).colors : null, F = Math.min(26, M);
+    if (tc) out.push(`<rect x="${M - F}" y="${M - F}" width="${N * U + F * 2}" height="${N * U + F * 2}" rx="26" fill="${esc(tc[1])}" fill-opacity=".55"/>`);
+    out.push(`<rect x="${M - 14}" y="${M - 14}" width="${N * U + 28}" height="${N * U + 28}" rx="18" fill="${esc(tc ? tc[0] : '#3b2f2a')}"/>`);
     for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
       const type = pz.rooms[room(r, c)]?.type;
       out.push(`<rect x="${X(c)}" y="${Y(r)}" width="${U}" height="${U}" fill="${esc(pz.rooms[room(r, c)]?.floor?.[1] || FLOORS[type] || '#eee')}"${o.interactive ? ` class="mdk-cell" data-r="${r}" data-c="${c}"` : ''}/>`);
@@ -353,6 +356,7 @@ MF.murdokuView = (() => {
   async function composePage(pz, { solution = false, width = 2400 } = {}) {
     const puzzle = pz.layout.pages[0];
     const W = width, pad = Math.round(W * 0.06), S = W / 2400;
+    const accent = MF.murdokuThemes.get(puzzle.theme).colors[0];
     const font = MF.design.font(pz.design.font.clue).css, titleFont = MF.design.font(pz.design.title?.font || 'fraunces').css;
     const board = await boardCanvas(pz, solution ? 'solution' : 'blank', W - pad * 2);
     const ctx0 = document.createElement('canvas').getContext('2d');
@@ -411,14 +415,14 @@ MF.murdokuView = (() => {
     g.font = `500 ${clueSize}px ${font}`;
     for (const l of placed) {
       const cx = pad + l.col * (colW + 60 * S);
-      g.fillStyle = '#b5523b'; g.font = `800 ${clueSize}px ${font}`;
+      g.fillStyle = accent; g.font = `800 ${clueSize}px ${font}`;
       g.fillText(`${l.n}.`, cx, y + l.y + clueSize);
       g.fillStyle = ink; g.font = `500 ${clueSize}px ${font}`;
       l.rows.forEach((row, j) => g.fillText(row, cx + 60 * S, y + l.y + clueSize + j * clueSize * 1.3));
     }
     y += cluesH;
     if (solution) {
-      g.fillStyle = '#b5523b'; g.font = `800 ${52 * S}px ${font}`;
+      g.fillStyle = accent; g.font = `800 ${52 * S}px ${font}`;
       g.fillText(t('Coupable : {name}', { name: puzzle.people.find(p => p.id === puzzle.murderer)?.name || '?' }), pad, y + 60 * S);
     }
     return cv;
