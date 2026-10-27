@@ -1206,4 +1206,5 @@ MF.i18n.add('en', {
   "Noms des pièces sur le plateau": "Room names on the board",
   "Murdoku : plateaux 3D par univers (bords en sable, mer, neige…), zones en plein air sans murs, murs variés, noms des pièces et feuillages touffus": "Murdoku: themed 3D boards (sand, sea, snow… borders), open-air areas without walls, varied walls, room names and lush foliage",
   "Murdoku : 13 nouveaux sols (sable, eau, neige, marbre, tatami, mosaïque…) et encore plus de décor": "Murdoku: 13 new floors (sand, water, snow, marble, tatami, mosaic…) and even more decor",
+  "Murdoku : figurines coiffées selon l'univers (tricornes, casques spatiaux, kasa, hauts-de-forme…), plan et export aux couleurs de l'univers": "Murdoku: figurines wear their world's headgear (tricornes, space helmets, kasa, top hats…), plan and export in the world's colours",
 });

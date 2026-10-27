@@ -23,6 +23,7 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Murdoku : figurines coiffées selon l\'univers (tricornes, casques spatiaux, kasa, hauts-de-forme…), plan et export aux couleurs de l\'univers',
     'Murdoku : plateaux 3D par univers (bords en sable, mer, neige…), zones en plein air sans murs, murs variés, noms des pièces et feuillages touffus',
     'Murdoku : 13 nouveaux sols (sable, eau, neige, marbre, tatami, mosaïque…) et encore plus de décor',
     'Murdoku : scènes 3D bien plus vivantes (nourriture, livres, tonneaux, coquillages, petits tapis…), réglable dans Rendu',
