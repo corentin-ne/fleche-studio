@@ -13,6 +13,10 @@
 
    La grille en construction porte déjà le design choisi (fond, cadre, cases,
    couleurs, police) : quand la grille est trouvée, le style ne change pas.
+
+   Jeux de chiffres et de logique : le moteur ne rend la grille qu'une fois
+   trouvée ; elle se remplit alors à l'écran (cases données, puis la solution).
+   En partie (option `secret`), les lettres et chiffres à trouver restent cachés.
    ========================================================================= */
 window.MF = window.MF || {};
 
@@ -30,7 +34,10 @@ MF.liveBuild = (() => {
   };
   const DRAIN_FRAMES = 22; // la file est rattrapée en ~22 images : visible sans prendre de retard
   const HOLD_MS = 650; // la grille terminée reste un instant avant le rendu final
-  const MAX_FINISH_MS = 2200; // jamais plus d'attente que ça pour l'utilisateur
+  const LOGIC_HOLD_MS = 1800; // jeux de logique : le temps de voir la solution se remplir
+  const WAVE_MS = 900; // durée de la vague de remplissage d'une grille de logique
+  const PUZZLE_MS = 350; // l'énigme seule, un instant, avant que la solution arrive
+  const MAX_FINISH_MS = 2400; // jamais plus d'attente que ça pour l'utilisateur
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let st = null; // { root, grid, cells, state, words, frameKey, ... }
@@ -74,7 +81,7 @@ MF.liveBuild = (() => {
       steps: root.querySelector('.lb-steps'),
       hud: root.querySelector('.lb-hud'),
       cells: [], state: [], words: new Set(), frameKey: null, frame: null,
-      queue: [], last: null, shown: null, live: {}, raf: 0, idle: [], skinKey: null,
+      queue: [], last: null, shown: null, live: {}, raf: 0, idle: [], skinKey: null, secret: false,
     };
     root.querySelector('.lb-stop').onclick = () => o.onCancel?.();
   }
@@ -148,8 +155,13 @@ MF.liveBuild = (() => {
     }
   }
 
-  /** État voulu de chaque case : '' | 'L|X|t' (lettre, mot perso ?) | 'C|→↓' (définition) | 'G|X' (filigrane). */
+  /**
+   * État voulu de chaque case : '' | 'L|X|t' (lettre, mot perso ?) | 'C|→↓' (définition) | 'G|X' (filigrane)
+   * et, pour les jeux de logique : 'K|' (case noire), 'H|12' (nombre d'un picross), 'O|' (hors grille).
+   */
   function targetState(snap) {
+    // Jeu de logique : cases déjà décrites (logicSnaps)
+    if (snap.cells) return { out: snap.cells, delays: new Map(snap.delays), seen: st.words };
     const { w, h } = snap.frame;
     const out = new Array(w * h).fill('');
     const letters = new Map(); // idx -> { ch, theme }
@@ -194,25 +206,28 @@ MF.liveBuild = (() => {
     const { out, delays, seen } = targetState(snap);
     const motion = !reduced();
     // Gros changement d'un coup (nouvelle variante) : on raccourcit la cascade pour rester vif
-    const burst = delays.size > 80 ? 0.35 : 1;
+    const burst = !snap.cells && delays.size > 80 ? 0.35 : 1;
     out.forEach((next, k) => {
       const prev = st.state[k];
       if (next === prev) return;
       const el = st.cells[k];
-      const [kind, a, b] = next.split('|');
+      let [kind, a, b] = next.split('|');
+      // En partie : la case apparaît, mais ce qu'il faut trouver n'est jamais écrit dans la page
+      if (st.secret && (kind === 'L' || kind === 'G') && b !== 'gv') { a = a && ' '; b = ''; }
       const base = el.dataset.base;
       el.className = `${base}${kind ? ` ${kind}` : ''}${b ? ` ${b}` : ''}`.trim();
       if (kind === 'C') el.innerHTML = [...a].map(x => `<span>${esc(x)}</span>`).join('');
       else el.textContent = kind ? a : '';
       st.state[k] = next;
       if (!motion) return;
-      if (kind === 'L' && !prev.startsWith('L|')) {
+      // Nouvelle lettre, ou case vide d'un jeu de logique qui reçoit sa solution
+      if (kind === 'L' && a && (!prev.startsWith('L|') || prev === 'L||')) {
         el.animate([
           { opacity: 0, transform: 'translateY(-40%) scale(.3) rotateX(90deg)', filter: 'blur(6px)' },
           { opacity: 1, transform: 'translateY(4%) scale(1.12)', filter: 'none', offset: 0.6 },
           { opacity: 1, transform: 'none' },
         ], { duration: 460, delay: (delays.get(k) || 0) * burst, easing: 'cubic-bezier(.2,.8,.2,1)', fill: 'backwards' });
-      } else if (kind === 'L') {
+      } else if (kind === 'L' && prev.startsWith('L|') && prev !== 'L||') {
         // Lettre qui devient mot perso (ou l'inverse) : petit éclat
         el.animate([{ transform: 'scale(1.18)' }, { transform: 'none' }], { duration: 320, easing: 'cubic-bezier(.34,1.56,.64,1)' });
       } else if (kind === 'C' && !prev.startsWith('C|')) {
@@ -220,6 +235,8 @@ MF.liveBuild = (() => {
           { opacity: 0, transform: 'scale(.5) rotate(-12deg)' },
           { opacity: 1, transform: 'none' },
         ], { duration: 380, delay: 60 * burst, easing: 'cubic-bezier(.34,1.56,.64,1)', fill: 'backwards' });
+      } else if ((kind === 'K' || kind === 'H' || (kind === 'L' && !a)) && !prev) {
+        el.animate([{ opacity: 0, transform: 'scale(.6)' }, { opacity: 1, transform: 'none' }], { duration: 320, delay: delays.get(k) || 0, easing: 'ease-out', fill: 'backwards' });
       } else if (!kind && prev && !prev.startsWith('G|')) {
         el.animate([{ opacity: 0.2, transform: 'scale(.7)' }, { opacity: 1, transform: 'none' }], { duration: 280, easing: 'ease-out' });
       }
@@ -258,7 +275,8 @@ MF.liveBuild = (() => {
 
     const chips = [];
     if (live.pages > 1) chips.push(`<span class="lb-chip page">${t('Grille {n} / {total}', { n: live.page + 1, total: live.pages })}</span>`);
-    if (snap) {
+    if (snap?.cells) chips.push(`<span class="lb-chip">${snap.size}</span>`);
+    else if (snap) {
       const all = snap.placed === snap.total;
       chips.push(`<span class="lb-chip ${all ? 'ok' : ''}"><b>${snap.placed}</b>/${snap.total} ${unit(snap.total, 'mot perso', 'mots perso')}</span>`);
       const fillers = (snap.words || []).filter(w => w.src === 'curated').length;
@@ -310,18 +328,69 @@ MF.liveBuild = (() => {
   function update(box, live = {}, o = {}) {
     if (!active(box)) { mount(box, o); skin(o.design); show(null); }
     skin(o.design);
+    if (!!o.secret !== st.secret) {
+      st.secret = !!o.secret;
+      st.root.classList.toggle('secret', st.secret);
+      // Passage du jeu au studio (ou l'inverse) en cours de calcul : cases redessinées
+      if (st.shown) { st.state.fill(''); paint(st.shown); }
+    }
     st.live = live;
     if (live.snapshot && live.snapshot !== st.last) { st.last = live.snapshot; st.queue.push(live.snapshot); }
     schedule();
   }
 
   /**
+   * Instantanés d'une page « logic » : l'énigme (cases données, cases noires, nombres),
+   * puis la solution qui se remplit en vague depuis le coin haut gauche.
+   * @param {any} page
+   * @param {any} puzzle
+   */
+  function logicSnaps(page, puzzle) {
+    const m = MF.logicModel.from(page, puzzle, MF.design.metrics(puzzle.design), puzzle.layout);
+    const w = m.cols, h = m.rows;
+    const start = new Array(w * h).fill('O|'), full = start.slice();
+    const startDelays = [], fullDelays = [];
+    m.cells.forEach((row, r) => row.forEach((cell, c) => {
+      const k = r * w + c;
+      const wave = (r + c) / Math.max(1, w + h - 2);
+      let a = 'O|', b = a;
+      if (cell?.type === 'letter') {
+        if (cell.mark === 'fill') b = cell.ch === '1' ? 'L| |f' : 'L||';
+        else if (cell.mark === 'dot') b = cell.ch === 'O' ? 'L|●|' : 'L|×|x';
+        else b = `L|${cell.ch}|${cell.given ? 'gv' : ''}`;
+        a = cell.given ? b : 'L||';
+      } else if (cell?.type === 'sym') a = b = `L|${cell.ch}|gv`;
+      else if (cell?.type === 'block' || cell?.type === 'clue') a = b = 'K|';
+      else if (cell?.type === 'hint') a = b = `H|${cell.text}`;
+      else if (cell?.type === 'void') a = b = '';
+      start[k] = a;
+      full[k] = b;
+      startDelays.push([k, Math.round(wave * 380)]);
+      if (b !== a) fullDelays.push([k, Math.round(PUZZLE_MS + wave * WAVE_MS + Math.random() * 140)]);
+    }));
+    const frame = { w, h, top: 0, shape: 'rect' };
+    const size = `${w} × ${h}`;
+    return [
+      { engine: 'logic', phase: 'build', frame, size, cells: start, delays: startDelays },
+      { engine: 'logic', phase: 'done', frame, size, cells: full, delays: fullDelays },
+    ];
+  }
+
+  /**
    * Termine l'animation sur la grille retenue (résultat du moteur), puis rend la main.
    * Résolu quand la file est rejouée et la grille montrée un instant (borné à MAX_FINISH_MS).
+   * `puzzle` : la grille, pour les jeux de logique (remplissage de la page trouvée).
    */
-  function finish(box, result, total) {
+  function finish(box, result, total, puzzle) {
     // Onglet en arrière-plan : pas d'images à rejouer, le résultat s'affiche directement
     if (!active(box) || !result || document.hidden) return Promise.resolve();
+    if (result.engine === 'logic') {
+      let snaps;
+      try { snaps = logicSnaps(result, puzzle); } catch (e) { console.error(e); return Promise.resolve(); }
+      st.last = snaps[1];
+      st.queue.push(...snaps);
+      return settle(LOGIC_HOLD_MS);
+    }
     const done = {
       engine: result.engine, phase: 'done', frame: result.frame, total,
       attempts: result.attempts ?? st.last?.attempts ?? 0,
@@ -331,10 +400,15 @@ MF.liveBuild = (() => {
     };
     st.last = done;
     st.queue.push(done);
+    return settle(HOLD_MS);
+  }
+
+  /** Rejoue la file, garde la grille terminée `hold` ms, puis rend la main (jamais plus de MAX_FINISH_MS). */
+  function settle(hold) {
     schedule();
     return new Promise(resolve => {
       const t0 = performance.now();
-      const end = () => setTimeout(resolve, Math.max(0, Math.min(HOLD_MS, MAX_FINISH_MS - (performance.now() - t0))));
+      const end = () => setTimeout(resolve, Math.max(0, Math.min(hold, MAX_FINISH_MS - (performance.now() - t0))));
       const timer = setTimeout(() => { if (st) { st.queue.length && show(st.queue.pop()); st.queue.length = 0; } resolve(); }, MAX_FINISH_MS);
       st.idle.push(() => { clearTimeout(timer); end(); });
     });

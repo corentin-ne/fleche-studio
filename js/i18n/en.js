@@ -1438,4 +1438,11 @@ MF.i18n.add('en', {
   "12 nouveaux jeux : mots casés, mot mystère, citation codée, échelle de mots, wordoku, sudoku (classique, irrégulier, X), kakuro, nombres fléchés et croisés, calcudoku, futoshiki, picross et logigramme, chacun avec une seule solution": "12 new games: fill-ins, mystery word, cryptoquote, word ladder, wordoku, sudoku (classic, jigsaw, X), kakuro, number arrowwords and cross-figures, calcudoku, futoshiki, picross and logic grids, each with one single solution",
   "Picross : le dessin vient d'un emoji, d'une forme, d'un texte ou de ta photo ; logigramme : suspects, lieux et objets des univers du Murdoku": "Picross: the picture comes from an emoji, a shape, some text or your own photo; logic grids: suspects, places and objects from the Murdoku worlds",
   "Les nouveaux jeux ont tout le reste : thèmes, multicolore, décor, export, lien de partage et mode jeu chronométré (cases à cocher au doigt ou à la souris pour le picross et le logigramme)": "The new games get everything else too: themes, multicolour, decor, export, share links and timed play mode (tick squares with a finger or the mouse in picross and logic grids)",
+  "Créer et jouer": "Create and play",
+  "La grille se construit en secret et la partie commence aussitôt": "The puzzle is built in secret and the game starts right away",
+  "Nouvelle partie": "New game",
+  "Une nouvelle partie se construit sans montrer la solution.": "A new game is built without showing the solution.",
+  "Tes réglages, puis on joue : solution cachée": "Pick your settings, then play: solution hidden",
+  "Créer et jouer : choisis tes réglages et la partie commence aussitôt, la grille se construit sans montrer la solution (aussi depuis la Salle de jeu : « Nouvelle partie »)": "Create and play: pick your settings and the game starts right away, the puzzle is built without showing the solution (also from the Games room: “New game”)",
+  "Sudoku, kakuro, picross, logigramme et les autres jeux de chiffres et de logique se remplissent sous tes yeux à la création, comme les grilles de mots": "Sudoku, kakuro, picross, logic grids and the other number and logic games fill in before your eyes when created, just like word puzzles",
 });

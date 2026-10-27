@@ -47,7 +47,7 @@ MF.dashboard = (() => {
   };
 
   /**
-   * @param {any} o  options : { mode: 'create'|'play', onMode(m), onPlay(id), puzzles, activeId, view, backup: { at, due }, onOpen(id), onNew(), onQuick(game), onDuplicate(id), onDelete(id), onImport(), onBackup() }
+   * @param {any} o  options : { mode: 'create'|'play', onMode(m), onPlay(id), puzzles, activeId, view, backup: { at, due }, onOpen(id), onNew(play), onQuick(game, play), onDuplicate(id), onDelete(id), onImport(), onBackup() }
    */
   function render(root, o) {
     const v = o.view;
@@ -69,17 +69,17 @@ MF.dashboard = (() => {
           <select class="select select-sm" id="dash-sort" aria-label="${esc(t('Trier'))}">${[['recent', t('Récentes')], ['name', t('Nom')], ['words', t('Nombre de mots')]].map(([k, l]) => `<option value="${k}" ${v.dashSort === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
           <button class="btn" id="dash-import" title="${esc(t('Ouvrir une sauvegarde ou une liste de mots'))}">${ic('folder')}${t('Ouvrir')}</button>
           <button class="btn" id="dash-backup" title="${esc(t('Sauvegarder toutes mes grilles'))}">${ic('download')}${t('Sauvegarder')}</button>
-          <button class="btn btn-primary" id="dash-new">${ic('plus')}${t('Nouvelle grille')}</button>
+          <button class="btn btn-primary" id="dash-new">${ic(play ? 'gamepad' : 'plus')}${play ? t('Nouvelle partie') : t('Nouvelle grille')}</button>
         </div>
       </header>
 
-      ${play ? `<p class="dash-play-hint muted small">${ic('gamepad', 'ic-inline')} ${t('Choisis une grille pour jouer : chronomètre, indices et vérification. Pour la modifier, passe en mode « Créer ».')}</p>` : ''}
+      ${play ? `<p class="dash-play-hint muted small">${ic('gamepad', 'ic-inline')} ${t('Choisis une grille pour jouer : chronomètre, indices et vérification. Pour la modifier, passe en mode « Créer ».')} ${t('Une nouvelle partie se construit sans montrer la solution.')}</p>` : ''}
       ${!play && o.backup?.due ? `<div class="dash-backup" role="status">${ic('alert')}<span><b>${o.backup.at ? t('Dernière sauvegarde : {when}', { when: ago(o.backup.at) }) : t('Aucune sauvegarde pour l\'instant')}</b> ${t('Si le navigateur efface ses données, tes grilles seront perdues. Garde une copie sur ton appareil.')}</span><button class="btn btn-sm btn-primary" id="dash-backup-now">${ic('download')}${t('Sauvegarder')}</button></div>` : ''}
 
-      <div class="dash-quick" ${play ? 'hidden' : ''}>${Object.entries(MF.games.GAMES).map(([id, g]) => `<button class="quick-chip" data-quick="${id}">${ic(g.icon)}<span><b>${esc(g.short)}</b><small>${t('Créer')}</small></span></button>`).join('')}</div>
+      <div class="dash-quick">${Object.entries(MF.games.GAMES).map(([id, g]) => `<button class="quick-chip" data-quick="${id}">${ic(g.icon)}<span><b>${esc(g.short)}</b><small>${play ? t('Jouer') : t('Créer')}</small></span></button>`).join('')}</div>
 
       <div class="dash-grid">
-        <button class="dash-card dash-new" id="dash-new-card" ${play ? 'hidden' : ''}>${ic('plus', 'ic-lg')}<b>${t('Nouvelle grille')}</b><span class="muted small">${t('Mots, chiffres ou logique')}</span></button>
+        <button class="dash-card dash-new" id="dash-new-card">${play ? `${ic('gamepad', 'ic-lg')}<b>${t('Nouvelle partie')}</b><span class="muted small">${t('Tes réglages, puis on joue : solution cachée')}</span>` : `${ic('plus', 'ic-lg')}<b>${t('Nouvelle grille')}</b><span class="muted small">${t('Mots, chiffres ou logique')}</span>`}</button>
         ${list.map(p => {
           const g = MF.games.get(p.game);
           const svg = thumb(p);
@@ -103,12 +103,12 @@ MF.dashboard = (() => {
       <footer class="dash-foot muted small">${ic('lock', 'ic-inline')} ${t('Tout est enregistré dans ce navigateur, rien sur un serveur. Pense à sauvegarder de temps en temps.')}</footer>
     </div>`;
 
-    root.querySelector('#dash-new').onclick = o.onNew;
-    root.querySelector('#dash-new-card').onclick = o.onNew;
+    root.querySelector('#dash-new').onclick = () => o.onNew(play);
+    root.querySelector('#dash-new-card').onclick = () => o.onNew(play);
     root.querySelector('#dash-import').onclick = o.onImport;
     root.querySelector('#dash-backup').onclick = o.onBackup;
     root.querySelector('#dash-backup-now')?.addEventListener('click', o.onBackup);
-    root.querySelectorAll('[data-quick]').forEach(b => (b.onclick = () => o.onQuick(b.dataset.quick)));
+    root.querySelectorAll('[data-quick]').forEach(b => (b.onclick = () => o.onQuick(b.dataset.quick, play)));
     const qi = root.querySelector('#dash-q');
     qi.addEventListener('input', MF.util.debounce(() => {
       v.dashQuery = qi.value;

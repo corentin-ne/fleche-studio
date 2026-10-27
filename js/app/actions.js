@@ -276,6 +276,8 @@ MF.createActions = app => {
     async newPuzzle(defaults = {}) {
       const res = await MF.welcome.wizard(defaults);
       if (!res) return;
+      // Créer et jouer : une grille de mots a besoin de mots, tirés au hasard si la liste est vide
+      if (res.play && res.start === 'empty') res.start = 'random';
       const pack = res.start.startsWith('pack:') ? MF.lexicon.packs(res.lang)[res.start.slice(5)] : null;
       const look = res.game === 'murdoku' ? MF.murdokuThemes.get(res.mdkTheme) : null;
       const mdk = look ? { theme: res.mdkTheme, size: +res.mdkSize, difficulty: res.mdkDifficulty, render: res.mdkRender, look: look.look, mood: look.mood, seed: MF.util.randomSeed() % 2147483647 } : undefined;
@@ -294,13 +296,14 @@ MF.createActions = app => {
       else if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
       else if (pack) words = pack.words.map(([text, clue]) => ({ text, clue }));
       pz.words = words.map(S.word).filter(Boolean);
-      view.page = 0; view.selected = null; view.filter = ''; view.home = false; view.play = false;
+      // Créer et jouer : la page de jeu s'ouvre tout de suite, la grille s'y construit sans montrer la solution
+      view.page = 0; view.selected = null; view.filter = ''; view.home = false; view.play = !!res.play; view.entriesFor = null;
       store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; }, 'puzzles');
-      if (mdk || isLogic) { app.regenerate(pz.id); return; }
+      if (mdk || isLogic || (res.play && pz.words.length)) { app.regenerate(pz.id); return; }
       if (!words.length) requestAnimationFrame(() => /** @type {HTMLInputElement | null} */ (document.querySelector('#add-form [name=text]'))?.focus());
     },
-    quickStart(game) {
-      return actions.newPuzzle({ game, start: 'random', theme: MF.games.get(game).theme });
+    quickStart(game, play = false) {
+      return actions.newPuzzle({ game, start: 'random', theme: MF.games.get(game).theme, play });
     },
     switchPuzzle(id) {
       if (view.home || view.play) { view.home = false; view.play = false; if (id === store.get().activeId) { app.renderAll(); return; } }

@@ -140,6 +140,9 @@
     );
     const out = await job.run.promise;
     if (job.cancelled || out.cancelled) return;
+    // Remplissage animé : les cases données, puis la solution, avant le rendu final
+    if (out.result && shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, 0, store.puzzle(pz.id) || pz);
+    if (job.cancelled) return;
     jobs.delete(pz.id);
     setBusy(false);
     const layout = out.result ? MF.schema.layout({ engine: 'logic', pages: [out.result], hash, at: Date.now() }) : null;
@@ -169,7 +172,7 @@
   /** Construction en direct (chaque instantané est mis en file et rejoué à l'image par MF.liveBuild). */
   function renderLive(job) {
     if (jobs.get(store.get().activeId) !== job || view.home) return;
-    MF.liveBuild.update($('#grid-scroll'), job.live, { onCancel: cancelGeneration, design: store.active()?.design });
+    MF.liveBuild.update($('#grid-scroll'), job.live, { onCancel: cancelGeneration, design: store.active()?.design, secret: view.play });
   }
 
   function setBusy(on, p = 0) {
@@ -297,7 +300,8 @@
       // Pendant le calcul : la grille se construit en direct (remplace l'ancienne grille)
       lastView = null;
       view.shownGrid = null;
-      MF.liveBuild.update(box, jobs.get(pz.id).live || { engine: engineOf(pz) }, { onCancel: cancelGeneration, design: pz.design });
+      // En partie, la grille se construit sans montrer la solution
+      MF.liveBuild.update(box, jobs.get(pz.id).live || { engine: engineOf(pz) }, { onCancel: cancelGeneration, design: pz.design, secret: view.play });
       return;
     }
     if (!d.model.cols) {
@@ -451,8 +455,8 @@
       onMode: m => { view.dashMode = m; renderDashboard(); },
       onOpen: id => (view.dashMode === 'play' ? openPlay(id) : actions.switchPuzzle(id)),
       onPlay: id => openPlay(id),
-      onNew: () => actions.newPuzzle(),
-      onQuick: actions.quickStart,
+      onNew: play => actions.newPuzzle({ play }),
+      onQuick: (game, play) => actions.quickStart(game, play),
       onDuplicate: id => actions.duplicatePuzzle(id),
       onDelete: id => actions.deletePuzzle(id),
       onImport: () => $('#file-open').click(),

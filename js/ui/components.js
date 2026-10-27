@@ -123,14 +123,14 @@ MF.ui = (() => {
   const stack = [];
   /**
    * Modale générique.
-   * @param {object} o  { title, body (HTML), actions:[{label, kind, value, icon, validate}], wide, size, onOpen(root), className }
+   * @param {object} o  { title, body (HTML), actions:[{label, kind, value, icon, title, validate}], wide, size, onOpen(root), className }
    * @returns Promise résolue avec la `value` du bouton cliqué (null si fermée).
    */
   function modal(o) {
     return new Promise(resolve => {
       const prevFocus = /** @type {HTMLElement} */ (document.activeElement);
       const actions = (o.actions || [{ label: t('Fermer'), value: null }]).map((a, i) =>
-        `<button class="btn ${a.kind ? 'btn-' + a.kind : ''}" data-i="${i}">${a.icon ? ic(a.icon) : ''}${esc(a.label)}</button>`).join('');
+        `<button class="btn ${a.kind ? 'btn-' + a.kind : ''}" data-i="${i}"${a.title ? ` title="${esc(a.title)}"` : ''}>${a.icon ? ic(a.icon) : ''}${esc(a.label)}</button>`).join('');
       const root = html(`
         <div class="modal-scrim">
           <div class="modal glass ${o.wide ? 'wide' : ''} ${o.size || ''} ${o.className || ''}" role="dialog" aria-modal="true" aria-label="${esc(o.title)}">

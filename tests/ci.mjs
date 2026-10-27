@@ -306,6 +306,33 @@ try {
     }
     if (errors.length) fail(`nouveaux jeux : erreurs dans la console\n    ${errors.join('\n    ')}`);
     else console.log(`✔ nouveaux jeux : ${ok.length} / ${games.length} créés et jouables (${ok.join(', ')})`);
+
+    // Créer et jouer : la partie s'ouvre aussitôt, la construction ne montre aucune réponse
+    const played = [];
+    for (const game of ['sudoku', 'fleches']) {
+      try {
+        await page.click('#btn-new-puzzle');
+        await page.click(`.wz-game[data-v="${game}"]`);
+        await page.evaluate(() => {
+          window.__shown = 0;
+          const spy = () => {
+            const seen = [...document.querySelectorAll('.live-build .lb-grid > i.L:not(.gv), .live-build .lb-grid > i.G')]
+              .filter(e => e.textContent.trim() && getComputedStyle(e).color !== 'rgba(0, 0, 0, 0)');
+            window.__shown = Math.max(window.__shown, seen.length);
+          };
+          new MutationObserver(spy).observe(document.querySelector('#grid-scroll'), { subtree: true, childList: true, characterData: true, attributes: true });
+        });
+        await page.click('.modal-foot button:has-text("Créer et jouer")');
+        await page.waitForSelector('.play-cell', { timeout: 60000 });
+        const state = await page.evaluate(() => ({ play: document.body.classList.contains('show-play'), shown: window.__shown, filled: [...document.querySelectorAll('.play-cell')].filter(i => /** @type {HTMLInputElement} */ (i).value && !/** @type {HTMLInputElement} */ (i).readOnly).length }));
+        if (!state.play) throw new Error('la page de jeu ne s\'est pas ouverte');
+        if (state.shown) throw new Error(`${state.shown} réponses visibles pendant la construction`);
+        if (state.filled) throw new Error(`${state.filled} cases déjà remplies`);
+        await page.click('#btn-play-exit');
+        played.push(game);
+      } catch (e) { fail(`créer et jouer : ${game}\n    ${e.message.split('\n')[0]}`); await page.keyboard.press('Escape').catch(() => {}); }
+    }
+    if (played.length === 2) console.log(`✔ créer et jouer : ${played.join(', ')} (partie ouverte, aucune réponse montrée)`);
     await ctx.close();
   }
 

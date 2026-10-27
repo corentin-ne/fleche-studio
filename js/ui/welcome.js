@@ -42,10 +42,13 @@ MF.welcome = (() => {
    * Assistant de création, en trois étapes (pensé d'abord pour le téléphone) :
    * 1. le jeu, 2. le contenu (mots ou univers d'enquête), 3. les réglages et le nom.
    * « Créer » est possible à chaque étape : les valeurs par défaut suffisent.
-   * Renvoie { name, game, shape, theme, start, lang, … } ou null.
+   * « Créer et jouer » ouvre directement la partie, sans montrer la solution.
+   * `defaults.play` : ce bouton passe en premier (ouverture depuis la salle de jeu).
+   * Renvoie { name, game, shape, theme, start, lang, play, … } ou null.
    */
   function wizard(defaults = {}) {
-    const st = { game: 'fleches', shape: 'rect', theme: 'violet', start: 'empty', lang: MF.lexicon.preferred(), mdkSize: '6', mdkDifficulty: 'medium', mdkTheme: 'manor', mdkRender: '3d', level: 'medium', ...defaults };
+    const { play: playFirst = false, ...init } = defaults;
+    const st = { game: 'fleches', shape: 'rect', theme: 'violet', start: 'empty', lang: MF.lexicon.preferred(), mdkSize: '6', mdkDifficulty: 'medium', mdkTheme: 'manor', mdkRender: '3d', level: 'medium', ...init };
     const isLogic = () => MF.games.get(st.game).engine === 'logic';
     let step = defaults.game ? 1 : 0;
     const STEPS = 3;
@@ -56,8 +59,14 @@ MF.welcome = (() => {
     const mdkThemes = lang => MF.panels.murdoku.themeCards(st.mdkTheme, lang, 'data-wz-mdk-theme');
     const stepNames = () => (st.game === 'murdoku' ? [t('Jeu'), t('Univers'), t('Enquête')] : isLogic() ? [t('Jeu'), t('Niveau'), t('Style')] : [t('Jeu'), t('Mots'), t('Style')]);
     const sizeCard = n => `<button type="button" class="wz-size ${String(n) === st.mdkSize ? 'active' : ''}" data-wz="mdkSize" data-v="${n}"><b>${n} × ${n}</b><small>${esc(t('{n} suspects', { n: n - 1 }))}</small></button>`;
+    const result = (root, play) => {
+      const n = id => parseInt(root.querySelector(id).value, 10);
+      return { ...st, play, name: root.querySelector('#wz-name').value.trim(), count: MF.util.clamp(n('#wz-count') || 20, 1, 200), min: MF.util.clamp(n('#wz-min') || 3, 2, 15), max: MF.util.clamp(n('#wz-max') || 9, 2, 15) };
+    };
+    const actCreate = kind => ({ label: t('Créer'), kind, icon: 'sparkle', value: root => result(root, false) });
+    const actPlay = kind => ({ label: t('Créer et jouer'), kind, icon: 'gamepad', title: t('La grille se construit en secret et la partie commence aussitôt'), value: root => result(root, true) });
     return MF.ui.modal({
-      title: t('Nouvelle grille'), wide: true, icon: 'sparkle', className: 'wizard',
+      title: playFirst ? t('Nouvelle partie') : t('Nouvelle grille'), wide: true, icon: 'sparkle', className: 'wizard',
       body: `<div class="wizard-body">
         <ol class="wz-steps" aria-label="${esc(t('Étapes'))}"></ol>
 
@@ -178,10 +187,7 @@ MF.welcome = (() => {
       actions: [
         { label: t('Retour'), icon: 'chevronLeft', kind: 'ghost', value: null, validate: root => { /** @type {any} */ (root).wizardGo(step - 1); return false; } },
         { label: t('Suivant'), value: null, validate: root => { /** @type {any} */ (root).wizardGo(step + 1); return false; } },
-        { label: t('Créer'), kind: 'primary', icon: 'sparkle', value: root => {
-          const n = id => parseInt(root.querySelector(id).value, 10);
-          return { ...st, name: root.querySelector('#wz-name').value.trim(), count: MF.util.clamp(n('#wz-count') || 20, 1, 200), min: MF.util.clamp(n('#wz-min') || 3, 2, 15), max: MF.util.clamp(n('#wz-max') || 9, 2, 15) };
-        } },
+        ...(playFirst ? [actPlay('primary'), actCreate('')] : [actPlay(''), actCreate('primary')]),
       ],
     });
   }

@@ -23,6 +23,8 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Créer et jouer : choisis tes réglages et la partie commence aussitôt, la grille se construit sans montrer la solution (aussi depuis la Salle de jeu : « Nouvelle partie »)',
+    'Sudoku, kakuro, picross, logigramme et les autres jeux de chiffres et de logique se remplissent sous tes yeux à la création, comme les grilles de mots',
     '12 nouveaux jeux : mots casés, mot mystère, citation codée, échelle de mots, wordoku, sudoku (classique, irrégulier, X), kakuro, nombres fléchés et croisés, calcudoku, futoshiki, picross et logigramme, chacun avec une seule solution',
     'Picross : le dessin vient d\'un emoji, d\'une forme, d\'un texte ou de ta photo ; logigramme : suspects, lieux et objets des univers du Murdoku',
     'Les nouveaux jeux ont tout le reste : thèmes, multicolore, décor, export, lien de partage et mode jeu chronométré (cases à cocher au doigt ou à la souris pour le picross et le logigramme)',

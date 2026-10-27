@@ -231,3 +231,15 @@
 .live-build.skinned.waiting .lb-grid > i:not(.out) { animation: lbBreath 1.6s ease-in-out var(--d) infinite; }
 @keyframes lbBreath { 50% { opacity: .55; } }
 .live-build.skinned.waiting .lb-grid > i:not(.out, .band) { background: var(--lb-letter); border-radius: var(--lb-letter-r); box-shadow: inset 0 0 0 var(--lb-lw) var(--lb-line); }
+
+/* Jeux de chiffres et de logique : cases noires, nombres du picross, hors grille */
+.live-build .lb-grid > i.O { visibility: hidden; }
+.live-build .lb-grid > i.K,
+.live-build.skinned .lb-grid > i.K { background: var(--lb-frame, var(--text)); box-shadow: none; }
+.live-build .lb-grid > i.H,
+.live-build.skinned .lb-grid > i.H { background: transparent; box-shadow: none; font-size: calc(var(--cs) * .42); }
+.live-build .lb-grid > i.L.gv { font-weight: 900; }
+.live-build .lb-grid > i.L.f,
+.live-build.skinned .lb-grid > i.L.f { background: var(--lb-ink, var(--text)); }
+.live-build .lb-grid > i.L.x { opacity: .45; }
+

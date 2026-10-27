@@ -37,6 +37,9 @@ listes de mots par thème), sans cookie ni référent.
   simples restent en 2D. Réorganiser = déplacer un identifiant dans la liste des rayons.
 - **Studio et jeu séparés** : le studio crée (solution ou grille vierge) ; on joue sur une page à
   part, depuis la Salle de jeu du tableau de bord.
+- **Créer et jouer** : on choisit ses réglages et la partie commence aussitôt ; la grille se
+  construit sous les yeux sans montrer la solution. En création normale, toutes les grilles
+  (mots, chiffres, logique) se remplissent en direct, sauf le diorama 3D du Murdoku.
 - **Mots** : saisie avec autocomplétion et correction, dictionnaire intégré (FR, EN),
   18 packs à thème de 25 mots définis, catégories du Wiktionnaire, tirage au hasard,
   import texte, CSV, JSON ou Excel.
