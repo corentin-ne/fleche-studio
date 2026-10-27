@@ -147,6 +147,67 @@ MF.themes = (() => {
       design: { accent: '#1d6f8a', colors: { clue: '#dff6f2', arrow: '#1d6f8a', frame: '#7fd6c8', line: '#a8e2da' }, background: { type: 'pattern', pattern: 'mermaidMix', c1: '#e8f8f6', c2: '#7fd6c8', c3: '#f2a6c0', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 16, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 18, radius: 28 }, font: { clue: 'nunito', letter: 'baloo', clueWeight: 700 }, title: { font: 'baloo', color: '#1d6f8a' } },
       confetti: { colors: ['#7fd6c8', '#f2a6c0', '#1d6f8a', '#ffffff'], emojis: ['🧜‍♀️', '🐚', '🐠', '🫧'] },
     },
+    /* Versions 2D des univers Murdoku (même identifiant : voir MF.library) */
+    manor: {
+      label: t('Manoir'), moods: ['dark'],
+      design: { accent: '#c99a5b', colors: { letter: '#fbf3e4', clue: '#ecd9b8', ink: '#2e1f18', clueInk: '#3a2a20', arrow: '#7a2e22', line: '#5b3a29', frame: '#5b3a29', solution: '#7a2e22' }, background: { type: 'pattern', pattern: 'fleurs', c1: '#3a2620', c2: '#5b3a29', c3: '#c99a5b', scale: 1.3 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, arrows: { style: 'chevron' }, voids: 'transparent', frame: { width: 22, radius: 6 }, font: { clue: 'playfair', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair', color: '#e8c48a' } },
+      confetti: { colors: ['#c99a5b', '#7a2e22', '#fbf3e4', '#5b3a29'], emojis: ['🕯️', '🔍', '🗝️'] },
+    },
+    haunted: {
+      label: t('Château hanté'), moods: ['dark'],
+      design: { accent: '#8fd16a', colors: { letter: '#ede6f6', clue: '#3a3046', ink: '#1f1a2a', clueInk: '#e8dcff', arrow: '#5a8a3a', line: '#2b1d3a', frame: '#2b1d3a', solution: '#4a2e6a' }, background: { type: 'pattern', pattern: 'bats', c1: '#1f1a2a', c2: '#3a3046', c3: '#8fd16a', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 20, radius: 6 }, font: { clue: 'grotesk', letter: 'fraunces', clueWeight: 600 }, title: { font: 'fraunces', color: '#c8f0a8' } },
+      confetti: { colors: ['#8fd16a', '#3a3046', '#ede6f6', '#b56ad8'], emojis: ['👻', '🦇', '🕸️', '🕯️'] },
+    },
+    paris: {
+      label: t('Paris'), moods: ['soft'],
+      design: { accent: '#24427a', colors: { clue: '#fbe4e6', arrow: '#c0392b', line: '#24427a', frame: '#24427a' }, background: { type: 'pattern', pattern: 'parisMix', c1: '#f6eef0', c2: '#24427a', c3: '#e8b4b8', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 18, radius: 12 }, font: { clue: 'nunito', letter: 'playfair', clueWeight: 700 }, title: { font: 'caveat', color: '#24427a' } },
+      confetti: { colors: ['#24427a', '#ffffff', '#c0392b', '#e8b4b8'], emojis: ['🥐', '🗼', '🎨', '🥖'] },
+    },
+    regency: {
+      label: t('Bal de la Régence'), moods: ['soft'],
+      design: { accent: '#7d6bb3', colors: { clue: '#f4e8f6', arrow: '#b0507a', line: '#c9b6e8', frame: '#7d6bb3' }, background: { type: 'pattern', pattern: 'flowers', c1: '#f7f1fb', c2: '#d9c8f0', c3: '#f2c6d6', scale: 1.3 }, cell: { style: 'rounded', gap: 0, radius: 18, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 20, radius: 26 }, font: { clue: 'playfair', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair', color: '#5a4890' } },
+      confetti: { colors: ['#c9b6e8', '#f2c6d6', '#ffffff', '#7d6bb3'], emojis: ['💐', '🎀', '💌'] },
+    },
+    rome: {
+      label: t('Rome antique'), moods: ['vivid'],
+      design: { accent: '#8a2a2a', colors: { clue: '#f2e6c8', arrow: '#8a2a2a', line: '#b8a070', frame: '#8a2a2a' }, background: { type: 'pattern', pattern: 'romeMix', c1: '#efe6d0', c2: '#8a2a2a', c3: '#b8a070', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 20, radius: 4 }, font: { clue: 'fraunces', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair', color: '#8a2a2a' } },
+      confetti: { colors: ['#8a2a2a', '#e0b23a', '#efe6d0', '#7aa84a'], emojis: ['🏛️', '🍇', '🏺'] },
+    },
+    medieval: {
+      label: t('Chevaliers'), moods: ['dark', 'vivid'],
+      design: { accent: '#d9b45a', colors: { letter: '#f8f1e0', clue: '#e6d7b4', ink: '#232a3c', clueInk: '#232a3c', arrow: '#9a2a2a', line: '#4a5a7a', frame: '#4a5a7a', solution: '#2e3a66' }, background: { type: 'pattern', pattern: 'medievalMix', c1: '#2e3a56', c2: '#4a5a7a', c3: '#d9b45a', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 22, radius: 6 }, font: { clue: 'fraunces', letter: 'fraunces', clueWeight: 700 }, title: { font: 'fraunces', color: '#e8c873' } },
+      confetti: { colors: ['#d9b45a', '#9a2a2a', '#4a5a7a', '#f8f1e0'], emojis: ['🏰', '🛡️', '⚔️', '👑'] },
+    },
+    prehistory: {
+      label: t('Préhistoire'), moods: ['vivid'],
+      design: { accent: '#6b4a2e', colors: { clue: '#e8f0d0', arrow: '#c0602a', line: '#8a6a4a', frame: '#6b4a2e' }, background: { type: 'pattern', pattern: 'prehistoryMix', c1: '#efe2c4', c2: '#9fc46a', c3: '#6b4a2e', scale: 1 }, cell: { style: 'rounded', gap: 0, radius: 16, line: 4, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 24, radius: 30 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'marker', color: '#6b4a2e' } },
+      confetti: { colors: ['#9fc46a', '#6b4a2e', '#e0a94a', '#efe2c4'], emojis: ['🦣', '🦴', '🔥', '🦖'] },
+    },
+    western: {
+      label: t('Far West'), moods: ['vivid'],
+      design: { accent: '#8a4b26', colors: { letter: '#fdf4e2', clue: '#f2dcb0', ink: '#3a2414', clueInk: '#3a2414', arrow: '#a8321e', line: '#8a4b26', frame: '#8a4b26', solution: '#a8321e' }, background: { type: 'pattern', pattern: 'westernMix', c1: '#f2d9a8', c2: '#8a4b26', c3: '#e7b866', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 22, radius: 4 }, font: { clue: 'grotesk', letter: 'playfair', clueWeight: 700 }, title: { font: 'marker', color: '#8a4b26' } },
+      confetti: { colors: ['#e7b866', '#8a4b26', '#a8321e', '#fdf4e2'], emojis: ['🤠', '🌵', '🐎', '⭐'] },
+    },
+    train: {
+      label: t('Train de nuit'), moods: ['dark'],
+      design: { accent: '#c9a24a', colors: { letter: '#f8f2e2', clue: '#e8dcb8', ink: '#1a2a24', clueInk: '#1a2a24', arrow: '#7a2e22', line: '#1f3a33', frame: '#1f3a33', solution: '#1f3a33' }, background: { type: 'pattern', pattern: 'trains', c1: '#1f3a33', c2: '#2c5048', c3: '#c9a24a', scale: 1 }, cell: { style: 'classic', gap: 0, radius: 0, line: 3, letterShape: 'square', shadow: false }, arrows: { style: 'chevron' }, voids: 'transparent', frame: { width: 20, radius: 10 }, font: { clue: 'playfair', letter: 'playfair', clueWeight: 700 }, title: { font: 'playfair', color: '#e0c06a' } },
+      confetti: { colors: ['#c9a24a', '#1f3a33', '#f8f2e2', '#7a2e22'], emojis: ['🚂', '🧳', '🎫'] },
+    },
+    circus: {
+      label: t('Cirque'), moods: ['party', 'vivid'],
+      design: { accent: '#c0283a', colors: { clue: '#fff1c2', arrow: '#c0283a', line: '#c0283a', frame: '#c0283a' }, background: { type: 'pattern', pattern: 'bunting', c1: '#fff6e0', c2: '#c0283a', c3: '#f5d36b', scale: 1.4 }, cell: { style: 'tiles', gap: 7, radius: 12, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 22, radius: 20 }, font: { clue: 'baloo', letter: 'baloo', clueWeight: 700 }, title: { font: 'marker', color: '#c0283a' } },
+      confetti: { colors: ['#c0283a', '#f5d36b', '#2f6f9a', '#ffffff'], emojis: ['🎪', '🤹', '🎈', '🍿'] },
+    },
+    chalet: {
+      label: t('Chalet'), moods: ['soft'],
+      design: { accent: '#2f5a8a', colors: { clue: '#e3edf7', arrow: '#c0392b', line: '#9fb8d4', frame: '#2f5a8a' }, background: { type: 'pattern', pattern: 'snowflakes', c1: '#e6eef6', c2: '#9fb8d4', c3: '#ffffff', scale: 1.2 }, cell: { style: 'rounded', gap: 0, radius: 14, line: 3, letterShape: 'square', shadow: false }, voids: 'transparent', frame: { width: 22, radius: 22 }, font: { clue: 'nunito', letter: 'nunito', clueWeight: 700 }, title: { font: 'fraunces', color: '#2f5a8a' } },
+      confetti: { colors: ['#ffffff', '#9fb8d4', '#2f5a8a', '#c0392b'], emojis: ['❄️', '⛷️', '☕'] },
+    },
+    world: {
+      label: t('Tour du monde'), moods: ['vivid'],
+      design: { accent: '#1aa3d9', colors: { clue: '#e0f4fc', arrow: '#e07a1a', line: '#1aa3d9', frame: '#1aa3d9' }, background: { type: 'pattern', pattern: 'clouds', c1: '#bfe6f6', c2: '#ffffff', c3: '#f5c542', scale: 1.2 }, cell: { style: 'tiles', gap: 7, radius: 12, line: 0, letterShape: 'square', shadow: true }, voids: 'transparent', frame: { width: 20, radius: 18 }, font: { clue: 'grotesk', letter: 'grotesk', clueWeight: 700 }, title: { font: 'grotesk', color: '#0f6a8f' } },
+      confetti: { colors: ['#1aa3d9', '#f5c542', '#e07a1a', '#ffffff'], emojis: ['🌍', '✈️', '🧳', '🗺️'] },
+    },
   };
 
   /** Ambiances proposées pour filtrer les thèmes. */

@@ -170,7 +170,26 @@ MF.createActions = app => {
       view.sideLocked = live;
       mutate(p => { const next = MF.util.deepClone(p.design); setPath(next, path, value); commitDesign(p, next); }, 'design', { coalesce: `design:${path}` });
     },
-    applyTheme(id) { mutate(p => { p.design = MF.themes.apply(p.design, id); }, 'design'); },
+    /**
+     * Thème de la bibliothèque (MF.library) choisi dans Design. Pour une enquête Murdoku, un thème
+     * qui existe aussi en 3D change aussi d'univers.
+     */
+    applyTheme(id) {
+      const pz = active();
+      const mdk = pz.game === 'murdoku' ? MF.library.byGrid(id)?.mdk : null;
+      if (mdk && mdk !== MF.murdokuView.options(pz.options.murdoku).theme) { actions.pickUniverse(mdk); return; }
+      mutate(p => { p.design = MF.themes.apply(p.design, id); }, 'design');
+    },
+    /** Nouvel univers Murdoku : ses noms, son ambiance, une nouvelle énigme, et sa version 2D pour la page (un seul pas d'annulation). */
+    pickUniverse(id) {
+      const look = MF.murdokuThemes.get(id);
+      const grid = MF.library.byUniverse(id)?.grid;
+      mutate(p => {
+        const o = MF.murdokuView.options(p.options.murdoku);
+        p.options = S.options({ ...p.options, murdoku: { ...o, theme: id, names: [], victim: '', roomNames: {}, objectNames: {}, story: '', look: look.look, mood: look.mood, seed: MF.util.randomSeed() % 2147483647, flavor: 0 } });
+        if (grid) p.design = MF.themes.apply(p.design, grid);
+      }, 'options');
+    },
     async setBackgroundImage(file) {
       try {
         const a = await MF.assets.add(file, file.name);
@@ -261,7 +280,8 @@ MF.createActions = app => {
       const pz = store.makePuzzle({ name: res.name || mdkName || pack?.label || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang, murdoku: mdk } });
       await MF.lexicon.ensure(res.lang).catch(() => {}); // tirage au hasard : dictionnaire de la langue choisie
       MF.dictionary.use(res.lang);
-      pz.design = MF.themes.apply(pz.design, mdk && res.theme === 'violet' ? 'kraft' : res.theme);
+      // Enquête : la version 2D de son univers habille la page (titre, polices, export)
+      pz.design = MF.themes.apply(pz.design, mdk ? MF.library.byUniverse(res.mdkTheme)?.grid || 'kraft' : res.theme);
       let words = [];
       if (mdk) words = [];
       else if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());

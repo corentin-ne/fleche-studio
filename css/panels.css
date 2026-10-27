@@ -501,6 +501,14 @@ button.brand:hover { background: var(--glass-hover); }
 .chip-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
 .theme-filters { margin-bottom: 10px; }
 .theme-card[hidden], .shape-grid[hidden], .fmt-row[hidden] { display: none; }
+/* Bibliothèque des thèmes : rayons et repère des thèmes qui existent aussi en 3D */
+.theme-shelf + .theme-shelf { margin-top: 14px; }
+.theme-shelf[hidden], .mdk-theme[hidden] { display: none; }
+.theme-shelf-title { margin: 0 0 8px; font: 700 11px var(--font-sans); letter-spacing: .06em; text-transform: uppercase; color: var(--text-3); }
+.theme-thumb { position: relative; }
+.theme-3d { position: absolute; top: 4px; right: 4px; padding: 1px 5px; border-radius: 6px; background: rgba(20, 16, 14, .72); color: #fff; font: 800 9.5px/1.4 var(--font-sans); font-style: normal; letter-spacing: .04em; pointer-events: none; }
+.mdk-shelves { margin-bottom: 8px; }
+.mdk-shelves .chip { height: 28px; padding: 0 11px; font-size: 12px; }
 
 /* Lettres et chiffres : vignettes compactes, glyphe bien visible */
 .shape-grid.glyphs { grid-template-columns: repeat(auto-fill, minmax(50px, 1fr)); gap: 5px; }

@@ -50,7 +50,8 @@ MF.welcome = (() => {
     const STEPS = 3;
     // Tous les packs à thème de chaque langue, rendus d'avance : changer de langue bascule sur place
     const packCards = lang => Object.entries(MF.lexicon.packs(lang)).map(([id, p]) => `<button type="button" class="start-card" data-wz="start" data-v="pack:${id}" data-lang="${lang}" ${lang === st.lang ? '' : 'hidden'}><span class="pack-emoji">${p.emoji}</span><b>${esc(p.label)}</b><small>${plural(p.words.length, 'mot')}</small></button>`).join('');
-    const themes = Object.entries(MF.themes.THEMES);
+    // Styles de grille dans l'ordre de la bibliothèque (MF.library)
+    const themes = MF.library.list('2d').map(e => [e.grid, MF.themes.THEMES[e.grid]]);
     const mdkThemes = lang => MF.panels.murdoku.themeCards(st.mdkTheme, lang, 'data-wz-mdk-theme');
     const stepNames = () => (st.game === 'murdoku' ? [t('Jeu'), t('Univers'), t('Enquête')] : [t('Jeu'), t('Mots'), t('Style')]);
     const sizeCard = n => `<button type="button" class="wz-size ${String(n) === st.mdkSize ? 'active' : ''}" data-wz="mdkSize" data-v="${n}"><b>${n} × ${n}</b><small>${esc(t('{n} suspects', { n: n - 1 }))}</small></button>`;
@@ -124,6 +125,7 @@ MF.welcome = (() => {
           const target = /** @type {any} */ (e.target);
           const g = target.closest('[data-goto]');
           if (g) { go(+g.dataset.goto); return; }
+          if (MF.panels.murdoku.shelfClick(target)) return;
           const th = target.closest('[data-wz-mdk-theme]');
           if (th) {
             st.mdkTheme = th.dataset.wzMdkTheme;

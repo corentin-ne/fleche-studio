@@ -123,10 +123,12 @@
     let puzzle;
     try { puzzle = MF.murdokuView.generate(pz); } catch (e) { console.error(e); MF.ui.toast(t('Le calcul a échoué : {error}', { error: e.message }), 'err', 5000); return; }
     view.page = 0;
+    // L'énigme découle des réglages (graine comprise) : pas d'étape d'annulation à elle. Sinon,
+    // annuler un réglage relancerait le calcul, qui deviendrait la nouvelle étape à annuler.
     store.update(s => {
       const p = s.puzzles.find(x => x.id === pz.id);
       if (p) p.layout = MF.schema.layout({ engine: 'murdoku', pages: [puzzle], hash: hashOf(p), at: Date.now() });
-    }, 'layout');
+    }, 'layout', { history: false });
   }
 
   /** Construction en direct (chaque instantané est mis en file et rejoué à l'image par MF.liveBuild). */

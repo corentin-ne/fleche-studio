@@ -254,6 +254,18 @@
 .mdk-board { position: relative; aspect-ratio: 1; width: min(100%, calc(100vh - 190px)); margin: 0 auto; border-radius: var(--r-lg); overflow: hidden; background: color-mix(in srgb, #f6f0e4 82%, transparent); color: #3b2f2a; display: grid; place-items: center; }
 .mdk-board > svg, .mdk-board > canvas, .mdk-host { width: 100%; height: 100%; display: block; }
 .mdk-board .mdk-cell { cursor: pointer; }
+/* Caméra du plateau 3D : boutons discrets, plus visibles au survol */
+.mdk-host { position: relative; }
+.mdk-cam { position: absolute; right: 10px; bottom: 10px; display: flex; gap: 2px; padding: 3px; border-radius: var(--r-pill); background: rgba(246, 240, 228, .78); box-shadow: 0 4px 14px -6px rgba(40, 28, 20, .45); backdrop-filter: blur(6px); opacity: .72; transition: opacity var(--t-fast) var(--ease); }
+.mdk-board:hover .mdk-cam, .mdk-cam:focus-within { opacity: 1; }
+.mdk-cam-btn { display: grid; place-items: center; width: 30px; height: 30px; border: 0; border-radius: 50%; background: transparent; color: #3b2f2a; cursor: pointer; }
+.mdk-cam-btn:hover { background: rgba(59, 47, 42, .1); }
+.mdk-cam-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.mdk-cam-btn .ic { width: 16px; height: 16px; }
+.mdk-cam-reset { display: none; }
+.mdk-cam.moved .mdk-cam-reset { display: contents; }
+.mdk-cam.moved .mdk-cam-reset .mdk-cam-btn { background: #3b2f2a; color: #f6f0e4; }
+@media (max-width: 560px) { .mdk-cam-btn { width: 34px; height: 34px; } .mdk-cam { right: 6px; bottom: 6px; opacity: 1; } }
 [data-mode="play"] .mdk-board .mdk-cell:hover { filter: brightness(.94); }
 .mdk-loading { display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: var(--fs-sm); }
 .mdk-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }

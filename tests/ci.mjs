@@ -42,7 +42,7 @@ const fail = msg => { failed++; console.error(`✘ ${msg}`); };
  * Budget de poids (Ko, non compressé) : une hausse involontaire (fichier dupliqué, données
  * collées par erreur) fait échouer la vérification. À relever consciemment si nécessaire.
  */
-const BUDGET = { app: 960, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 760 };
+const BUDGET = { app: 1000, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 760 };
 
 /** Fichiers listés par js/loader.js (même liste que la page et le service worker). */
 async function loaderLists() {

@@ -746,6 +746,17 @@
     for (const t of Object.keys(M.OBJECTS)) assert(M.objectLabel(t) && M.objectLabel(t) !== t, `objet ${t}`);
   });
 
+  test('bibliothèque : chaque thème rangé une fois, univers et thèmes de grille reliés', () => {
+    const L = MF.library, listed = L.SHELVES.flatMap(s => s.items);
+    eq(listed.length, new Set(listed).size, 'thème rangé deux fois');
+    for (const id of listed) assert(L.get(id), `${id} : ni thème de grille ni univers`);
+    for (const id of Object.keys(MF.themes.THEMES)) assert(listed.includes(L.byGrid(id)?.id), `${id} : thème de grille hors des rayons`);
+    for (const id of MF.murdokuThemes.ids) assert(listed.includes(L.byUniverse(id)?.id), `${id} : univers hors des rayons`);
+    // Les styles simples restent en 2D ; les univers et les fêtes existent en 2D et en 3D
+    for (const e of L.ENTRIES) assert(e.grid && (e.shelf === 'styles' ? !e.mdk : e.mdk), `${e.id} : versions 2D / 3D`);
+    eq([L.list('2d').length, L.list('3d').length], [Object.keys(MF.themes.THEMES).length, MF.murdokuThemes.ids.length], 'catalogue complet');
+  });
+
   test('murdoku : univers (noms, lieux, objets, histoire) et retouches', () => {
     const M = MF.murdoku, U = MF.murdokuThemes;
     assert(U.ids.length >= 15, 'univers');

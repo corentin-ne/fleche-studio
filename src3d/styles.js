@@ -29,6 +29,10 @@ export const STYLES3D = {
   easter: { border: ['grass', '#a8d888', '#7ab860'], side: '#c8a0c0', rim: '#7a5a78', ink: '#ffffff', wall: 'plaster', fence: 'picket', open: 'hedge', deco: ['flowers', 'eggs', 'bush', 'sakura', 'flowers', 'eggs'] },
   carnival: { border: ['marble', '#efe4d0', '#c9b490'], side: '#6a1f6e', rim: '#3a0f3e', ink: '#ffffff', wall: 'plaster', fence: 'iron', open: 'line', deco: ['balloons', 'lamp', 'confetti', 'balloons', 'column', 'confetti'] },
   lunar: { border: ['cobble', '#c9b8a0', '#9a8a72'], side: '#b3202c', rim: '#5a1018', ink: '#f2c14e', wall: 'plaster', fence: 'bamboo', open: 'pebbles', deco: ['sakura', 'lanternStone', 'paperLantern', 'bamboo', 'firecrackers', 'bonsai'] },
+  xmas: { border: ['snow', '#f4f8fc', '#cfdbe8'], side: '#b3202c', rim: '#5a1018', ink: '#1f4a2e', wall: 'logs', fence: 'snow', open: 'snow', deco: ['pine', 'snowman', 'pine', 'presents', 'lamp', 'pine'] },
+  birthday: { border: ['grass', '#a8d888', '#7ab860'], side: '#ff7a00', rim: '#a84a00', ink: '#ffffff', wall: 'plaster', fence: 'picket', open: 'line', deco: ['balloons', 'presents', 'bush', 'balloons', 'flowers', 'presents'] },
+  love: { border: ['cobble', '#e8d0d6', '#c8a8b2'], side: '#e5384f', rim: '#7a1f3a', ink: '#ffffff', wall: 'plaster', fence: 'iron', open: 'hedge', deco: ['rosebush', 'heart', 'topiary', 'rosebush', 'lamp', 'heart'] },
+  forest: { border: ['grass', '#7fae5a', '#5a8a3a'], side: '#6b4a34', rim: '#3a2a1c', ink: '#ffffff', wall: 'logs', fence: 'hedge', open: 'rocks', deco: ['tree', 'toadstool', 'fern', 'tree', 'bush', 'toadstool', 'rock'] },
   rome: { border: ['marble', '#efe9dc', '#bdb39c'], side: '#c8bea8', rim: '#6e6450', ink: '#5a3a2a', wall: 'marble', fence: 'rocks', open: 'pebbles', deco: ['cypress', 'jar', 'column', 'cypress', 'bush'] },
 };
 

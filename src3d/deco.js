@@ -175,6 +175,24 @@ export const LANDMARKS = {
     b.cyl(0.08, 0.08, 0.14, 0, 0.79, 0, '#2a2523', { seg: 12 });
     b.box(0.32, 0.05, 0.08, 0, 0.58, 0, '#c0283a');
   },
+  toadstool(b, r) {
+    // Champignon géant de conte : pied clair, chapeau rouge à pois blancs
+    const h = 0.45 + r() * 0.2, cap = 0.28 + r() * 0.08;
+    b.cyl(0.07, 0.09, h, 0, 0, 0, '#f2ead8', { seg: 10 });
+    b.sphere(cap, 0, h, 0, pick(r, ['#c0392b', '#d9601a', '#b3202c']), { sy: 0.55, seg: 16 });
+    for (let i = 0; i < 6; i++) {
+      const a = i * 1.05 + r() * 0.3, d = cap * (i % 2 ? 0.45 : 0.75);
+      b.sphere(0.035, Math.cos(a) * d, h + cap * 0.55 * Math.sqrt(1 - (d / cap) ** 2) - 0.005, Math.sin(a) * d, '#fbf6ea', { sy: 0.45, seg: 8 });
+    }
+  },
+  heart(b, r) {
+    // Cœur sur un piquet, comme une enseigne de fête
+    const c = pick(r, ['#e5384f', '#ff7f99', '#c0283a']);
+    b.cyl(0.025, 0.03, 0.75, 0, 0, 0, '#f6f2ea', { seg: 6 });
+    // a square on its corner, and a lobe on the middle of each upper side
+    for (const s of [-1, 1]) b.sphere(0.1, s * 0.071, 0.891, 0, c, { seg: 14 });
+    b.cbox(0.2, 0.2, 0.1, 0, 0.82, 0, c, { rz: Math.PI / 4 });
+  },
   fountainSmall(b) {
     b.cyl(0.38, 0.4, 0.18, 0, 0, 0, '#d8ccb2', { seg: 18 });
     b.cyl(0.32, 0.32, 0.01, 0, 0.15, 0, '#5fa5b5', { seg: 18, roughness: 0.1 });

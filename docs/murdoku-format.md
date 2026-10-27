@@ -97,6 +97,25 @@ renvoie l'habillage complet, retouches de l'auteur comprises (`custom.rooms[type
 ingrédients de l'univers (`gen` : ouvertures, objets trouvés, surnoms, titres et noms de victimes) avec
 des morceaux communs : prénoms parfois surnommés, victimes et histoire neufs pour chaque variante.
 
+Chaque univers a aussi une version 2D, un thème de grille de même identifiant (`MF.themes`) : la
+bibliothèque `MF.library` (`js/data/library.js`) les réunit, dans un seul ordre et des rayons communs à
+tous les jeux. Choisir un univers applique sa version 2D à la page (titre, polices, export).
+
+## Caméra du plateau 3D
+
+La vue (`createView`) a une caméra libre posée sur le point de vue choisi (`camera` : `iso` ou `top`) :
+glisser pour tourner et incliner, clic droit, bouton du milieu ou touche de modification pour déplacer,
+molette pour zoomer ; au doigt, glisser de côté pour tourner (le glissé vertical fait défiler la page),
+deux doigts pour zoomer, tourner et déplacer. Méthodes : `nudgeCamera({ az, el, zoom })` (animé, en
+degrés et en facteur), `moveCamera(…)` (immédiat), `resetCamera()`, `cameraMoved` ; `onCamera(moved)`
+est appelé après chaque mouvement. Les exports (`toCanvas`, `renderImage`) gardent toujours le point de
+vue prédéfini.
+
+Vue de base haute (3/4 à 66°, ou de dessus) et projection « debout » des jeux vus de haut : plus la
+vue est haute, plus tout ce qui a une hauteur penche vers l'arrière (`standUpAngle` dans
+`src3d/looks.js`), pour que figurines et meubles montrent leur face. Seule l'image est cisaillée :
+lumière, ombres et clic sur les cases voient la vraie scène. Les figurines se tournent vers la caméra.
+
 ## Décor 3D
 
 `src3d/clutter.js` ajoute des accessoires purement décoratifs (nourriture, livres, tonneaux,

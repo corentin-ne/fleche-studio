@@ -158,6 +158,30 @@ MF.murdokuView = (() => {
     live = null;
   }
 
+  /**
+   * Boutons de caméra du plateau 3D (en plus de la souris et des doigts : glisser pour tourner,
+   * molette ou pincer pour zoomer, clic droit ou deux doigts pour déplacer).
+   */
+  function cameraBar(view) {
+    const btn = (k, icon, label) => `<button type="button" class="mdk-cam-btn" data-cam="${k}" title="${esc(label)}" aria-label="${esc(label)}">${ic(icon)}</button>`;
+    const bar = MF.util.html(`<div class="mdk-cam" role="toolbar" aria-label="${esc(t('Caméra'))}" title="${esc(t('Glisser pour tourner, molette pour zoomer, clic droit pour déplacer'))}">
+      ${btn('left', 'rotateLeft', t('Tourner vers la gauche'))}${btn('right', 'rotate', t('Tourner vers la droite'))}
+      ${btn('up', 'arrowUp', t('Voir de plus haut'))}${btn('down', 'arrowDown', t('Voir de plus bas'))}
+      ${btn('in', 'plus', t('Zoomer'))}${btn('out', 'minus', t('Dézoomer'))}
+      <span class="mdk-cam-reset">${btn('reset', 'recenter', t('Recadrer le plateau'))}</span></div>`);
+    const moves = { left: { az: 45 }, right: { az: -45 }, up: { el: 12 }, down: { el: -12 }, in: { zoom: 1.25 }, out: { zoom: 0.8 } };
+    bar.addEventListener('click', e => {
+      const b = /** @type {any} */ (e.target).closest('[data-cam]');
+      if (!b) return;
+      if (b.dataset.cam === 'reset') view.resetCamera();
+      else view.nudgeCamera(moves[b.dataset.cam]);
+    });
+    // Le pointeur sur la barre ne fait ni tourner ni jouer
+    bar.addEventListener('pointerdown', e => e.stopPropagation());
+    view.onCamera = moved => bar.classList.toggle('moved', moved);
+    return bar;
+  }
+
   /** Plateau dans un conteneur : 3D si choisie et possible, sinon plan SVG. */
   async function mountBoard(el, pz, state, onCell) {
     const puzzle = pz.layout.pages[0];
@@ -172,6 +196,7 @@ MF.murdokuView = (() => {
           host.className = 'mdk-host';
           el.replaceChildren(host);
           const view = await m.createView(host, { ...viewOpts(pz), interactive: true });
+          host.appendChild(cameraBar(view));
           live = { host, view, onCell: null };
           view.onCell = (r, c) => live?.onCell?.(r, c);
           return live;

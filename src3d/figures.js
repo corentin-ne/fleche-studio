@@ -75,6 +75,10 @@ const HATS = {
   easter: ['bunnyEars', 'bonnet', 'bunnyEars'],
   carnival: ['mask', 'partyHat', 'mask'],
   lunar: ['mandarinCap', 'topknot', 'mandarinCap'],
+  xmas: ['santa', 'elf', 'santa'],
+  birthday: ['partyHat', 'partyHat', 'crown'],
+  love: ['flowerCrown', 'tophat', 'bonnet'],
+  forest: ['flowerCrown', 'hood', 'feather'],
 };
 function hat(b, kind, c, r) {
   const y = 0.98;
@@ -210,6 +214,23 @@ function hat(b, kind, c, r) {
     case 'cap':
       b.sphere(0.2, 0, 0.92, 0, c, { sy: 0.7, seg: 16 });
       b.box(0.24, 0.02, 0.16, 0, 0.9, 0.2, c);
+      break;
+    case 'santa':
+      b.cyl(0.215, 0.215, 0.06, 0, 0.86, 0, '#f6f2ea', { seg: 18 });
+      b.cyl(0.02, 0.19, 0.32, 0, 0.9, -0.02, '#c0283a', { seg: 14, rx: -0.45 });
+      b.sphere(0.055, 0, 1.12, -0.16, '#f6f2ea', { seg: 10 });
+      break;
+    case 'elf':
+      b.cyl(0.0, 0.17, 0.34, 0, y - 0.06, 0, '#3f7a4a', { seg: 14, rz: 0.35 });
+      b.cyl(0.175, 0.175, 0.04, 0, y - 0.07, 0, '#c0283a', { seg: 14 });
+      b.sphere(0.03, -0.12, y + 0.24, 0, '#f2c94c', { seg: 8 });
+      break;
+    case 'flowerCrown':
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * Math.PI * 2;
+        b.sphere(0.04, Math.cos(a) * 0.18, 0.96, Math.sin(a) * 0.18, i % 3 ? c : '#f6f2ea', { seg: 8, sy: 0.8 });
+        if (i % 3 === 1) b.sphere(0.028, Math.cos(a + 0.35) * 0.19, 0.94, Math.sin(a + 0.35) * 0.19, '#5a9a4a', { seg: 6, sy: 0.6 });
+      }
       break;
     case 'laurel':
       for (let i = 0; i < 12; i++) {

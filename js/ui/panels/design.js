@@ -19,16 +19,24 @@ MF.panels.design = (() => {
   const fontOptions = value => Object.entries(MF.design.FONTS).map(([id, f]) => `<option value="${id}" ${id === value ? 'selected' : ''} style="font-family:${esc(f.css)}">${esc(f.label)}</option>`).join('');
   const group = (title, content) => `<div class="pgroup">${title ? `<div class="pgroup-title">${esc(title)}</div>` : ''}${content}</div>`;
 
-  /** Thèmes filtrés sur place par ambiance (aucun nouveau rendu). */
+  /** Filtres des thèmes : ambiances, puis ceux qui existent aussi en univers Murdoku 3D. */
+  const themeFilters = () => [['all', t('Tous')], ...Object.entries(MF.themes.MOODS), ['3d', t('Aussi en 3D')]];
+
+  /** Thèmes de la bibliothèque (MF.library) rangés par rayon, filtrés sur place par ambiance (aucun nouveau rendu). */
   function themeTab(d, filter = 'all') {
-    const filters = [['all', t('Tous')], ...Object.entries(MF.themes.MOODS)];
     const quick = MF.palettes.ACCENTS[0][1];
+    const shown = (th, e) => filter === 'all' || (filter === '3d' ? !!e.mdk : th.moods.includes(filter));
     return group(t('Couleur'),`<div class="swatches quick-colors">${quick.map(x => `<button type="button" class="swatch-btn ${x === d.accent ? 'active' : ''}" data-accent="${x}" style="--c:${x}" aria-label="${x}" title="${x}"></button>`).join('')}
         <button type="button" class="btn btn-sm btn-ghost more-colors" data-dtab="colors">${quick.includes(d.accent) ? '' : `<i class="dot" style="--c:${d.accent}"></i>`}${t('Plus de couleurs')}${ic('chevronRight')}</button></div>`)
-      + `<div class="pgroup"><div class="pgroup-title">${t('Thème')}</div><div class="chips theme-filters" role="toolbar" aria-label="${t('Filtrer les thèmes')}">${filters.map(([k, l]) => `<button type="button" class="chip chip-btn ${k === filter ? 'active' : ''}" data-theme-filter="${k}">${esc(l)}</button>`).join('')}</div>
-      <div class="theme-grid">${Object.entries(MF.themes.THEMES).map(([id, th]) => `
-      <button type="button" class="theme-card ${d.theme === id ? 'active' : ''}" data-theme-id="${id}" data-moods="${esc(th.moods.join(' '))}" ${filter === 'all' || th.moods.includes(filter) ? '' : 'hidden'} title="${esc(th.label)}">
-        <span class="theme-thumb">${MF.previews.theme(id)}</span><span class="theme-name">${esc(th.label)}</span></button>`).join('')}</div></div>`
+      + `<div class="pgroup"><div class="pgroup-title">${t('Thème')}</div><div class="chips theme-filters" role="toolbar" aria-label="${t('Filtrer les thèmes')}">${themeFilters().map(([k, l]) => `<button type="button" class="chip chip-btn ${k === filter ? 'active' : ''}" data-theme-filter="${k}">${esc(l)}</button>`).join('')}</div>
+      ${MF.library.shelves('2d').map(s => {
+        const cards = s.entries.map(e => {
+          const th = MF.themes.THEMES[e.grid];
+          return `<button type="button" class="theme-card ${d.theme === e.grid ? 'active' : ''}" data-theme-id="${e.grid}" data-moods="${esc([...th.moods, ...(e.mdk ? ['3d'] : [])].join(' '))}" ${shown(th, e) ? '' : 'hidden'} title="${esc(th.label)}">
+          <span class="theme-thumb">${MF.previews.theme(e.grid)}${e.mdk ? `<i class="theme-3d" title="${esc(t('Existe aussi en univers Murdoku 3D'))}">3D</i>` : ''}</span><span class="theme-name">${esc(th.label)}</span></button>`;
+        });
+        return `<section class="theme-shelf" ${s.entries.some(e => shown(MF.themes.THEMES[e.grid], e)) ? '' : 'hidden'}><h4 class="theme-shelf-title">${esc(s.label)}</h4><div class="theme-grid">${cards.join('')}</div></section>`;
+      }).join('')}</div>`
       + printGroup(d);
   }
 
@@ -162,7 +170,7 @@ MF.panels.design = (() => {
     const d = puzzle.design;
     const C = MF.design.resolve(d);
     const tab = TABS.some(([k]) => k === view.designTab) ? view.designTab : 'theme';
-    const content = { theme: () => themeTab(d, MF.themes.MOODS[view.themeFilter] ? view.themeFilter : 'all'), colors: () => colorsTab(d, C, puzzle.game), background: () => backgroundTab(d), cells: () => cellsTab(d, C, puzzle.game), text: () => textTab(d, puzzle.game), page: () => pageTab(d) }[tab]();
+    const content = { theme: () => themeTab(d, themeFilters().some(([k]) => k === view.themeFilter) ? view.themeFilter : 'all'), colors: () => colorsTab(d, C, puzzle.game), background: () => backgroundTab(d), cells: () => cellsTab(d, C, puzzle.game), text: () => textTab(d, puzzle.game), page: () => pageTab(d) }[tab]();
     root.innerHTML = `<div class="design-panel">
       <nav class="subtabs" id="design-tabs">${TABS.map(([k, l, i]) => `<button type="button" data-dtab="${k}" class="${k === tab ? 'active' : ''}">${ic(i)}<span>${l}</span></button>`).join('')}</nav>
       <div class="subtab-body">${content}</div>
@@ -175,6 +183,7 @@ MF.panels.design = (() => {
     const k = chip.dataset.themeFilter;
     root.querySelectorAll('[data-theme-filter]').forEach(c => c.classList.toggle('active', c === chip));
     root.querySelectorAll('.theme-card').forEach(card => { card.hidden = k !== 'all' && !card.dataset.moods.split(' ').includes(k); });
+    root.querySelectorAll('.theme-shelf').forEach(sh => { sh.hidden = !sh.querySelector('.theme-card:not([hidden])'); });
   }
 
   /** Couleur du nuancier tirée au hasard (jamais la couleur actuelle). */

@@ -312,6 +312,28 @@ export const PROPS = {
       b.cyl(0.021, 0.021, 0.02, x, h - 0.02, 0, '#e0b23a', { seg: 8, metalness: 0.6 });
     }
   },
+  presents(b, r) {
+    // Paquets cadeaux empilés, chacun avec son ruban en croix
+    for (const [s, h, x, y, z] of [[0.2, 0.14, 0, 0, 0], [0.13, 0.1, 0.02, 0.14, 0.01], [0.12, 0.09, -0.17, 0, 0.09]]) {
+      const c = pick(r, ['#c0283a', '#2f6f7e', '#f2c94c', '#3f7a4a', '#c46aa8', '#f6f2ea']);
+      const rib = c === '#f2c94c' ? '#c0283a' : '#f2c94c';
+      const ry = r() * 0.8;
+      b.box(s, h, s, x, y, z, c, { ry });
+      b.box(s + 0.006, h + 0.006, 0.025, x, y, z, rib, { ry });
+      b.box(0.025, h + 0.006, s + 0.006, x, y, z, rib, { ry });
+    }
+  },
+  hearts(b, r) {
+    // Quelques cœurs de papier tombés au sol
+    for (let i = 0; i < 4; i++) {
+      const x = (r() - 0.5) * 0.3, z = (r() - 0.5) * 0.3, ry = r() * 6.28, s = 0.03 + r() * 0.015;
+      const c = pick(r, ['#e5384f', '#ff7f99', '#f2a6c0', '#c0283a']);
+      const ox = Math.cos(ry) * s * 0.7, oz = -Math.sin(ry) * s * 0.7;
+      b.sphere(s, x + ox, 0.006, z + oz, c, { sy: 0.2, seg: 8 });
+      b.sphere(s, x - ox, 0.006, z - oz, c, { sy: 0.2, seg: 8 });
+      b.cbox(s * 1.45, 0.012, s * 1.45, x - Math.sin(ry) * s * 0.75, 0.006, z - Math.cos(ry) * s * 0.75, c, { ry: ry + Math.PI / 4, jitter: 0 });
+    }
+  },
   scarab(b) {
     b.sphere(0.07, 0, 0.03, 0, '#2f8a6a', { sy: 0.5, seg: 10, metalness: 0.6, roughness: 0.3 });
     b.sphere(0.035, 0, 0.025, 0.08, '#1f5a4a', { seg: 8, metalness: 0.6 });
@@ -378,9 +400,13 @@ const THEME = {
   carnival: ['confetti', 'confetti', 'hat', 'cake', 'bottles', 'cushion', 'runner'],
   lunar: ['paperLantern', 'lantern', 'teaset', 'firecrackers', 'coins', 'scroll', 'plant_bonsai'],
   manor: ['books', 'teaset', 'candles', 'vase', 'puddle', 'letters', 'birdcage'],
+  xmas: ['presents', 'presents', 'cake', 'candles', 'mugs', 'logs', 'skis', 'roundMat'],
+  birthday: ['presents', 'confetti', 'cake', 'presents', 'ball', 'popcorn', 'hat', 'confetti'],
+  love: ['hearts', 'letters', 'vase', 'plant_flowers', 'candles', 'teaset', 'hearts', 'runner'],
+  forest: ['mushrooms', 'mushrooms', 'logs', 'plant_fern', 'rocks', 'footprints', 'jar', 'hay'],
 };
 // Props small enough for a table top
-const SMALL = new Set([...TOP, 'coins', 'pearls', 'shells', 'scroll', 'jar', 'lantern', 'popcorn', 'canisters', 'pumpkin', 'hat', 'grapes', 'letters', 'scarab', 'paperLantern', 'birdcage', 'eggs', 'firecrackers']);
+const SMALL = new Set([...TOP, 'coins', 'pearls', 'shells', 'scroll', 'jar', 'lantern', 'popcorn', 'canisters', 'pumpkin', 'hat', 'grapes', 'letters', 'scarab', 'paperLantern', 'birdcage', 'eggs', 'firecrackers', 'presents']);
 const AMOUNT = { none: 0, some: 0.4, lots: 0.85 };
 const FLOOR_SCALE = 1.35;
 

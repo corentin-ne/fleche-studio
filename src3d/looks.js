@@ -217,18 +217,40 @@ export class SkewCamera extends THREE.PerspectiveCamera {
   }
   updateProjectionMatrix() {
     super.updateProjectionMatrix();
-    if (!this.oblique && !this.lean) return;
-    const f = this.focus;
-    const S = new THREE.Matrix4().set(
-      1, this.lean, this.oblique, this.oblique * f,
-      0, 1, -this.oblique * 0.35, -this.oblique * 0.35 * f,
-      0, 0, 1, 0,
-      0, 0, 0, 1,
-    );
-    this.projectionMatrix.multiply(S);
-    this.projectionMatrixInverse.copy(this.projectionMatrix).invert();
+    if (this.oblique || this.lean) {
+      const f = this.focus;
+      const S = new THREE.Matrix4().set(
+        1, this.lean, this.oblique, this.oblique * f,
+        0, 1, -this.oblique * 0.35, -this.oblique * 0.35 * f,
+        0, 0, 1, 0,
+        0, 0, 0, 1,
+      );
+      this.projectionMatrix.multiply(S);
+    }
+    applyStandUp(this);
   }
 }
+
+// Top-down games' trick, as a projection: seen from high up, everything with
+// a height leans back (away from the eye) so people and furniture show their
+// front instead of the top of their heads. Only the picture is sheared: light,
+// shadows and picking still see the true scene. `standUp` is the view-space
+// shear (set by the view each time it moves the camera).
+function applyStandUp(cam) {
+  if (cam.standUp) cam.projectionMatrix.multiply(cam.standUp);
+  cam.projectionMatrixInverse.copy(cam.projectionMatrix).invert();
+}
+
+export class StandUpOrthoCamera extends THREE.OrthographicCamera {
+  updateProjectionMatrix() {
+    super.updateProjectionMatrix();
+    applyStandUp(this);
+  }
+}
+
+// How far heights lean back for a view elevation (degrees): nothing from the
+// side, more and more from above.
+export const standUpAngle = (el) => THREE.MathUtils.clamp((el - 30) * 0.6, 0, 32);
 
 // Look presets (from building-builder's STYLES), with French labels.
 export const STYLES = {

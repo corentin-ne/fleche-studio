@@ -10,15 +10,17 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { WOBBLE } from './geo.js';
-import { StyleShader, STYLES, MOOD_SETTINGS, SkewCamera, distortUV } from './looks.js';
+import { StyleShader, STYLES, MOOD_SETTINGS, SkewCamera, StandUpOrthoCamera, standUpAngle, distortUV } from './looks.js';
 import { buildBoard, cellCenter, CELL, MARGIN, PLINTH_H } from './board.js';
 import { buildFigure, buildBadge, chalkOutline, FIGURE_H } from './figures.js';
 import { TextMask, disposeText } from './textmask.js';
 
-// iso: a gentle 3/4 diorama through a long lens with a hand-drawn slant;
-// top: a near top-down orthographic view, best for reading the grid.
+// iso: a high 3/4 diorama through a long lens with a hand-drawn slant (high
+// enough to read every room, even at the back); top: a near top-down
+// orthographic view, best for reading the grid. In both, heights lean back
+// (standUpAngle) so people and furniture still show their front.
 const CAMERAS = {
-  iso: { az: 16, el: 52, fov: 20, skew: 0.07, lean: -0.02 },
+  iso: { az: 16, el: 66, fov: 20, skew: 0.07, lean: -0.02 },
   top: { az: 0, el: 76, ortho: true },
 };
 
@@ -28,12 +30,21 @@ const TEXT_KEEP = 0.92;
 const DEFAULTS = { look: 'print', mood: 'day', camera: 'iso', labels: true, roomLabels: true, names: false, clutter: 'some', interactive: true, ao: true, padding: 0.04, maxPixelRatio: 2, background: null };
 
 const _v = new THREE.Vector3();
+const DEG = THREE.MathUtils.degToRad;
+
+// Free camera on top of the preset: turn (az), tilt (el), zoom and a pan of
+// the target on the ground (world units, so it stays put while turning).
+const ZOOM = [0.6, 4];
+const EL = [12, 89];
+const freeCam = () => ({ az: 0, el: 0, zoom: 1, pan: new THREE.Vector3() });
 
 export class BoardView {
   constructor(container, opts = {}) {
     this.container = container;
     this.opts = { ...DEFAULTS, ...opts };
     this.onCell = null;
+    this.onCamera = null; // called when the free camera moves (moved: boolean)
+    this.user = freeCam();
     this.state = { show: 'blank' };
     this.cache = new Map(); // figure / badge cache
     this.owned = new Set(); // textures and materials to dispose
@@ -49,7 +60,8 @@ export class BoardView {
     cv.style.display = 'block';
     cv.style.width = '100%';
     cv.style.height = '100%';
-    cv.style.touchAction = 'manipulation';
+    // vertical swipes still scroll the page; sideways drags turn the board, two fingers zoom and pan
+    cv.style.touchAction = this.opts.interactive ? 'pan-y' : 'manipulation';
     cv.setAttribute('aria-hidden', 'true');
     container.appendChild(cv);
 
@@ -79,7 +91,7 @@ export class BoardView {
     this.overlay.add(this.marks);
 
     this.persp = new SkewCamera(20, 1, 0.1, 1000);
-    this.ortho = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 1000);
+    this.ortho = new StandUpOrthoCamera(-1, 1, 1, -1, 0.1, 1000);
     this.makeHelpers();
 
     this.size = { w: 1, h: 1 };
@@ -180,7 +192,10 @@ export class BoardView {
   setOptions(o = {}) {
     const prev = { ...this.opts };
     Object.assign(this.opts, o);
-    if (this.opts.camera !== prev.camera) this.setupComposer();
+    if (this.opts.camera !== prev.camera) {
+      this.setupComposer();
+      this.resetCamera(false);
+    }
     if (o.ao !== undefined && this.aoPass) this.aoPass.enabled = !!o.ao;
     if (this.opts.look !== prev.look) this.applyLook();
     if (this.opts.mood !== prev.mood || o.background !== undefined) this.applyMood();
@@ -195,8 +210,101 @@ export class BoardView {
     if (!this.board) return;
     this.board.labels.visible = !!this.opts.labels;
     if (this.board.roomLabels) this.board.roomLabels.visible = this.opts.roomLabels !== false;
-    const front = !CAMERAS[this.opts.camera]?.ortho;
-    for (const m of this.board.labels.children) m.visible = m.userData.edge !== (front ? 'back' : 'front');
+    this.orientLabels();
+  }
+
+  // Letters on the edge the view reads best (near edge from the side, far
+  // edge from above), and texts turned to stay upright as the board turns.
+  orientLabels({ az, el } = this.angles()) {
+    if (!this.board) return;
+    const near = Math.cos(DEG(az)) >= 0 ? 'front' : 'back';
+    const show = el >= 70 ? (near === 'front' ? 'back' : 'front') : near;
+    const quarter = Math.round(az / 90) * (Math.PI / 2);
+    for (const m of this.board.labels.children) {
+      m.visible = m.userData.edge === 'left' || m.userData.edge === show;
+      m.rotation.y = quarter;
+    }
+    // room plates are wide: only a half turn, so they keep their footprint
+    const half = Math.cos(DEG(az)) < 0 ? Math.PI : 0;
+    for (const m of this.board.roomLabels?.children ?? []) m.rotation.y = half;
+  }
+
+  // People turn to face the viewer (the lying victim keeps its pose).
+  faceCamera(az = this.angles().az) {
+    for (const o of this.dyn.children) {
+      if (!o.userData.faces || Math.abs(o.rotation.y - DEG(az)) < 1e-4) continue;
+      o.rotation.y = DEG(az);
+      this.shadowDirty = true; // their shadows turn with them
+    }
+  }
+
+  // ---------------------------------------------------------------- free camera
+  angles() {
+    const cfg = CAMERAS[this.opts.camera] ?? CAMERAS.iso;
+    return { az: cfg.az + this.user.az, el: THREE.MathUtils.clamp(cfg.el + this.user.el, EL[0], EL[1]) };
+  }
+
+  get cameraMoved() {
+    const u = this.user;
+    return Math.abs(u.az) > 0.5 || Math.abs(u.el) > 0.5 || Math.abs(u.zoom - 1) > 0.01 || u.pan.lengthSq() > 1e-4;
+  }
+
+  // Applies a change to the free camera, clamped, and redraws.
+  moveCamera({ az = 0, el = 0, zoom = 1, pan = null } = {}) {
+    const u = this.user;
+    const cfg = CAMERAS[this.opts.camera] ?? CAMERAS.iso;
+    u.az += az;
+    u.el = THREE.MathUtils.clamp(cfg.el + u.el + el, EL[0], EL[1]) - cfg.el;
+    u.zoom = THREE.MathUtils.clamp(u.zoom * zoom, ZOOM[0], ZOOM[1]);
+    if (pan) u.pan.add(pan);
+    const lim = ((this.board?.n ?? 6) * CELL) / 2 + MARGIN;
+    u.pan.x = THREE.MathUtils.clamp(u.pan.x, -lim, lim);
+    u.pan.z = THREE.MathUtils.clamp(u.pan.z, -lim, lim);
+    this.fit();
+    this.onCamera?.(this.cameraMoved);
+  }
+
+  // Smooth move by the given amounts (buttons), or straight to the preset (reset).
+  animateCamera(to, ms = 260) {
+    cancelAnimationFrame(this.camRaf);
+    const from = { az: this.user.az, el: this.user.el, zoom: this.user.zoom, pan: this.user.pan.clone() };
+    const t0 = performance.now();
+    const step = () => {
+      const k = Math.min(1, (performance.now() - t0) / ms);
+      const e = k < 0.5 ? 2 * k * k : 1 - (-2 * k + 2) ** 2 / 2;
+      this.user.az = from.az + (to.az - from.az) * e;
+      this.user.el = from.el + (to.el - from.el) * e;
+      this.user.zoom = from.zoom * (to.zoom / from.zoom) ** e;
+      this.user.pan.lerpVectors(from.pan, to.pan, e);
+      this.fit();
+      if (k < 1 && !this.disposed) this.camRaf = requestAnimationFrame(step);
+      else this.onCamera?.(this.cameraMoved);
+    };
+    step();
+  }
+
+  // Turn (degrees), tilt (degrees) or zoom (factor) with a short animation.
+  nudgeCamera({ az = 0, el = 0, zoom = 1 } = {}) {
+    const u = this.user;
+    const cfg = CAMERAS[this.opts.camera] ?? CAMERAS.iso;
+    this.animateCamera({
+      az: u.az + az,
+      el: THREE.MathUtils.clamp(cfg.el + u.el + el, EL[0], EL[1]) - cfg.el,
+      zoom: THREE.MathUtils.clamp(u.zoom * zoom, ZOOM[0], ZOOM[1]),
+      pan: u.pan.clone(),
+    });
+  }
+
+  resetCamera(animate = true) {
+    // the shortest way back to the preset angle
+    const az = this.user.az - Math.round(this.user.az / 360) * 360;
+    this.user.az = az;
+    if (animate) this.animateCamera(freeCam());
+    else {
+      cancelAnimationFrame(this.camRaf);
+      this.user = freeCam();
+      this.onCamera?.(false);
+    }
   }
 
   applyLook() {
@@ -312,6 +420,7 @@ export class BoardView {
       const fk = `f|${p.id}|${p.color}|${victim}|${selected}|${theme}`;
       const fig = this.cached(fk, () => buildFigure(p, { victim, selected, theme }));
       fig.position.set(at.x, y, at.z);
+      fig.userData.faces = !victim;
       fig.traverse((o) => (o.userData.cell = [pos.r, pos.c]));
       this.dyn.add(fig);
       want.add(fk);
@@ -349,6 +458,7 @@ export class BoardView {
         this.cache.delete(k);
       }
     }
+    this.faceCamera();
     this.invalidate(true);
   }
 
@@ -359,7 +469,9 @@ export class BoardView {
   }
 
   // ---------------------------------------------------------------- camera
-  fit(aspect) {
+  // Frames the whole board for the preset angle (plus the free camera's turn
+  // and tilt), then applies its zoom and pan. free = false: the preset only (exports).
+  fit(aspect, free = true) {
     const w = this.size.w, h = this.size.h;
     aspect = aspect ?? w / Math.max(1, h);
     const cfg = CAMERAS[this.opts.camera] ?? CAMERAS.iso;
@@ -369,7 +481,8 @@ export class BoardView {
     const pts = [];
     for (const x of [-H, H]) for (const z of [-H, H]) pts.push(new THREE.Vector3(x, -PLINTH_H, z), new THREE.Vector3(x, 0, z));
     for (const x of [-half, half]) for (const z of [-half, half]) pts.push(new THREE.Vector3(x * 0.85, 1.7, z * 0.85));
-    const az = THREE.MathUtils.degToRad(cfg.az), el = THREE.MathUtils.degToRad(cfg.el);
+    const ang = free ? this.angles() : cfg;
+    const az = DEG(ang.az), el = DEG(ang.el);
     const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
     const target = new THREE.Vector3(0, 0, 0);
     const pad = 1 - 2 * (this.opts.padding ?? 0.04);
@@ -379,10 +492,13 @@ export class BoardView {
       cam.oblique = cfg.skew ?? 0;
       cam.lean = cfg.lean ?? 0;
       cam.aspect = aspect;
-      dist = H / Math.tan(THREE.MathUtils.degToRad(cfg.fov) / 2) * 1.3;
+      dist = H / Math.tan(DEG(cfg.fov) / 2) * 1.3;
     }
-    const right = new THREE.Vector3(), up = new THREE.Vector3();
-    for (let it = 0; it < 6; it++) {
+    // heights lean away from the eye: world shear (x, z) += y · tan · away, in view space
+    const t = Math.tan(DEG(standUpAngle(ang.el)));
+    const shear = new THREE.Matrix4().set(1, -Math.sin(az) * t, 0, 0, 0, 1, 0, 0, 0, -Math.cos(az) * t, 1, 0, 0, 0, 0, 1);
+    let standUp = null;
+    const place = () => {
       if (cfg.ortho) {
         cam.left = -halfH * aspect;
         cam.right = halfH * aspect;
@@ -400,7 +516,13 @@ export class BoardView {
       cam.up.set(0, 1, 0);
       cam.lookAt(target);
       cam.updateMatrixWorld();
+      standUp = t ? new THREE.Matrix4().multiplyMatrices(cam.matrixWorldInverse, shear).multiply(cam.matrixWorld) : null;
+      cam.standUp = standUp;
       cam.updateProjectionMatrix();
+    };
+    const right = new THREE.Vector3(), up = new THREE.Vector3();
+    for (let it = 0; it < 6; it++) {
+      place();
       let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
       for (const p of pts) {
         _v.copy(p).project(cam);
@@ -411,11 +533,21 @@ export class BoardView {
       const ext = Math.max((x1 - x0) / 2, (y1 - y0) / 2) / pad;
       right.setFromMatrixColumn(cam.matrixWorld, 0);
       up.setFromMatrixColumn(cam.matrixWorld, 1);
-      const hh = cfg.ortho ? halfH : dist * Math.tan(THREE.MathUtils.degToRad(cam.fov) / 2);
+      const hh = cfg.ortho ? halfH : dist * Math.tan(DEG(cam.fov) / 2);
       target.addScaledVector(right, cx * hh * aspect).addScaledVector(up, cy * hh);
       if (cfg.ortho) halfH *= ext;
       else dist *= ext;
     }
+    if (free) {
+      if (cfg.ortho) halfH /= this.user.zoom;
+      else dist /= this.user.zoom;
+      target.add(this.user.pan);
+    }
+    this.orientLabels(ang);
+    this.faceCamera(ang.az);
+    place();
+    // world size of a screen pixel at the target (pan follows the pointer)
+    this.unitsPerPx = (2 * (cfg.ortho ? halfH : dist * Math.tan(DEG(cam.fov) / 2))) / Math.max(1, this.size.h);
     this.invalidate();
   }
 
@@ -461,33 +593,97 @@ export class BoardView {
   }
 
   // ---------------------------------------------------------------- picking
+  // A tap picks a cell. Drag: turn and tilt (right button, middle button or a
+  // modifier key: pan). Wheel: zoom. Two fingers: pinch to zoom, twist to
+  // turn, move together to pan.
   bindEvents() {
     const el = this.renderer.domElement;
-    let down = null;
+    const pts = new Map(); // pointers down: id -> { x, y }
+    let tap = null; // first pointer down, still a possible click
+    let drag = null; // 'orbit' | 'pan' | 'pinch' | 'done' (until every pointer is up)
+    let pinch = null;
+    const right = new THREE.Vector3(), away = new THREE.Vector3();
+    const panBy = (dx, dy) => {
+      // the ground follows the pointer: along the camera's horizontal axes
+      right.setFromMatrixColumn(this.camera.matrixWorld, 0).setY(0).normalize();
+      away.set(right.z, 0, -right.x);
+      const k = this.unitsPerPx ?? 0.01;
+      const tilt = Math.max(0.35, Math.sin(DEG(this.angles().el)));
+      this.moveCamera({ pan: right.multiplyScalar(-dx * k).addScaledVector(away, (dy * k) / tilt) });
+    };
+    const twoFingers = () => {
+      const [a, b] = [...pts.values()];
+      return { d: Math.hypot(b.x - a.x, b.y - a.y), a: Math.atan2(b.y - a.y, b.x - a.x), x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 };
+    };
     this.handlers = {
       pointerdown: (e) => {
-        down = { x: e.clientX, y: e.clientY, t: performance.now(), id: e.pointerId };
+        pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+        el.setPointerCapture?.(e.pointerId);
+        cancelAnimationFrame(this.camRaf);
+        if (pts.size === 1) {
+          tap = { x: e.clientX, y: e.clientY, id: e.pointerId, pan: e.button === 1 || e.button === 2 || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey };
+          drag = null;
+        } else {
+          tap = null;
+          drag = 'pinch';
+          pinch = twoFingers();
+        }
       },
-      pointerup: (e) => {
-        if (!down || down.id !== e.pointerId) return;
-        const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
-        down = null;
-        if (moved > 12) return;
+      pointermove: (e) => {
+        const p = pts.get(e.pointerId);
+        if (!p) {
+          if (e.pointerType !== 'mouse') return;
+          this.lastMove = e;
+          if (this.moveRaf) return;
+          this.moveRaf = requestAnimationFrame(() => {
+            this.moveRaf = 0;
+            this.setHover(this.pickCell(this.lastMove));
+          });
+          return;
+        }
+        const dx = e.clientX - p.x, dy = e.clientY - p.y;
+        p.x = e.clientX;
+        p.y = e.clientY;
+        if (drag === 'pinch' && pts.size >= 2) {
+          const now = twoFingers();
+          let da = ((now.a - pinch.a) * 180) / Math.PI;
+          da -= Math.round(da / 360) * 360;
+          this.moveCamera({ zoom: pinch.d > 0 ? now.d / pinch.d : 1, az: -da });
+          panBy(now.x - pinch.x, now.y - pinch.y);
+          pinch = now;
+          return;
+        }
+        if (!drag && tap && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 6) {
+          drag = tap.pan ? 'pan' : 'orbit';
+          this.setHover(null);
+          el.style.cursor = drag === 'pan' ? 'move' : 'grabbing';
+        }
+        if (drag === 'orbit') this.moveCamera({ az: -dx * 0.35, el: dy * 0.25 });
+        else if (drag === 'pan') panBy(dx, dy);
+      },
+      pointerup: (e) => this.handlers.pointercancel(e, true),
+      pointercancel: (e, up = false) => {
+        if (!pts.delete(e.pointerId)) return;
+        const click = up && tap?.id === e.pointerId && !drag && !tap.pan && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) <= 12;
+        if (pts.size) drag = 'done';
+        else {
+          drag = null;
+          tap = null;
+          el.style.cursor = '';
+        }
+        if (!click) return;
         const cell = this.pickCell(e);
         if (cell && this.onCell) this.onCell(cell.r, cell.c, e);
       },
-      pointermove: (e) => {
-        if (e.pointerType !== 'mouse') return;
-        this.lastMove = e;
-        if (this.moveRaf) return;
-        this.moveRaf = requestAnimationFrame(() => {
-          this.moveRaf = 0;
-          this.setHover(this.pickCell(this.lastMove));
-        });
-      },
       pointerleave: () => this.setHover(null),
+      wheel: (e) => {
+        e.preventDefault();
+        cancelAnimationFrame(this.camRaf);
+        this.moveCamera({ zoom: Math.exp(-e.deltaY * (e.deltaMode ? 0.05 : 0.0015)) });
+      },
+      contextmenu: (e) => e.preventDefault(),
     };
-    for (const [k, f] of Object.entries(this.handlers)) el.addEventListener(k, f);
+    for (const [k, f] of Object.entries(this.handlers)) el.addEventListener(k, f, k === 'wheel' ? { passive: false } : undefined);
   }
 
   setHover(cell) {
@@ -542,7 +738,8 @@ export class BoardView {
     this.stylePass.uniforms.resolution.value.set(W, H);
     // print dots and pixels grow with the picture, so it looks the same
     this.syncStyleUniforms(Math.max(1, Math.min(W, H) / 900));
-    this.fit(W / H);
+    // exports always show the preset view, whatever the free camera does
+    this.fit(W / H, false);
     const bg = this.scene.background;
     if (transparent) {
       this.scene.background = null;
@@ -570,6 +767,7 @@ export class BoardView {
     this.disposed = true;
     if (this.raf) cancelAnimationFrame(this.raf);
     if (this.moveRaf) cancelAnimationFrame(this.moveRaf);
+    cancelAnimationFrame(this.camRaf);
     this.ro.disconnect();
     const el = this.renderer.domElement;
     for (const [k, f] of Object.entries(this.handlers ?? {})) el.removeEventListener(k, f);

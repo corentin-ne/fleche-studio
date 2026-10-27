@@ -14,12 +14,32 @@ MF.panels.murdoku = (() => {
   const ui = MF.ui;
   const V = () => MF.murdokuView;
 
-  /** Cartes des univers (défilement horizontal sur téléphone). */
+  /** Rayon de la bibliothèque affiché (gardé d'un rendu à l'autre). */
+  let shelf = 'all';
+
+  /** Cartes des univers, dans l'ordre de la bibliothèque, filtrables par rayon (défilement horizontal sur téléphone). */
   function themeCards(current, lang, attr = 'data-mdk-theme') {
-    return `<div class="mdk-themes" role="radiogroup" aria-label="${esc(t('Univers'))}">${MF.murdokuThemes.ids.map(id => {
-      const c = MF.murdokuThemes.card(id, lang);
-      return `<button type="button" role="radio" aria-checked="${id === current}" class="mdk-theme ${id === current ? 'active' : ''}" ${attr}="${id}" style="--t1:${c.colors[0]};--t2:${c.colors[1]}"><span class="mdk-theme-emoji" aria-hidden="true">${c.emoji}</span><b>${esc(c.label)}</b><small>${esc(c.tagline)}</small></button>`;
-    }).join('')}</div>`;
+    const shelves = MF.library.shelves('3d');
+    if (!shelves.some(s => s.id === shelf)) shelf = 'all';
+    const chips = [['all', t('Tous')], ...shelves.map(s => [s.id, s.label])].map(([k, l]) => `<button type="button" class="chip chip-btn ${k === shelf ? 'active' : ''}" data-mdk-shelf="${k}" aria-pressed="${k === shelf}">${esc(l)}</button>`).join('');
+    return `<div class="chips mdk-shelves" role="toolbar" aria-label="${esc(t('Filtrer les univers'))}">${chips}</div>
+      <div class="mdk-themes" role="radiogroup" aria-label="${esc(t('Univers'))}">${shelves.flatMap(s => s.entries.map(e => {
+      const id = e.mdk, c = MF.murdokuThemes.card(id, lang);
+      return `<button type="button" role="radio" aria-checked="${id === current}" class="mdk-theme ${id === current ? 'active' : ''}" ${attr}="${id}" data-shelf="${s.id}" ${shelf === 'all' || shelf === s.id || id === current ? '' : 'hidden'} style="--t1:${c.colors[0]};--t2:${c.colors[1]}"><span class="mdk-theme-emoji" aria-hidden="true">${c.emoji}</span><b>${esc(c.label)}</b><small>${esc(c.tagline)}</small></button>`;
+    })).join('')}</div>`;
+  }
+
+  /** Filtre des univers par rayon, sur place. Renvoie true si le clic était sur un filtre. */
+  function shelfClick(target) {
+    const chip = target.closest('[data-mdk-shelf]');
+    if (!chip) return false;
+    shelf = chip.dataset.mdkShelf;
+    const box = chip.closest('.mdk-shelves');
+    box.querySelectorAll('[data-mdk-shelf]').forEach(c => { c.classList.toggle('active', c === chip); c.setAttribute('aria-pressed', String(c === chip)); });
+    const cards = box.nextElementSibling;
+    cards.querySelectorAll('[data-shelf]').forEach(c => { c.hidden = shelf !== 'all' && c.dataset.shelf !== shelf && !c.classList.contains('active'); });
+    cards.scrollLeft = 0;
+    return true;
   }
 
   /** Niveaux en cartes (étoiles + description). */
@@ -100,13 +120,11 @@ MF.panels.murdoku = (() => {
     // Écouteur sur le contenu recréé à chaque rendu (jamais empilé sur le conteneur du panneau)
     root.querySelector('.mdk-panel').addEventListener('click', e => {
       const target = /** @type {any} */ (e.target);
+      if (shelfClick(target)) return;
       const th2 = target.closest('[data-mdk-theme]');
       if (th2) {
-        const id = th2.dataset.mdkTheme;
-        if (id === o.theme) return;
-        // Nouvel univers : ses noms, son ambiance, une nouvelle énigme
-        const look = MF.murdokuThemes.get(id);
-        set({ theme: id, names: [], victim: '', roomNames: {}, objectNames: {}, story: '', look: look.look, mood: look.mood, seed: fresh(), flavor: 0 });
+        // Nouvel univers : ses noms, son ambiance, une nouvelle énigme, et sa version 2D pour la page
+        if (th2.dataset.mdkTheme !== o.theme) actions.pickUniverse(th2.dataset.mdkTheme);
         return;
       }
       const lv = target.closest('[data-mdk-level]');
@@ -139,5 +157,5 @@ MF.panels.murdoku = (() => {
     root.querySelector('#mdk-reset')?.addEventListener('click', () => set({ names: [], victim: '', roomNames: {}, objectNames: {}, story: '' }));
   }
 
-  return Object.assign(render, { themeCards, levelCards });
+  return Object.assign(render, { themeCards, shelfClick, levelCards });
 })();
