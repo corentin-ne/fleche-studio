@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Composants d'interface : icônes, toasts, modales, confirmation, saisie,
    autocomplétion, champs couleur, curseurs.
@@ -54,6 +55,9 @@ MF.icons = (() => {
     shield: '<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/>',
     chevronDown: '<path d="m6 9 6 6 6-6"/>',
     chevronRight: '<path d="m9 6 6 6-6 6"/>',
+    chevronLeft: '<path d="m15 6-6 6 6 6"/>',
+    gamepad: '<rect x="2.5" y="7" width="19" height="11" rx="5.5"/><path d="M7 10.5v4M5 12.5h4"/><circle cx="15.5" cy="11.5" r="1"/><circle cx="18" cy="14" r="1"/>',
+    magnifier: '<circle cx="10" cy="10" r="6"/><path d="m14.5 14.5 6 6"/><path d="M10 7.5v5M7.5 10h5"/>',
     arrowUp: '<path d="M12 19V5M5 12l7-7 7 7"/>',
     arrowDown: '<path d="M12 5v14M19 12l-7 7-7-7"/>',
     flip: '<path d="M12 3v18M16 7l4 5-4 5M8 7l-4 5 4 5"/>',
@@ -81,7 +85,7 @@ MF.icons = (() => {
   /** Remplace les <span data-icon="nom"> par l'icône correspondante. */
   function hydrate(root = document) {
     root.querySelectorAll('[data-icon]').forEach(el => {
-      if (!el.firstElementChild) el.innerHTML = svg(el.dataset.icon);
+      if (!el.firstElementChild) el.innerHTML = svg(/** @type {HTMLElement} */ (el).dataset.icon);
     });
   }
   return { svg, hydrate };
@@ -110,7 +114,7 @@ MF.ui = (() => {
    */
   function modal(o) {
     return new Promise(resolve => {
-      const prevFocus = document.activeElement;
+      const prevFocus = /** @type {HTMLElement} */ (document.activeElement);
       const actions = (o.actions || [{ label: t('Fermer'), value: null }]).map((a, i) =>
         `<button class="btn ${a.kind ? 'btn-' + a.kind : ''}" data-i="${i}">${a.icon ? ic(a.icon) : ''}${esc(a.label)}</button>`).join('');
       const root = html(`
@@ -180,8 +184,10 @@ MF.ui = (() => {
   /* ---------------- Autocomplétion ---------------- */
   /**
    * Liste déroulante de suggestions sous un champ.
-   * @param o.source   async (q, signal) => [{ value, label (texte), hint, badge }]
-   * @param o.onPick   (item) => void
+   * @param input    champ texte
+   * @param {any} o  options :
+   *   o.source   async (q, signal) => [{ value, label (texte), hint, badge }]
+   *   o.onPick   (item) => void
    */
   function autocomplete(input, { source, onPick, minChars = 2, delay = 160 }) {
     const box = html('<div class="ac-list" role="listbox" hidden></div>');
@@ -228,7 +234,7 @@ MF.ui = (() => {
 
   /* ---------------- Champs réutilisables (HTML) ---------------- */
   /** Champ couleur avec bouton « auto » optionnel. data-color-key identifie la valeur. */
-  function colorField(key, label, value, { auto = false, resolved } = {}) {
+  function colorField(key, label, value, { auto = false, resolved } = /** @type {any} */ ({})) {
     const isAuto = value === 'auto';
     const shown = isAuto ? resolved || '#888888' : value;
     return `<div class="color-field ${isAuto ? 'is-auto' : ''}" data-color-key="${esc(key)}">

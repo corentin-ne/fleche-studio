@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Vue de la grille à l'écran : affiche (SVG, identique aux exports) + jeu.
    Modes : 'solution' (lettres visibles), 'blank' (grille vierge), 'play' (on joue).
@@ -11,10 +12,11 @@ MF.gridView = (() => {
   let ctx = null;
 
   /**
-   * @param o.cell      taille d'une case à l'écran (px)
-   * @param o.entries   saisies du joueur
-   * @param o.assetUrl  id d'image -> URL
-   * @param o.key       identité de la grille affichée (progression) : même clé et même dessin -> DOM conservé
+   * @param {any} [o]  options :
+   *   o.cell      taille d'une case à l'écran (px)
+   *   o.entries   saisies du joueur
+   *   o.assetUrl  id d'image -> URL
+   *   o.key       identité de la grille affichée (progression) : même clé et même dessin -> DOM conservé
    */
   function render(container, model, puzzle, o = {}) {
     const { mode = 'solution', entries = {} } = o;
@@ -35,7 +37,7 @@ MF.gridView = (() => {
     }
     // Re-rendu en cours de partie (zoom, clavier du téléphone qui redimensionne l'écran) :
     // on garde la case active, sinon le clavier virtuel se refermerait
-    const act = container.contains(document.activeElement) && document.activeElement.matches('.play-cell') ? document.activeElement : null;
+    const act = container.contains(document.activeElement) && document.activeElement.matches('.play-cell') ? /** @type {HTMLElement} */ (document.activeElement) : null;
     const keep = act && ctx && mode === 'play' ? { r: act.dataset.r, c: act.dataset.c, dir: ctx.dir } : null;
     container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''} ${o.animate ? 'enter' : ''}" style="width:${width}px">${markup}</div>`;
     const sheet = container.firstElementChild;
@@ -65,6 +67,7 @@ MF.gridView = (() => {
     if (!ctx) return false;
     ctx.container.querySelectorAll('.hl').forEach(el => el.classList.remove('hl', 'flash'));
     const cells = cellsOf(wid);
+    /** @type {any} */
     let first = null;
     cells.forEach(([r, c]) => {
       const el = ctx.container.querySelector(`.mf-svg [data-r="${r}"][data-c="${c}"]`);
@@ -84,6 +87,7 @@ MF.gridView = (() => {
     const C = MF.design.resolve(ctx.puzzle.design);
     layer.style.setProperty('--play-ink', C.ink);
     layer.style.setProperty('--play-font', MF.design.font(ctx.puzzle.design.font.letter).css);
+    const MC = MF.design.multiColors(ctx.puzzle.design, C, ctx.model);
     const codes = ctx.model.game === 'codes';
     ctx.model.cells.forEach((row, r) => row.forEach((cell, c) => {
       if (cell.type !== 'letter') return;
@@ -105,29 +109,32 @@ MF.gridView = (() => {
         fontSize: `${ctx.cellPx * (codes || ctx.model.game === 'croises' ? 0.46 : 0.52)}px`,
         paddingTop: codes || ctx.model.game === 'croises' ? `${ctx.cellPx * 0.16}px` : '0',
       });
+      // Multicolore : chaque lettre saisie prend la couleur de sa case
+      if (MC) inp.style.setProperty('--play-ink', MC.letter(r, c, C.ink));
       layer.appendChild(inp);
     }));
     sheet.appendChild(layer);
 
     layer.addEventListener('focusin', e => {
-      if (!e.target.matches('.play-cell')) return;
-      e.target.select(); // une nouvelle lettre remplace l'ancienne
-      markWord(+e.target.dataset.r, +e.target.dataset.c);
+      const t = /** @type {HTMLInputElement} */ (e.target);
+      if (!t.matches('.play-cell')) return;
+      t.select(); // une nouvelle lettre remplace l'ancienne
+      markWord(+t.dataset.r, +t.dataset.c);
     });
     // Case déjà remplie : la lettre tapée remplace (même si le curseur est resté en place)
     layer.addEventListener('keydown', e => {
-      const t = e.target;
+      const t = /** @type {HTMLInputElement} */ (e.target);
       if (t.matches('.play-cell') && !t.readOnly && e.key.length === 1 && !e.ctrlKey && !e.metaKey && t.value) t.select();
     });
     layer.addEventListener('mousedown', e => {
-      const t = e.target;
+      const t = /** @type {HTMLInputElement} */ (e.target);
       if (!t.matches('.play-cell') || document.activeElement !== t) return;
       const cell = ctx.model.cells[+t.dataset.r][+t.dataset.c];
       if (cell.words.H && cell.words.V) { ctx.dir = ctx.dir === 'H' ? 'V' : 'H'; markWord(+t.dataset.r, +t.dataset.c); }
     });
     layer.addEventListener('keydown', onKey);
     layer.addEventListener('input', e => {
-      const t = e.target;
+      const t = /** @type {HTMLInputElement} */ (e.target);
       if (t.readOnly) return;
       const ch = MF.util.normalize(t.value).slice(-1);
       t.value = ch;
@@ -180,7 +187,7 @@ MF.gridView = (() => {
     } else if (e.key === 'Backspace' && (!t.value || t.readOnly)) {
       e.preventDefault();
       if (move(r, c, -1)) {
-        const prev = document.activeElement;
+        const prev = /** @type {HTMLInputElement} */ (document.activeElement);
         if (!prev.readOnly) { prev.value = ''; prev.dispatchEvent(new Event('input', { bubbles: true })); }
       }
     } else if (e.key === ' ') {
@@ -215,8 +222,9 @@ MF.gridView = (() => {
     sheet.appendChild(over);
     ctx.found = new Set(Array.isArray(ctx.entries.found) ? ctx.entries.found.filter(k => ctx.model.slots.has(k)) : []);
     const C = MF.design.resolve(ctx.puzzle.design);
+    const MC = MF.design.multiColors(ctx.puzzle.design, C, ctx.model);
 
-    const capsule = (a, b, cls) => {
+    const capsule = (a, b, cls, color = C.arrow) => {
       const p = cellBox(a[0], a[1]), q = cellBox(b[0], b[1]);
       const x0 = p.x + U / 2, y0 = p.y + U / 2, x1 = q.x + U / 2, y1 = q.y + U / 2;
       const len = Math.hypot(x1 - x0, y1 - y0) + U * 0.8;
@@ -224,13 +232,13 @@ MF.gridView = (() => {
       g.setAttribute('x', -len / 2); g.setAttribute('y', -U * 0.36); g.setAttribute('width', len); g.setAttribute('height', U * 0.72); g.setAttribute('rx', U * 0.36);
       g.setAttribute('transform', `translate(${(x0 + x1) / 2} ${(y0 + y1) / 2}) rotate(${(Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI})`);
       g.setAttribute('class', cls);
-      g.style.setProperty('--ws', C.arrow);
+      g.style.setProperty('--ws', color);
       over.appendChild(g);
       return g;
     };
     const drawFound = () => {
       over.querySelectorAll('.ws-found').forEach(n => n.remove());
-      ctx.found.forEach(k => { const s = ctx.model.slots.get(k); capsule(s.cells[0], s.cells[s.cells.length - 1], 'ws-found'); });
+      ctx.found.forEach(k => { const s = ctx.model.slots.get(k); capsule(s.cells[0], s.cells[s.cells.length - 1], 'ws-found', MC?.word(k) || C.arrow); });
       sheet.querySelectorAll('.mf-svg [data-key]').forEach(t => t.classList.toggle('found', ctx.found.has(t.dataset.key)));
     };
     drawFound();
@@ -367,7 +375,7 @@ MF.gridView = (() => {
       checkDone();
       return true;
     }
-    const act = document.activeElement?.matches?.('.play-cell') ? document.activeElement : null;
+    const act = document.activeElement?.matches?.('.play-cell') ? /** @type {HTMLElement} */ (document.activeElement) : null;
     const cells = what === 'word' && ctx.current ? ctx.model.slots.get(ctx.current).cells : act ? [[+act.dataset.r, +act.dataset.c]] : [];
     if (!cells.length) return false;
     cells.forEach(([r, c]) => {
@@ -399,7 +407,7 @@ MF.gridView = (() => {
 
   /** Change le sens de saisie sur la case active (si elle appartient aux deux sens). */
   function toggleDir() {
-    const act = document.activeElement?.matches?.('.play-cell') ? document.activeElement : null;
+    const act = document.activeElement?.matches?.('.play-cell') ? /** @type {HTMLElement} */ (document.activeElement) : null;
     if (!ctx || !act) return false;
     const r = +act.dataset.r, c = +act.dataset.c;
     const cell = ctx.model.cells[r][c];

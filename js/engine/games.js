@@ -6,7 +6,8 @@
 
    Chaque jeu décrit ses particularités ici (plutôt que des tests sur son
    identifiant dispersés dans l'interface) :
-     engine     module de calcul ('builder' | 'meles')
+     engine     module de calcul ('builder' | 'meles' | 'murdoku')
+     words      le jeu se construit à partir d'une liste de mots (pas Murdoku)
      clues      le jeu a des définitions à écrire
      wordSearch on joue en entourant des mots (pas de saisie de lettres)
      theme      thème proposé par le démarrage rapide
@@ -32,11 +33,16 @@ MF.games = (() => {
       label: t('Mots mêlés'), short: t('Mêlés'), icon: 'search', engine: 'meles', clues: false, wordSearch: true, theme: 'candy',
       desc: t('Les mots sont cachés dans tous les sens au milieu de lettres : retrouve-les !'),
     },
+    murdoku: {
+      label: 'Murdoku', short: 'Murdoku', icon: 'magnifier', engine: 'murdoku', clues: false, words: false, wordSearch: false, theme: 'kraft',
+      desc: t('Une enquête en plan : place chaque suspect grâce aux indices, puis démasque le coupable.'),
+    },
   };
   const get = id => GAMES[id] || GAMES.fleches;
   // Modules de calcul (chargés après ce fichier, d'où la résolution à l'appel)
-  const ENGINES = { builder: () => MF.builder, meles: () => MF.wordsearch };
-  /** Module de calcul d'un moteur ('builder' | 'meles') : generate, prepare, layoutHash. */
+  // Murdoku : pas de mots ; l'adaptateur (empreinte des réglages) vit avec son interface
+  const ENGINES = { builder: () => MF.builder, meles: () => MF.wordsearch, murdoku: () => MF.murdokuView?.engine };
+  /** Module de calcul d'un moteur ('builder' | 'meles' | 'murdoku') : prepare, layoutHash (et generate pour les mots). */
   const engineModule = id => (ENGINES[id] || ENGINES.builder)();
   /** Module de calcul d'un jeu. */
   const engine = gameId => engineModule(get(gameId).engine);

@@ -7,7 +7,8 @@
    et la page de tests : aucune autre liste à maintenir à la main.
 
    Version : « __BUILD__ » est remplacé par l'empreinte du commit lors du
-   déploiement (.github/workflows/pages.yml). En local, chaque chargement
+   déploiement (.github/workflows/pages.yml), comme « __RELEASE__ » (numéro
+   de version de package.json) et « __DEPLOYED__ » (date de mise en ligne). En local, chaque chargement
    de page prend une version unique (jamais de fichier périmé en cache).
 
    Scripts classiques (pas de modules ES) : l'application reste utilisable
@@ -19,6 +20,11 @@
   const MF = (root.MF = root.MF || {});
   const BUILD = '__BUILD__';
   const VERSION = /^__/.test(BUILD) ? `dev-${Date.now().toString(36)}` : BUILD;
+  // Numéro de version (package.json) et date de mise en ligne, inscrits au déploiement (affichés dans « Plus »)
+  const RELEASE = '__RELEASE__';
+  const DEPLOYED = '__DEPLOYED__';
+  const dev = /^__/.test(BUILD);
+  const about = { release: /^__/.test(RELEASE) ? 'dev' : RELEASE, build: dev ? 'local' : BUILD.slice(0, 7), deployed: /^__/.test(DEPLOYED) ? '' : DEPLOYED };
 
   /** Fichiers de la page, par couche (l'ordre compte : chaque fichier n'utilise que les précédents). */
   const GROUPS = {
@@ -27,17 +33,17 @@
       'js/engine/design.js', 'js/engine/shapes.js', 'js/engine/backgrounds.js', 'js/engine/games.js', 'js/data/stickers.js',
       'js/core/schema.js', 'js/core/assets.js', 'js/core/store.js', 'js/core/versions.js', 'js/core/zip.js', 'js/core/qr.js', 'js/core/share.js',
     ],
-    data: ['js/data/packs.js', 'js/data/packs-en.js', 'js/data/palettes.js', 'js/data/themes.js'],
+    data: ['js/data/packs.js', 'js/data/packs-en.js', 'js/data/palettes.js', 'js/data/themes.js', 'js/data/murdoku-themes.js'],
     services: ['js/services/dictionary.js', 'js/services/wiki.js', 'js/services/importer.js'],
     engine: [
       'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/generator.js',
-      'js/engine/grid-model.js', 'js/engine/diagnostics.js', 'js/engine/renderers.js', 'js/engine/scene.js',
+      'js/engine/grid-model.js', 'js/engine/murdoku.js', 'js/engine/diagnostics.js', 'js/engine/renderers.js', 'js/engine/scene.js',
     ],
     ui: [
       'js/ui/components.js', 'js/ui/phone-nav.js', 'js/ui/pinch-zoom.js', 'js/ui/brand.js', 'js/ui/grid-view.js',
       'js/ui/live-build.js', 'js/ui/sticker-editor.js', 'js/ui/previews.js', 'js/ui/shape-picker.js', 'js/ui/layout-controls.js',
       'js/ui/pickers.js', 'js/ui/panels/words.js', 'js/ui/panels/clues.js', 'js/ui/panels/design.js', 'js/ui/panels/decor.js',
-      'js/ui/panels/settings.js', 'js/ui/exporter.js', 'js/ui/share-dialog.js', 'js/ui/welcome.js', 'js/ui/dashboard.js',
+      'js/ui/panels/settings.js', 'js/ui/panels/murdoku.js', 'js/ui/exporter.js', 'js/ui/share-dialog.js', 'js/ui/murdoku-view.js', 'js/ui/welcome.js', 'js/ui/dashboard.js',
     ],
     app: ['js/app/guard.js', 'js/app/actions.js', 'js/app/export-flow.js', 'js/app/play.js', 'js/app/help.js', 'js/app/shortcuts.js', 'js/app/updates.js', 'js/app.js'],
   };
@@ -49,7 +55,7 @@
   };
 
   /** Moteur seul, pour le worker de calcul (aucun accès au DOM ni au stockage). */
-  const WORKER = ['js/core/i18n.js', 'js/core/utils.js', 'js/core/lexicon.js', 'js/engine/shapes.js', 'js/engine/games.js', 'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/grid-model.js'];
+  const WORKER = ['js/core/i18n.js', 'js/core/utils.js', 'js/core/lexicon.js', 'js/engine/shapes.js', 'js/engine/games.js', 'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/grid-model.js', 'js/engine/murdoku.js'];
 
   /** Ce que chaque point d'entrée charge. */
   const ENTRIES = {
@@ -105,7 +111,7 @@
   /** Dictionnaires déjà chargés dans cette page. */
   const loadedLexicons = () => Object.values(LEXICONS).flat().filter(p => loaded.has(p));
 
-  MF.loader = { VERSION, GROUPS, LEXICONS, WORKER, ENTRIES, url, load, lexicon, hasLexicon, essential, all, loadedLexicons };
+  MF.loader = { VERSION, about, GROUPS, LEXICONS, WORKER, ENTRIES, url, load, lexicon, hasLexicon, essential, all, loadedLexicons };
 
   // Page : point d'entrée indiqué par data-entry (« app » ou « tests »)
   const entry = script?.dataset.entry;

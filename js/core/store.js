@@ -55,7 +55,8 @@ MF.createStore = ({ key: KEY = MF.storage.KEYS.state, persist = true } = {}) => 
       ui: {
         cell: S.int(ui.cell, 12, 140, base.ui.cell),
         fit: S.bool(ui.fit, true),
-        mode: S.oneOf(ui.mode, ['solution', 'blank', 'play'], 'solution'),
+        // Le jeu a sa propre page (plus un mode du studio) : un ancien « play » revient à la solution
+        mode: S.oneOf(ui.mode, ['solution', 'blank'], 'solution'),
         tab: S.oneOf(ui.tab, ['words', 'diag', 'design', 'decor', 'settings'], 'words'),
         photoMarks: S.bool(ui.photoMarks, false),
         decor: S.oneOf(ui.decor, ['emoji', 'shapes', 'text', 'images'], 'emoji'),
@@ -218,12 +219,45 @@ MF.createStore = ({ key: KEY = MF.storage.KEYS.state, persist = true } = {}) => 
   /** Les données ont-elles été modifiées par un autre onglet ? */
   const isOwnKey = key => persist && key === KEY;
 
+  /* ---------------- Sauvegarde et stockage durable ---------------- */
+  const BACKUP_KEY = `${KEY}:backup`;
+  /** Date de la dernière sauvegarde téléchargée (0 : jamais). */
+  const backupAt = () => (persist ? Number(disk.get(BACKUP_KEY)) || 0 : 0);
+  const markBackup = (at = Date.now()) => { if (persist) disk.set(BACKUP_KEY, String(at)); }; // refusé : rappel affiché à nouveau
+
+  /**
+   * Faut-il rappeler de sauvegarder ? Des mots modifiés depuis la dernière sauvegarde,
+   * et plus de `days` jours sans sauvegarde (ou jamais, une fois la première grille vieille d'un jour).
+   */
+  function backupDue(days = 7, now = Date.now()) {
+    const list = state?.puzzles.filter(p => p.words.length) || [];
+    if (!list.length) return false;
+    const last = backupAt();
+    const changed = Math.max(...list.map(p => p.updatedAt));
+    if (last && changed <= last) return false;
+    const since = last || Math.min(...list.map(p => p.createdAt));
+    return now - since > (last ? days : 1) * 86400000;
+  }
+
+  /**
+   * Stockage durable : sans cette demande, le navigateur peut effacer les données d'un site
+   * peu visité quand le disque se remplit (Safari les efface après 7 jours sans visite).
+   * Demandé une seule fois, dès qu'il y a une grille à protéger.
+   */
+  let persistAsked = false;
+  async function keepData() {
+    if (persistAsked || !persist || !state?.puzzles.length) return false;
+    persistAsked = true;
+    try { return (await navigator.storage?.persisted?.()) || (await navigator.storage?.persist?.()) || false; } catch { return false; }
+  }
+
   /** Taille approximative des données texte enregistrées (octets). */
   const bytes = () => (persist ? disk.bytes(KEY) : 0);
 
   return {
     load, reload, isOwnKey, get, active, puzzle, update, subscribe, undo, redo, canUndo, canRedo, rev,
     makePuzzle, legacy, forgetLegacy, wipe, replacePuzzles, usedAssets, bytes, flush: writeNow,
+    backupAt, markBackup, backupDue, keepData,
   };
 };
 

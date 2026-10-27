@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Fenêtres de choix de mots et de définitions :
      - bibliothèque (dictionnaire local filtrable : longueur, lettre, motif…) ;
@@ -316,7 +317,7 @@ MF.pickers = (() => {
         }).catch(() => { const el = root.querySelector('#def-wikt'); if (el) el.outerHTML = `<div class="def-loading muted">${t('Wiktionnaire injoignable (hors ligne ?).')}</div>`; });
         MF.wiki.wikipedia(word, { signal: ctrl.signal }).then(r => {
           const el = root.querySelector('#def-wiki');
-          if (el) el.outerHTML = r ? item(t('Wikipédia'), r.short, r.text) : '';
+          if (el) el.outerHTML = r ? (r.description && r.description !== r.short ? item(t('Wikidata'), r.description) : '') + item(t('Wikipédia'), r.short, r.text) : '';
         }).catch(() => { root.querySelector('#def-wiki')?.remove(); });
       },
       actions: [{ label: t('Annuler'), value: null }, { label: t('Utiliser'), kind: 'primary', icon: 'check', value: root => root.querySelector('#def-own').value.trim() }],
@@ -324,15 +325,17 @@ MF.pickers = (() => {
   }
 
   /**
-   * Définitions automatiques pour une liste de mots : dictionnaire local, puis Wiktionnaire.
+   * Définitions automatiques pour une liste de mots : dictionnaire local, puis Wiktionnaire, puis Wikidata.
    * @param onEach (index, clue) appelé dès qu'une définition est trouvée
    */
-  async function autoDefine(words, onEach, { concurrency = 3, signal } = {}) {
+  async function autoDefine(words, onEach, { concurrency = 3, signal } = /** @type {{ concurrency?: number, signal?: AbortSignal }} */ ({})) {
     let found = 0;
     await MF.util.pool(words, concurrency, async (w, idx) => {
       let clue = D.clue(w);
       if (!clue && MF.wiki.isOnline()) {
         try { clue = (await MF.wiki.definitions(w, { signal }))[0]?.short || ''; } catch { /* suivant */ }
+        // Noms propres (villes, pays, personnes) : description courte de Wikidata
+        if (!clue) try { clue = (await MF.wiki.wikipedia(w, { signal }))?.description || ''; } catch { /* suivant */ }
       }
       if (clue) { found++; onEach(idx, clue); }
     }, { signal });

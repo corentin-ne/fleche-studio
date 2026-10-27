@@ -75,7 +75,7 @@ MF.dictionary = (() => {
     const nq = normalize(q);
     const lq = q.trim().toLowerCase();
     // Motif : lettres + jokers (? * .) uniquement, jamais d'expression régulière fournie telle quelle
-    const reSrc = pattern ? pattern.toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^A-Z?*.]/g, '').replace(/[?*.]/g, '.') : '';
+    const reSrc = pattern ? MF.util.stripAccents(pattern).toUpperCase().replace(/[^A-Z?*.]/g, '').replace(/[?*.]/g, '.') : '';
     const rx = reSrc ? new RegExp(`^${reSrc}$`) : null;
     return words.filter(w => w.length >= min && w.length <= max
       && (!start || w[0] === start)

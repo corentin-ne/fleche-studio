@@ -1,6 +1,6 @@
 {
   "name": "fleche-studio",
-  "version": "4.2.0",
+  "version": "4.5.0",
   "private": true,
   "description": "Flèche Studio : créateur de grilles de mots fléchés, croisés, mêlés et codés, 100 % dans le navigateur.",
   "license": "UNLICENSED",
@@ -9,13 +9,18 @@
     "lint": "eslint .",
     "typecheck": "tsc -p jsconfig.json",
     "test": "node tests/ci.mjs",
-    "check": "npm run lint && npm run typecheck && npm test"
+    "check": "npm run lint && npm run typecheck && npm test",
+    "images": "node tools/images.mjs",
+    "build:3d": "node tools/build-3d.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
     "@eslint/js": "10.0.1",
+    "esbuild": "0.28.2",
     "eslint": "10.12.0",
     "globals": "17.13.0",
     "playwright": "1.64.0",
+    "three": "0.186.1",
     "typescript": "5.9.3"
   },
   "engines": {

@@ -1,6 +1,7 @@
 // @ts-check
 /* =========================================================================
-   Export : PNG, JPEG, WebP, SVG, impression / PDF, lot ZIP.
+   Export : PNG, JPEG, WebP, SVG, impression / PDF, lot ZIP ou PDF, envoi par
+   la feuille de partage du téléphone.
    La fenêtre d'export règle le fichier : type, résolution (dpi pour
    l'impression, pixels pour l'écran), contenu, fond, décor, nom. Le format
    de page se règle dans Design → Page (rappelé ici, avec un raccourci).
@@ -72,17 +73,41 @@ MF.exporter = (() => {
     }
   }
 
-  function print(page, o) {
+  /** Format de feuille d'une page, pour @page (A4 portrait si le format n'est pas un papier). */
+  const sheetOf = pz => { const mm = MF.design.formatMm(pz.design.poster); return mm ? `${mm[0]}mm ${mm[1]}mm` : 'A4 portrait'; };
+
+  /**
+   * Impression (ou « Enregistrer en PDF ») d'une suite de feuilles [{ page, letters }].
+   * Chaque format de papier a sa page nommée : un lot mêlant A4 et carré s'imprime au bon format.
+   */
+  function printSheets(sheets, o) {
     const area = document.getElementById('print-area');
-    const variants = o.content === 'both' ? [false, true] : [o.content === 'solution'];
-    const p = page.puzzle.design.poster;
-    const mm = MF.design.formatMm(p);
-    const sheet = mm ? `${mm[0]}mm ${mm[1]}mm` : 'A4 portrait';
+    const sizes = [...new Set(sheets.map(x => sheetOf(x.page.puzzle)))];
     let style = document.getElementById('print-page');
     if (!style) { style = document.createElement('style'); style.id = 'print-page'; document.head.appendChild(style); }
-    style.textContent = `@media print { @page { size: ${sheet}; margin: 8mm; } }`;
-    area.innerHTML = variants.map(letters => `<div class="print-page">${MF.renderers.svg(sceneOf(page, { ...o, letters }, MF.assets.url), { forExport: true })}</div>`).join('');
+    style.textContent = `@media print { @page { size: ${sizes[0]}; margin: 8mm; } ${sizes.map((sz, i) => `@page s${i} { size: ${sz}; margin: 8mm; } .print-page.s${i} { page: s${i}; }`).join(' ')} }`;
+    area.innerHTML = sheets.map(({ page, letters }) => `<div class="print-page s${sizes.indexOf(sheetOf(page.puzzle))}">${MF.renderers.svg(sceneOf(page, { ...o, letters }, MF.assets.url), { forExport: true })}</div>`).join('');
     setTimeout(() => window.print(), 50);
+  }
+
+  function print(page, o) {
+    const variants = o.content === 'both' ? [false, true] : [o.content === 'solution'];
+    printSheets(variants.map(letters => ({ page, letters })), o);
+  }
+
+  /** Lot à imprimer : toutes les grilles à remplir, puis toutes les solutions (un seul PDF). */
+  const printAll = (pages, o) => printSheets([...pages.map(page => ({ page, letters: false })), ...pages.map(page => ({ page, letters: true }))], o);
+
+  /** Envoi de l'image par la feuille de partage du téléphone (WhatsApp, Mail…), sinon téléchargement. */
+  const canShareFiles = () => { try { return !!navigator.canShare?.({ files: [new File([''], 'x.png', { type: 'image/png' })] }); } catch { return false; } };
+  async function shareImage(page, o) {
+    const { blob, ext } = await render(page, { ...o, type: o.type === 'svg' ? 'png' : o.type, letters: o.content === 'solution' });
+    if (!blob) throw new Error(t('Format non pris en charge par ce navigateur'));
+    const file = new File([blob], fileName(o.name || slug(page.name), o.content === 'solution', ext), { type: blob.type });
+    try { await navigator.share({ files: [file], title: page.name }); } catch (e) {
+      if (e?.name === 'AbortError') return;
+      MF.util.downloadBlob(file.name, blob); // partage refusé (délai dépassé, navigateur) : fichier téléchargé
+    }
   }
 
   /** Lot ZIP : chaque page en version vierge et avec solution. */
@@ -154,7 +179,8 @@ MF.exporter = (() => {
             ${scopes.length > 1 ? `<div class="field"><span>${t('Quelles grilles ?')}</span>${seg('scope', scopes.map(s => [s.id, s.label]), st.scopeId)}</div>` : `<p class="small"><b>${esc(scopes[0]?.label || '')}</b></p>`}
             <label class="check"><input type="checkbox" id="exp-zipboth"> ${t('Ajouter aussi la version SVG')}</label>
             <p class="field-hint" id="exp-bundle-hint"></p>
-            <button type="button" class="btn btn-primary" id="exp-zip">${ic('archive')}${t('Télécharger le ZIP')}</button>
+            <div class="row"><button type="button" class="btn btn-primary" id="exp-zip">${ic('archive')}${t('Télécharger le ZIP')}</button>
+              <button type="button" class="btn" id="exp-print-all" title="${esc(t('Toutes les grilles à remplir, puis toutes les solutions, dans un seul document'))}">${ic('print')}${t('Imprimer / PDF du lot')}</button></div>
           </div>
         </div>
       </div>`;
@@ -225,14 +251,16 @@ MF.exporter = (() => {
           bundle(scope().pages, { ...st, zipName: scope().zipName }).catch(() => MF.ui.toast(t('Le ZIP n\'a pas pu être créé.'), 'err'));
           close('zip');
         });
+        root.querySelector('#exp-print-all').addEventListener('click', () => { printAll(scope().pages, st); close('print'); });
         snapResolution(root);
       },
       actions: [
+        ...(canShareFiles() ? [{ label: t('Envoyer…'), icon: 'share', value: () => (shareImage(getPage(), st).catch(e => MF.ui.toast(t('Export impossible : {error}', { error: e.message }), 'err')), 'share') }] : []),
         { label: t('Imprimer / PDF'), icon: 'print', value: () => (print(getPage(), st), 'print') },
         { label: t('Télécharger'), icon: 'download', kind: 'primary', value: () => (download(getPage(), st).catch(e => MF.ui.toast(t('Export impossible : {error}', { error: e.message }), 'err')), 'file') },
       ],
     });
   }
 
-  return { open, download, print, bundle };
+  return { open, download, print, printAll, bundle };
 })();

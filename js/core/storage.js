@@ -12,6 +12,7 @@ MF.storage = (() => {
   const KEYS = {
     state: 'mfm:v2',              // grilles, mots, réglages (MF.store)
     play: 'mfm:play:',            // progression des parties (MF.play), une clé par page
+    best: 'mfm:best',             // meilleurs temps (MF.play)
     lang: 'fleche-studio-lang',   // langue de l'interface (MF.i18n)
     legacy: 'mots-fleches-maker:', // ancienne version de l'application (récupération)
   };

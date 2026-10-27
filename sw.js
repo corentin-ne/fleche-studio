@@ -26,7 +26,7 @@ const keyOf = url => { const u = new URL(url, self.location.href); return u.orig
 async function shell() {
   const html = await (await fetch('./index.html', { cache: 'no-cache' })).text();
   const styles = [...html.matchAll(/href="(css\/[^"?]+)/g)].map(m => m[1]);
-  return ['./', './index.html', './manifest.webmanifest', './icon.svg', ...styles, ...MF.loader.essential()];
+  return ['./', './index.html', './manifest.webmanifest', './manifest.en.webmanifest', './icon.svg', './icons/icon-192.png', './icons/apple-touch-icon.png', ...styles, ...MF.loader.essential()];
 }
 
 /** Clés de cache des dictionnaires (seuls fichiers mis en cache à la demande de la page). */

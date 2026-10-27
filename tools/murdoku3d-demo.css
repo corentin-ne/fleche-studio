@@ -1,0 +1,5 @@
+html, body { margin: 0; height: 100%; font: 14px system-ui, sans-serif; background: #efe7d6; }
+body { display: flex; flex-direction: column; }
+header { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; padding: 8px 12px; }
+main { flex: 1; min-height: 0; }
+body.shot header { display: none; }

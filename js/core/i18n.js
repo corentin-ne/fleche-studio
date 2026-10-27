@@ -40,10 +40,13 @@ MF.i18n = (() => {
    * Un même mot français peut avoir deux sens : « Annuler|undo » (Rétablir / Annuler)
    * contre « Annuler » (bouton d'une fenêtre). Le contexte après « | » n'est jamais affiché.
    */
-  function t(fr, params) {
+  const t = (fr, params) => tr(lang, fr, params);
+
+  /** Comme t(), mais dans une langue donnée (textes d'une énigme écrite dans une autre langue que l'interface). */
+  function tr(l, fr, params) {
     const bar = fr.indexOf('|');
     const plain = bar < 0 ? fr : fr.slice(0, bar);
-    let s = lang === 'fr' ? plain : catalogs[lang]?.[fr] ?? plain;
+    let s = l === 'fr' ? plain : catalogs[l]?.[fr] ?? plain;
     if (params) s = s.replace(/\{(\w+)\}/g, (m, k) => (k in params ? params[k] : m));
     return s;
   }
@@ -80,12 +83,15 @@ MF.i18n = (() => {
     for (const attr of ['title', 'aria-label', 'placeholder']) {
       (root.body || root).querySelectorAll(`[${attr}]`).forEach(el => { const v = dict[el.getAttribute(attr)]; if (v) el.setAttribute(attr, v); });
     }
-    const desc = /** @type {HTMLMetaElement | null} */ (document.querySelector('meta[name="description"]'));
+    // Application installée : nom, raccourcis et description dans la langue de l'interface
+    const manifest = /** @type {HTMLLinkElement | null} */ (document.querySelector('link[rel="manifest"]'));
+    if (manifest) manifest.href = `manifest.${lang}.webmanifest`;
+    const desc = /** @type {HTMLMetaElement} */ (document.querySelector('meta[name="description"]'));
     if (desc && dict[desc.content]) desc.content = dict[desc.content];
   }
 
   /** Le catalogue d'une langue contient-il ce texte ? (tests de couverture des traductions) */
   const has = (l, key) => Object.prototype.hasOwnProperty.call(catalogs[l] || {}, key);
 
-  return { LANGS, lang, locale, add, has, t, plural, num, compare, set, apply };
+  return { LANGS, lang, locale, add, has, t, tr, plural, num, compare, set, apply };
 })();

@@ -296,6 +296,7 @@ MF.builder = (() => {
   /* ---------------- Orchestration ---------------- */
   function prepare(words) {
     const seen = new Set();
+    /** @type {any[]} */
     const items = [];
     for (const w of words) {
       const norm = MF.util.normalize(w.text);
@@ -370,7 +371,7 @@ MF.builder = (() => {
    * @param {any} [opts]
    * @param {{ seed?: number, onProgress?: (p: number) => void, onSnapshot?: Function, signal?: { cancelled: boolean }, exclude?: Set<string>, banned?: string[] }} [run]
    */
-  async function generate(words, opts = {}, { seed = Date.now(), onProgress, onSnapshot, signal, exclude = new Set(), banned = [] } = {}) {
+  async function generate(words, opts = {}, { seed = Date.now(), onProgress, onSnapshot, signal, exclude = new Set(), banned = [] } = /** @type {any} */ ({})) {
     if (!prepare(words).length) return null;
     const all = prepare(words);
     const budget = EFFORT_MS[opts.effort] || EFFORT_MS.normal;

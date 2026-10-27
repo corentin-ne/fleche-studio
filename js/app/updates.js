@@ -21,6 +21,56 @@ MF.updates = (() => {
     });
   }
 
+  /** Nouveautés de la version en cours (affichées dans « À propos »). */
+  const NOTES = [
+    'Murdoku : figurines coiffées selon l\'univers (tricornes, casques spatiaux, kasa, hauts-de-forme…), plan et export aux couleurs de l\'univers',
+    'Murdoku : plateaux 3D par univers (bords en sable, mer, neige…), zones en plein air sans murs, murs variés, noms des pièces et feuillages touffus',
+    'Murdoku : 13 nouveaux sols (sable, eau, neige, marbre, tatami, mosaïque…) et encore plus de décor',
+    'Murdoku : scènes 3D bien plus vivantes (nourriture, livres, tonneaux, coquillages, petits tapis…), réglable dans Rendu',
+    'Murdoku : générateur de surnoms, de victimes et d\'histoires qui mélange les ingrédients de chaque univers',
+    'Murdoku : 17 univers (sirènes, samouraïs, pirates, pharaons, Paris, bal de la Régence…) avec lieux, objets, suspects et histoire, tous modifiables',
+    'Murdoku : niveau Expert, nouveaux indices (bord du plan, « pas à côté de ») et phrases plus variées',
+    'Création repensée en trois étapes, plus simple sur téléphone',
+    'Nouveau jeu : Murdoku, une enquête en diorama 3D peint (place les suspects, démasque le coupable), jouable et exportable',
+    'Studio et jeu séparés : une page de jeu à part et une Salle de jeu dans le tableau de bord',
+    'Multicolore : lettres, cases, définitions et mots de plusieurs couleurs (arc-en-ciel, pastel, néon…, couleurs au choix)',
+    'Version de l\'application affichée dans le menu « Plus », avec vérification des mises à jour',
+    '18 packs à thème de 25 mots, rappel de sauvegarde, meilleur temps en mode jeu',
+  ];
+
+  /** Version installée : « 4.4.0 · 1a2b3c4 ». */
+  const label = () => { const a = MF.loader.about; return `${a.release} · ${a.build}`; };
+
+  /** Demande au serveur s'il existe une version plus récente : true (elle arrive), false (à jour), null (vérification impossible). */
+  async function check() {
+    const reg = await navigator.serviceWorker?.getRegistration().catch(() => null);
+    if (!reg) return null;
+    await reg.update().catch(() => {});
+    return !!(reg.installing || reg.waiting);
+  }
+
+  /** Fenêtre « À propos » : version, date de mise en ligne, nouveautés, vérification des mises à jour. */
+  function about() {
+    const a = MF.loader.about;
+    const { esc } = MF.util;
+    const date = a.deployed ? new Date(a.deployed).toLocaleString(MF.i18n.locale, { dateStyle: 'long', timeStyle: 'short' }) : t('version locale (non publiée)');
+    MF.ui.modal({
+      title: t('À propos de Flèche Studio'), icon: 'info', size: 'small',
+      body: `<dl class="about-list"><dt>${t('Version')}</dt><dd class="mono">${esc(a.release)}</dd><dt>${t('Build')}</dt><dd class="mono">${esc(a.build)}</dd><dt>${t('Mise en ligne')}</dt><dd>${esc(date)}</dd></dl>
+        <p class="small"><b>${t('Nouveautés')}</b></p><ul class="about-notes small">${NOTES.map(n => `<li>${esc(t(n))}</li>`).join('')}</ul>
+        <p class="muted small" id="about-status" aria-live="polite"></p>`,
+      actions: [{ label: t('Fermer'), value: null }, { label: t('Vérifier les mises à jour'), icon: 'refresh', kind: 'primary', value: null, validate: root => {
+        const st = root.querySelector('#about-status');
+        st.textContent = t('Vérification…');
+        check().then(found => {
+          st.textContent = found === null ? t('Vérification impossible ici (hors ligne ou navigation privée) : recharge la page pour obtenir la dernière version.')
+            : found ? t('Nouvelle version en cours de téléchargement : recharge quand on te le propose.') : t('Tu as la dernière version.');
+        });
+        return false; // la fenêtre reste ouverte pour afficher le résultat
+      } }],
+    });
+  }
+
   /** Enregistre le service worker (sites http/https uniquement). */
   async function register() {
     if (!('serviceWorker' in navigator) || !/^https?:$/.test(location.protocol)) return;
@@ -41,5 +91,5 @@ MF.updates = (() => {
     document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
   }
 
-  return { register };
+  return { register, check, about, label };
 })();

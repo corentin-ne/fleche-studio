@@ -3,3 +3,5 @@
 declare var MF: any;
 interface Window { MF: any; }
 declare function importScripts(...urls: string[]): void;
+// setAttribute convertit la valeur en texte : on accepte aussi les nombres
+interface Element { setAttribute(qualifiedName: string, value: string | number): void; }

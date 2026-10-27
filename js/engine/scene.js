@@ -48,7 +48,8 @@ MF.scene = (() => {
       if (cell.type === 'block') { ops.push(tile(r, c, C.frame, m.gap > 0 && d.cell.shadow ? { shadow: true } : {})); return; }
 
       if (m.gap === 0 && m.line > 0) ops.push({ op: 'rect', x, y, w: U, h: U, fill: C.line });
-      const fill = cell.type === 'clue' ? C.clue : C.letter;
+      const MC = ctx.MC;
+      const fill = cell.type === 'clue' ? (MC ? MC.clueFill(r, c) : C.clue) : (MC ? MC.cellFill(r, c) : C.letter);
       const meta = interactive ? { cls: `cell ${cell.type}`, data: { r, c } } : {};
       const shadow = m.gap > 0 && d.cell.shadow;
       if (cell.type === 'letter' && d.cell.letterShape === 'circle') ops.push({ op: 'circle', cx: x + U / 2, cy: y + U / 2, r: m.inner / 2, fill, shadow, ...meta });
@@ -58,8 +59,11 @@ MF.scene = (() => {
   }
 
   function contentOps(model, puzzle, ctx) {
-    const { d, C, m, ox, oy, opts } = ctx;
+    const { d, C, m, ox, oy, opts, MC } = ctx;
     const ops = [];
+    // Multicolore : couleur d'une case, ou couleur normale si l'option est coupée
+    const letterInk = (r, c, base) => (MC ? MC.letter(r, c, base) : base);
+    const inkAt = (r, c, base) => (MC ? MC.ink(r, c, base) : base);
     const X = c => ox + c * U, Y = r => oy + r * U;
     const letterText = (x, y, ch, fill, size = U * 0.56, dy = 0.69) => ({
       op: 'text', x: x + U / 2, y: y + U * dy, text: ch, size, font: m.letterFont, weight: m.letterWeight, fill, anchor: 'middle', cls: opts.forExport ? undefined : 'sol',
@@ -68,13 +72,14 @@ MF.scene = (() => {
 
     // Mots mêlés : capsules autour des mots trouvés (solution)
     if (model.game === 'meles' && opts.letters) {
-      for (const s of model.slots.values()) {
+      for (const [key, s] of model.slots) {
+        const wc = MC?.word(key), col = wc ? MF.design.readable(wc, C.letter, 2) : C.arrow;
         const [r0, c0] = s.cells[0], [r1, c1] = s.cells[s.cells.length - 1];
         const x0 = X(c0) + U / 2, y0 = Y(r0) + U / 2, x1 = X(c1) + U / 2, y1 = Y(r1) + U / 2;
         const len = Math.hypot(x1 - x0, y1 - y0) + U * 0.8;
         ops.push({ op: 'group', tx: (x0 + x1) / 2, ty: (y0 + y1) / 2, rot: (Math.atan2(y1 - y0, x1 - x0) * 180) / Math.PI, children: [
-          { op: 'rect', x: -len / 2, y: -U * 0.36, w: len, h: U * 0.72, r: U * 0.36, fill: C.arrow, opacity: 0.16 },
-          { op: 'rect', x: -len / 2, y: -U * 0.36, w: len, h: U * 0.72, r: U * 0.36, fill: 'none', stroke: C.arrow, sw: 5 },
+          { op: 'rect', x: -len / 2, y: -U * 0.36, w: len, h: U * 0.72, r: U * 0.36, fill: col, opacity: 0.16 },
+          { op: 'rect', x: -len / 2, y: -U * 0.36, w: len, h: U * 0.72, r: U * 0.36, fill: 'none', stroke: col, sw: 5 },
         ] });
       }
     }
@@ -89,13 +94,14 @@ MF.scene = (() => {
             ? { op: 'line', x1: x + mid, y1: y + a, x2: x + mid, y2: y + b, stroke: C.line, sw }
             : { op: 'line', x1: x + a, y1: y + mid, x2: x + b, y2: y + mid, stroke: C.line, sw });
         }
+        const clueInk = MC ? MC.clueInk(r, c) : C.clueInk;
         for (const cl of cell.clues) {
           const { size: fs, lines } = cl.fit;
           const blockH = lines.length * fs * m.lineH;
           const t = y + cl.box.y + (cl.box.h - blockH) / 2;
           lines.forEach((text, k) => ops.push({
             op: 'text', x: x + cl.box.x + cl.box.w / 2, y: t + k * fs * m.lineH + (fs * m.lineH - fs) / 2 + fs * 0.8,
-            text, size: fs, font: m.clueFont, weight: m.clueWeight, fill: C.clueInk, anchor: 'middle',
+            text, size: fs, font: m.clueFont, weight: m.clueWeight, fill: clueInk, anchor: 'middle',
           }));
           if (cl.missing && !opts.forExport) {
             const narrow = cl.box.w < U / 2;
@@ -113,24 +119,25 @@ MF.scene = (() => {
       }
       if (cell.type !== 'letter') return;
 
-      if (model.game === 'meles') { ops.push({ ...letterText(x, y, cell.ch, C.ink, U * 0.52, 0.68), cls: undefined }); return; }
+      if (model.game === 'meles') { ops.push({ ...letterText(x, y, cell.ch, letterInk(r, c, C.ink), U * 0.52, 0.68), cls: undefined }); return; }
       if (model.game === 'croises' || model.game === 'codes') {
         const label = model.game === 'codes' ? cell.code : cell.num;
-        if (label) ops.push({ op: 'text', x: x + m.inset + 7, y: y + m.inset + 23, text: String(label), size: model.game === 'codes' ? 22 : 21, font: m.letterFont, weight: 700, fill: C.ink, opacity: 0.8 });
+        if (label) ops.push({ op: 'text', x: x + m.inset + 7, y: y + m.inset + 23, text: String(label), size: model.game === 'codes' ? 22 : 21, font: m.letterFont, weight: 700, fill: inkAt(r, c, C.ink), opacity: 0.8 });
         const given = model.game === 'codes' && model.givens?.has(cell.ch);
-        if (opts.letters || given) ops.push(letterText(x, y, cell.ch, given && !opts.letters ? C.ink : C.solution, U * 0.5, 0.76));
+        if (opts.letters || given) ops.push(letterText(x, y, cell.ch, letterInk(r, c, given && !opts.letters ? C.ink : C.solution), U * 0.5, 0.76));
         return;
       }
-      if (opts.letters) ops.push(letterText(x, y, cell.ch, C.solution));
+      if (opts.letters) ops.push(letterText(x, y, cell.ch, letterInk(r, c, C.solution)));
       for (const a of cell.arrows) {
+        const arrowC = MC ? MC.arrow(r, c, a.arrow, C.arrow) : C.arrow;
         const g = MF.gridModel.arrowShape(a.arrow, a.at, d.arrows.style, d.arrows.size);
         const dx = a.arrow === 'right' || a.arrow === 'rightDown' ? m.inset - 1.5 : 0;
         const dy = a.arrow === 'down' || a.arrow === 'downRight' ? m.inset - 1.5 : 0;
         const mv = list => list.map(([p, q]) => [x + dx + p, y + dy + q]);
-        if (g.line) ops.push({ op: 'polyline', pts: mv(g.line), stroke: C.arrow, sw: arrowW, join: 'round', cap: 'round' });
-        if (g.line2) ops.push({ op: 'polyline', pts: mv(g.line2), stroke: C.arrow, sw: arrowW, join: 'round', cap: 'round' });
-        if (g.poly) ops.push({ op: 'poly', pts: mv(g.poly), fill: C.arrow });
-        if (g.dot) ops.push({ op: 'circle', cx: x + dx + g.dot[0], cy: y + dy + g.dot[1], r: g.dot[2], fill: C.arrow });
+        if (g.line) ops.push({ op: 'polyline', pts: mv(g.line), stroke: arrowC, sw: arrowW, join: 'round', cap: 'round' });
+        if (g.line2) ops.push({ op: 'polyline', pts: mv(g.line2), stroke: arrowC, sw: arrowW, join: 'round', cap: 'round' });
+        if (g.poly) ops.push({ op: 'poly', pts: mv(g.poly), fill: arrowC });
+        if (g.dot) ops.push({ op: 'circle', cx: x + dx + g.dot[0], cy: y + dy + g.dot[1], r: g.dot[2], fill: arrowC });
       }
     }));
     return ops;
@@ -148,7 +155,7 @@ MF.scene = (() => {
     ] };
   }
 
-  function gridBlock(model, puzzle, d, C, m, opts) {
+  function gridBlock(model, puzzle, d, C, m, opts, MC) {
     const shaped = model.shape && model.shape !== 'rect';
     const fw = shaped ? 0 : d.frame.width;
     const w = model.cols * U + fw * 2, h = model.rows * U + fw * 2;
@@ -161,7 +168,7 @@ MF.scene = (() => {
           if (d.voids === 'frame') ops.push({ op: 'rect', x: gx, y: gy, w, h, r: d.frame.radius, fill: C.frame });
           else if (fw > 0) ops.push({ op: 'rect', x: gx + fw / 2, y: gy + fw / 2, w: w - fw, h: h - fw, r: Math.max(0, d.frame.radius - fw / 2), fill: 'none', stroke: C.frame, sw: fw });
         }
-        const ctx = { d, C, m, ox, oy, opts };
+        const ctx = { d, C, m, ox, oy, opts, MC };
         const { base, marks } = cellOps(model, puzzle, ctx);
         ops.push(...base, ...contentOps(model, puzzle, ctx), ...marks);
         if (!opts.forExport && opts.photoMarks && model.band) ops.push(bandMark(model, ox, oy));
@@ -175,7 +182,7 @@ MF.scene = (() => {
     return lines.map((text, i) => ({ op: 'text', x, y: y + size * 0.85 + i * size * lh, text, size, font: family, weight, fill, anchor }));
   }
 
-  function asideBlock(model, puzzle, d, C, width) {
+  function asideBlock(model, puzzle, d, C, width, MC = null) {
     const fam = font(d.lists.font).css;
     const fs = d.lists.size;
     const lh = 1.3;
@@ -223,7 +230,9 @@ MF.scene = (() => {
         const lw = MF.text.measure(l, size, fam, wB);
         if (cur.length && curW + gap + lw > width) { rows.push({ items: cur, w: curW }); cur = []; curW = 0; }
         curW += (cur.length ? gap : 0) + lw;
-        cur.push({ l, lw, key });
+        // Multicolore : chaque mot de la liste dans la couleur de sa capsule
+        const wc = MC?.word(key);
+        cur.push({ l, lw, key, fill: wc ? MF.design.readable(wc, MF.design.backgroundTone(d), 3) : C.list });
       }
       if (cur.length) rows.push({ items: cur, w: curW });
       return {
@@ -233,7 +242,7 @@ MF.scene = (() => {
           rows.forEach((row, i) => {
             let cx = x + (width - row.w) / 2;
             for (const it of row.items) {
-              ops.push({ op: 'text', x: cx, y: y + size * 0.9 + i * size * 1.55, text: it.l, size, font: fam, weight: wB, fill: C.list, ls: 2, cls: 'ws-word', data: { key: it.key } });
+              ops.push({ op: 'text', x: cx, y: y + size * 0.9 + i * size * 1.55, text: it.l, size, font: fam, weight: wB, fill: it.fill, ls: 2, cls: 'ws-word', data: { key: it.key } });
               cx += it.lw + gap;
             }
           });
@@ -328,10 +337,11 @@ MF.scene = (() => {
     const d = puzzle.design;
     const C = MF.design.resolve(d);
     const m = MF.design.metrics(d);
-    const grid = gridBlock(model, puzzle, d, C, m, opts);
+    const MC = MF.design.multiColors(d, C, model, { solution: !!opts.letters });
+    const grid = gridBlock(model, puzzle, d, C, m, opts, MC);
     const width = grid.w;
     const title = opts.title === false ? null : titleBlock(d, C, width);
-    const aside = asideBlock(model, puzzle, d, C, width);
+    const aside = asideBlock(model, puzzle, d, C, width, MC);
     const contentW = width;
     const contentH = (title ? title.h + GAP : 0) + grid.h + (aside ? GAP + aside.h : 0);
 

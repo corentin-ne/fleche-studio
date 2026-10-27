@@ -93,7 +93,7 @@ MF.backgrounds = (() => {
    * @param {{ assetUrl?: (id: string) => string | null, radius?: number }} [o]  assetUrl : id d'image -> URL utilisable (objet URL à l'écran, data URL à l'export)
    * @returns {any[]}
    */
-  function ops(bg, x, y, w, h, { assetUrl, radius = 0 } = {}) {
+  function ops(bg, x, y, w, h, { assetUrl, radius = 0 } = /** @type {any} */ ({})) {
     const rect = fill => ({ op: 'rect', x, y, w, h, r: radius, fill });
     switch (bg.type) {
       case 'none': return [];
@@ -123,7 +123,7 @@ MF.backgrounds = (() => {
    * @param {{ none?: string, tile?: number, assetUrl?: (id: string) => string | null }} [o]
    *   none : rendu du fond transparent ; tile : taille d'affichage d'une tuile de motif (px)
    */
-  function css(bg, { none = 'transparent', tile: size = 24, assetUrl } = {}) {
+  function css(bg, { none = 'transparent', tile: size = 24, assetUrl } = /** @type {any} */ ({})) {
     switch (bg.type) {
       case 'none': return none;
       case 'pattern': return `${thumb(bg.pattern, bg.c1, bg.c2, bg.c3)} 0 0 / ${Math.round(size * bg.scale)}px auto, ${bg.c1}`;

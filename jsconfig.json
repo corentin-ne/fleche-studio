@@ -1,6 +1,7 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "module": "ES2022",
     "lib": ["ES2022", "DOM", "DOM.Iterable"],
     "allowJs": true,
     "checkJs": false,
@@ -10,5 +11,5 @@
     "skipLibCheck": true
   },
   "include": ["js/**/*.js", "sw.js", "types/**/*.d.ts"],
-  "exclude": ["js/data/clues-*.js", "node_modules"]
+  "exclude": ["js/data/clues-*.js", "js/vendor", "node_modules"]
 }

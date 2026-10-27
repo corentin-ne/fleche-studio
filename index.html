@@ -11,8 +11,23 @@
   <meta name="theme-color" content="#07090d">
   <meta name="description" content="Flèche Studio : créateur de grilles de mots fléchés, croisés, mêlés et codés : vos mots, vos définitions, votre style. Export PNG, SVG, PDF. Tout reste dans votre navigateur.">
   <link rel="icon" href="icon.svg?v=5" type="image/svg+xml">
-  <link rel="apple-touch-icon" href="icon.svg?v=5">
+  <link rel="icon" href="icons/icon-192.png" type="image/png" sizes="192x192">
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
   <link rel="manifest" href="manifest.webmanifest">
+  <meta name="apple-mobile-web-app-title" content="Flèche Studio">
+  <!-- Aperçu des liens partagés (WhatsApp, Facebook, LinkedIn…) : __SITE__ = adresse du site, inscrite au déploiement -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Flèche Studio">
+  <meta property="og:title" content="Flèche Studio : crée tes grilles de mots fléchés, croisés, mêlés et codés">
+  <meta property="og:description" content="Tes mots, tes définitions, ton style. Prête à imprimer ou à partager, gratuit et sans compte.">
+  <meta property="og:url" content="__SITE__">
+  <meta property="og:image" content="__SITE__icons/social.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Logo de Flèche Studio et les quatre jeux : fléchés, croisés, mêlés, codés">
+  <meta property="og:locale" content="fr_FR">
+  <meta property="og:locale:alternate" content="en_GB">
+  <meta name="twitter:card" content="summary_large_image">
   <!-- Polices hébergées avec l'application (css/fonts.css) : la principale est demandée tout de suite -->
   <link rel="preload" href="fonts/inter-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
 
@@ -29,6 +44,7 @@
   <link rel="stylesheet" href="css/print.css?v=__BUILD__">
 </head>
 <body>
+  <noscript><p class="boot-error" role="alert">Flèche Studio a besoin de JavaScript pour fonctionner : active-le dans ton navigateur, puis recharge la page. · Flèche Studio needs JavaScript: please enable it in your browser and reload the page.</p></noscript>
   <div class="bg-ambient" aria-hidden="true"></div>
 
   <div class="app">
@@ -38,6 +54,8 @@
         <span class="brand-text" translate="no"><strong>Flèche</strong><small>Studio</small></span>
       </button>
       <nav class="puzzle-tabs" id="puzzle-tabs" aria-label="Mes grilles"></nav>
+      <div class="play-title" id="play-title" aria-live="polite"></div>
+      <button class="btn btn-ghost arcade-btn" id="btn-arcade" type="button" title="Salle de jeu : jouer à mes grilles" aria-label="Salle de jeu"><span data-icon="gamepad"></span><span class="lbl">Jouer</span></button>
       <div class="topbar-actions">
         <button class="btn btn-ghost btn-icon" id="btn-undo" title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière action"><span data-icon="undo"></span></button>
         <button class="btn btn-ghost btn-icon" id="btn-redo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><span data-icon="redo"></span></button>
@@ -48,6 +66,7 @@
         <button class="btn btn-ghost lang-btn" id="btn-lang" title="Langue / Language" aria-label="Langue / Language" aria-haspopup="menu" aria-expanded="false"><span data-icon="globe"></span><b id="lang-code">FR</b></button>
         <button class="btn btn-ghost btn-icon" id="btn-theme" title="Thème clair / sombre" aria-label="Changer de thème"><span data-icon="contrast"></span></button>
         <button class="btn btn-ghost btn-icon" id="btn-more" title="Partager, ouvrir, sauvegarder, aide…" aria-label="Plus d'actions" aria-haspopup="menu" aria-expanded="false"><span data-icon="more"></span></button>
+        <button class="btn btn-ghost btn-icon" id="btn-about" hidden title="Version et nouveautés" aria-label="Version et nouveautés"><span data-icon="info"></span></button>
         <input type="file" id="file-open" accept=".json,.txt,.csv,.tsv,.xlsx,application/json,text/plain,text/csv,image/png,image/jpeg,image/webp" hidden>
       </div>
     </header>
@@ -65,13 +84,13 @@
             <div class="segmented" id="mode-switch" role="group" aria-label="Affichage">
               <button data-mode="solution" title="Voir les réponses"><span data-icon="eye"></span><span class="lbl">Solution</span></button>
               <button data-mode="blank" title="Grille à remplir"><span data-icon="eyeOff"></span><span class="lbl">Vierge</span></button>
-              <button data-mode="play" title="Jouer (P)"><span data-icon="play"></span><span class="lbl">Jouer</span></button>
             </div>
             <div class="zoom">
               <button class="btn btn-sm btn-ghost" id="btn-fit" title="Ajuster à l'écran"><span data-icon="grid"></span></button>
               <input type="range" id="zoom" min="10" max="160" step="2" aria-label="Zoom" title="Zoom (Ctrl + molette)">
             </div>
             <button class="btn" id="btn-shuffle" title="Calculer une autre grille (M)"><span data-icon="shuffle"></span><span class="lbl">Mélanger</span></button>
+            <button class="btn" id="btn-play" title="Jouer à cette grille (P)"><span data-icon="gamepad"></span><span class="lbl">Jouer</span></button>
             <button class="btn btn-primary" id="btn-export" title="Exporter (E)"><span data-icon="download"></span>Exporter</button>
           </div>
         </div>
@@ -85,6 +104,7 @@
           <button class="btn btn-sm btn-primary" data-regen><span data-icon="refresh"></span>Mettre à jour la grille</button>
         </div>
         <div class="play-bar" id="play-bar" hidden>
+          <button class="btn btn-sm" id="btn-play-exit" title="Revenir au studio (Échap)"><span data-icon="chevronLeft"></span><span class="lbl">Studio</span></button>
           <span class="play-time"><span data-icon="clock"></span><b id="play-time">0:00</b></span>
           <span class="muted small play-tip">Clique une case et tape · re-clic ou Espace : change de sens</span>
           <span class="spacer"></span>

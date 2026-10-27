@@ -4,7 +4,7 @@
      - autocomplétion et correction orthographique (recherche floue) ;
      - définitions d'un mot (extraites du wikicode, raccourcies) ;
      - listes de mots par thème (catégories du Wiktionnaire) ;
-     - résumé Wikipédia (noms propres).
+     - résumé Wikipédia (noms propres) et sa description courte Wikidata.
    Travaille dans la langue des mots de la grille ouverte
    (MF.dictionary.current()), résolue à chaque appel : fr.wiktionary.org pour
    une grille française, en.wiktionary.org pour une grille anglaise.
@@ -221,7 +221,7 @@ MF.wiki = (() => {
   }
 
   /**
-   * Premier paragraphe Wikipédia (noms propres, lieux, personnes).
+   * Premier paragraphe Wikipédia (noms propres, lieux, personnes) et description courte Wikidata.
    * @param {string} title
    * @param {{ signal?: AbortSignal }} [o]
    */
@@ -232,7 +232,9 @@ MF.wiki = (() => {
     if (r?.type === 'disambiguation' || typeof r?.extract !== 'string') return null;
     const text = cleanText(r.extract, 600);
     const lead = new RegExp(`^${title.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}${lang.lead.source}`, 'i');
-    return { title: cleanText(r.title, 120), text, short: shorten(text.replace(lead, ''), 60) };
+    // Description courte de Wikidata (« capitale de la France ») : souvent une définition toute prête
+    const desc = typeof r.description === 'string' ? shorten(cleanText(r.description, 120), 60) : '';
+    return { title: cleanText(r.title, 120), text, short: shorten(text.replace(lead, ''), 60), description: desc };
   }
 
   /* ---------------- Thèmes (catégories) ---------------- */
@@ -243,7 +245,7 @@ MF.wiki = (() => {
    * @param {string} theme
    * @param {{ signal?: AbortSignal }} [o]
    */
-  async function categories(theme, { signal } = {}) {
+  async function categories(theme, { signal } = /** @type {any} */ ({})) {
     if (!online) throw offline();
     const lang = current();
     const q = cleanText(theme, 60).replace(/[^\p{L}\p{N}\s'-]/gu, '').trim();

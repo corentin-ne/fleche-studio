@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Murdoku 3D — démo</title>
+<link rel="stylesheet" href="murdoku3d-demo.css">
+</head>
+<body>
+<!-- Page de développement (non déployée) : npm run serve puis http://localhost:5180/tools/murdoku3d-demo.html -->
+<header>
+  <select id="look"></select>
+  <select id="mood"></select>
+  <select id="camera"><option value="iso">iso</option><option value="top">top</option></select>
+  <select id="show"><option>blank</option><option>solution</option><option>play</option></select>
+  <select id="puzzle"><option value="demo">6×6</option><option value="all">8×8 (tous les objets)</option></select>
+  <label><input type="checkbox" id="labels" checked> repères</label>
+  <label><input type="checkbox" id="names"> noms</label>
+  <button id="png">PNG 2400</button>
+  <span id="info"></span>
+</header>
+<main id="board"></main>
+<script type="module" src="murdoku3d-demo.mjs"></script>
+</body>
+</html>

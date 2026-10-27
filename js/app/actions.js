@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Actions métier : seules fonctions qui modifient l'état (via MF.store).
    Les panneaux et raccourcis appellent ces actions ; app.js s'occupe du rendu.
@@ -48,7 +49,7 @@ MF.createActions = app => {
       view.draft = {};
       mutate(p => p.words.push(...added.map(w => ({ ...w, id: MF.util.uid() }))), 'words');
       if (!silent) toastAdded(added.length, { skipped, missing: MF.games.get(pz.game).clues ? added.filter(w => !w.clue).length : 0 });
-      requestAnimationFrame(() => document.querySelector('#add-form [name=text]')?.focus());
+      requestAnimationFrame(() => /** @type {HTMLInputElement | null} */ (document.querySelector('#add-form [name=text]'))?.focus());
       return added.length;
     },
     updateWord(id, patch) {
@@ -72,7 +73,7 @@ MF.createActions = app => {
       for (const [page, pg] of (pz.layout?.pages || []).entries()) {
         const slot = pg.words.findIndex(w => w.wid === id);
         if (slot < 0) continue;
-        if (store.get().ui.mode === 'play') app.setMode('solution');
+        if (view.play) app.closePlay();
         if (page !== view.page) { view.page = page; app.renderAll(); }
         MF.gridView.highlight(MF.gridModel.wordKey(pg, slot));
         return;
@@ -186,7 +187,7 @@ MF.createActions = app => {
       if (base.kind === 'text') base.ar = MF.stickers.textAspect(base);
       const s = S.sticker(base);
       if (!s) return;
-      if (store.get().ui.mode === 'play') app.setMode('solution');
+      if (view.play) app.closePlay();
       view.selected = s.id;
       mutate(p => p.stickers.push(s), 'stickers');
     },
@@ -253,23 +254,29 @@ MF.createActions = app => {
     async newPuzzle(defaults = {}) {
       const res = await MF.welcome.wizard(defaults);
       if (!res) return;
-      const pz = store.makePuzzle({ name: res.name || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang } });
+      const pack = res.start.startsWith('pack:') ? MF.lexicon.packs(res.lang)[res.start.slice(5)] : null;
+      const look = res.game === 'murdoku' ? MF.murdokuThemes.get(res.mdkTheme) : null;
+      const mdk = look ? { theme: res.mdkTheme, size: +res.mdkSize, difficulty: res.mdkDifficulty, render: res.mdkRender, look: look.look, mood: look.mood, seed: MF.util.randomSeed() % 2147483647 } : undefined;
+      const mdkName = look ? `Murdoku · ${MF.murdokuThemes.card(res.mdkTheme, res.lang).label}` : '';
+      const pz = store.makePuzzle({ name: res.name || mdkName || pack?.label || MF.games.get(res.game).label, game: res.game, options: { shape: res.shape, lang: res.lang, murdoku: mdk } });
       await MF.lexicon.ensure(res.lang).catch(() => {}); // tirage au hasard : dictionnaire de la langue choisie
       MF.dictionary.use(res.lang);
-      pz.design = MF.themes.apply(pz.design, res.theme);
+      pz.design = MF.themes.apply(pz.design, mdk && res.theme === 'violet' ? 'kraft' : res.theme);
       let words = [];
-      if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
-      else if (res.start.startsWith('pack:')) words = (MF.lexicon.packs(res.lang)[res.start.slice(5)]?.words || []).map(([text, clue]) => ({ text, clue }));
+      if (mdk) words = [];
+      else if (res.start === 'random') words = MF.pickers.draw({ count: res.count, min: Math.min(res.min, res.max), max: Math.max(res.min, res.max) }, new Set());
+      else if (pack) words = pack.words.map(([text, clue]) => ({ text, clue }));
       pz.words = words.map(S.word).filter(Boolean);
-      view.page = 0; view.selected = null; view.filter = ''; view.home = false;
+      view.page = 0; view.selected = null; view.filter = ''; view.home = false; view.play = false;
       store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; }, 'puzzles');
-      if (!words.length) requestAnimationFrame(() => document.querySelector('#add-form [name=text]')?.focus());
+      if (mdk) { app.regenerate(pz.id); return; }
+      if (!words.length) requestAnimationFrame(() => /** @type {HTMLInputElement | null} */ (document.querySelector('#add-form [name=text]'))?.focus());
     },
     quickStart(game) {
       return actions.newPuzzle({ game, start: 'random', theme: MF.games.get(game).theme });
     },
     switchPuzzle(id) {
-      if (view.home) { view.home = false; if (id === store.get().activeId) { app.renderAll(); return; } }
+      if (view.home || view.play) { view.home = false; view.play = false; if (id === store.get().activeId) { app.renderAll(); return; } }
       if (id === store.get().activeId) return;
       view.filter = ''; view.draft = {}; view.page = 0; view.selected = null;
       store.update(s => { s.activeId = id; }, 'active');
@@ -307,7 +314,9 @@ MF.createActions = app => {
       }
       const data = { app: 'mots-fleches-maker', v: 3, exportedAt: new Date().toISOString(), puzzles: s.puzzles, assets };
       MF.util.download(`${t('mes-grilles')}-${new Date().toISOString().slice(0, 10)}.json`, JSON.stringify(data));
+      store.markBackup();
       MF.ui.toast(t('Sauvegarde téléchargée.'), 'ok');
+      if (view.home) app.renderAll();
     },
     restore() {
       const input = document.createElement('input');

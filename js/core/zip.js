@@ -40,7 +40,9 @@ MF.zip = (() => {
   async function create(files) {
     const enc = new TextEncoder();
     const { time, date } = dosDateTime();
+    /** @type {any[]} */
     const chunks = [];
+    /** @type {any[]} */
     const central = [];
     let offset = 0;
 

@@ -1,3 +1,4 @@
+// @ts-check
 /* =========================================================================
    Entrées globales : raccourcis clavier, glisser-déposer de fichiers,
    collage d'images, zoom (Ctrl + molette, deux doigts).
@@ -9,8 +10,9 @@ MF.shortcuts = (() => {
   const TABS = ['words', 'diag', 'design', 'decor', 'settings'];
 
   /**
-   * @param c.view, c.actions        état de vue et actions de l'application
-   * @param c.showHome(on), c.openExport(), c.setMode(mode), c.cellPx()
+   * @param {any} c  contexte :
+   *   c.view, c.actions        état de vue et actions de l'application
+   *   c.showHome(on), c.openExport(), c.setMode(mode), c.openPlay(), c.closePlay(), c.cellPx()
    */
   function bind(c) {
     const store = MF.store;
@@ -35,14 +37,14 @@ MF.shortcuts = (() => {
 
     // Coller une image (Ctrl+V) : ajoutée comme photo
     addEventListener('paste', e => {
-      if (e.target.closest?.('input, textarea, [contenteditable]') || !store.active()) return;
+      if (/** @type {Element} */ (e.target).closest?.('input, textarea, [contenteditable]') || !store.active()) return;
       const files = [...(e.clipboardData?.files || [])].filter(isImage);
       if (files.length) { e.preventDefault(); actions.addPhotos(files); }
     });
 
     // Raccourcis clavier
     document.addEventListener('keydown', e => {
-      const typing = e.target.closest?.('input, textarea, select, [contenteditable]');
+      const typing = /** @type {Element} */ (e.target).closest?.('input, textarea, select, [contenteditable]');
       if ((e.ctrlKey || e.metaKey) && !e.altKey && !typing) {
         const k = e.key.toLowerCase();
         if (k === 'z' && !e.shiftKey) { e.preventDefault(); store.undo(); }
@@ -50,12 +52,16 @@ MF.shortcuts = (() => {
         return;
       }
       // La grille de mots mêlés gère ses propres touches (curseur clavier)
-      if (typing || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.modal-scrim') || e.target.closest?.('.ws-layer')) return;
+      if (typing || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.modal-scrim') || /** @type {Element} */ (e.target).closest?.('.ws-layer')) return;
       const pz = store.active();
       if (!pz) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } return; }
       if (e.key === 'h') { c.showHome(!view.home); return; }
       if (view.home) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } if (e.key === 'Escape') c.showHome(false); return; }
-      if (view.selected && store.get().ui.mode !== 'play') {
+      if (view.play) {
+        if (e.key === 'Escape' || e.key === 'p') { e.preventDefault(); c.closePlay(); }
+        return;
+      }
+      if (view.selected) {
         const step = e.shiftKey ? 0.02 : 0.004;
         const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
         if (moves[e.key]) { e.preventDefault(); actions.nudgeSticker(view.selected, ...moves[e.key]); return; }
@@ -65,7 +71,7 @@ MF.shortcuts = (() => {
       if (e.key === 'n') { e.preventDefault(); store.update(s => { s.ui.tab = 'words'; }, 'ui'); requestAnimationFrame(() => $('#add-form [name=text]')?.focus()); }
       if (e.key === 'm') $('#btn-shuffle').click();
       if (e.key === 'e') c.openExport();
-      if (e.key === 'p') c.setMode(store.get().ui.mode === 'play' ? 'solution' : 'play');
+      if (e.key === 'p') c.openPlay();
       if (e.key === '?') MF.help.open();
       if (/^[1-5]$/.test(e.key)) store.update(s => { s.ui.tab = TABS[+e.key - 1]; }, 'ui');
     });

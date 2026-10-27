@@ -25,7 +25,7 @@ MF.versions = (() => {
     } catch { return []; }
   }
 
-  const imagesOf = puzzles => [...new Set(puzzles.flatMap(p => [p.design?.background?.imageId, ...(p.stickers || []).map(s => s.imageId)]).filter(Boolean))];
+  const imagesOf = puzzles => [...new Set(puzzles.flatMap(MF.schema.assetIds))];
 
   /** Enregistre l'état actuel (sauf s'il est identique à la dernière version). Renvoie true si une version a été créée. */
   async function save(state) {
