@@ -104,7 +104,7 @@ MF.panels.murdoku = (() => {
         <div class="field"><span>${t('Ambiance')}</span>${ui.segmented('mood', V().MOODS(), o.mood, 'data-mdk')}</div>
         <div class="field"><span>${t('Décor')}</span>${ui.segmented('clutter', [['none', t('Aucun')], ['some', t('Un peu')], ['lots', t('Beaucoup')]], o.clutter, 'data-mdk')}
           <span class="field-hint">${t('Nourriture, livres, tonneaux, coquillages… pour le plaisir des yeux : le décor ne compte pas dans l\'énigme.')}</span></div>
-        <div class="field"><span>${t('Vue')}</span>${ui.segmented('camera', [['iso', t('Diorama (3/4)')], ['top', t('De dessus')]], o.camera, 'data-mdk')}</div>
+        <div class="field"><span>${t('Vue')}</span>${ui.segmented('camera', [['iso', t('Diorama')], ['top', t('De dessus')]], o.camera, 'data-mdk')}</div>
         <label class="check"><input type="checkbox" id="mdk-labels" ${o.labels ? 'checked' : ''}> ${t('Repères des lignes et colonnes')}</label>
         <label class="check"><input type="checkbox" id="mdk-room-labels" ${o.roomLabels ? 'checked' : ''}> ${t('Noms des pièces sur le plateau')}</label>`) : `<label class="check"><input type="checkbox" id="mdk-labels" ${o.labels ? 'checked' : ''}> ${t('Repères des lignes et colonnes')}</label>`}
       ${custom ? `<button type="button" class="btn btn-ghost btn-sm" id="mdk-reset">${ic('undo')}${t('Revenir aux noms de l\'univers')}</button>` : ''}

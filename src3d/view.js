@@ -15,13 +15,13 @@ import { buildBoard, cellCenter, CELL, MARGIN, PLINTH_H } from './board.js';
 import { buildFigure, buildBadge, chalkOutline, FIGURE_H } from './figures.js';
 import { TextMask, disposeText } from './textmask.js';
 
-// iso: a high 3/4 diorama through a long lens with a hand-drawn slant (high
-// enough to read every room, even at the back); top: a near top-down
-// orthographic view, best for reading the grid. In both, heights lean back
-// (standUpAngle) so people and furniture still show their front.
+// iso: a steep diorama view through a long lens with a hand-drawn slant, so
+// every room reads, even at the back; top: a flat orthographic plan. In both,
+// heights lean back (standUpAngle), as in top-down games, so people and
+// furniture still show their front. The free camera reaches lower angles.
 const CAMERAS = {
-  iso: { az: 16, el: 66, fov: 20, skew: 0.07, lean: -0.02 },
-  top: { az: 0, el: 76, ortho: true },
+  iso: { az: 0, el: 84, fov: 20, skew: 0.07, lean: -0.02 },
+  top: { az: 0, el: 89, ortho: true },
 };
 
 // How much the texts escape the look (1: clean solid print, 0: printed like the rest)
@@ -213,12 +213,11 @@ export class BoardView {
     this.orientLabels();
   }
 
-  // Letters on the edge the view reads best (near edge from the side, far
-  // edge from above), and texts turned to stay upright as the board turns.
-  orientLabels({ az, el } = this.angles()) {
+  // Letters on the edge nearest the viewer (everything leans back, over the
+  // far edge), and texts turned to stay upright as the board turns.
+  orientLabels({ az } = this.angles()) {
     if (!this.board) return;
-    const near = Math.cos(DEG(az)) >= 0 ? 'front' : 'back';
-    const show = el >= 70 ? (near === 'front' ? 'back' : 'front') : near;
+    const show = Math.cos(DEG(az)) >= 0 ? 'front' : 'back';
     const quarter = Math.round(az / 90) * (Math.PI / 2);
     for (const m of this.board.labels.children) {
       m.visible = m.userData.edge === 'left' || m.userData.edge === show;
@@ -481,6 +480,9 @@ export class BoardView {
     const pts = [];
     for (const x of [-H, H]) for (const z of [-H, H]) pts.push(new THREE.Vector3(x, -PLINTH_H, z), new THREE.Vector3(x, 0, z));
     for (const x of [-half, half]) for (const z of [-half, half]) pts.push(new THREE.Vector3(x * 0.85, 1.7, z * 0.85));
+    // badges over the people of the outer cells (they rise highest once heights lean back)
+    const edge = half - CELL / 2, badge = FIGURE_H * 1.12 + 1.0; // on a bed or a chair, too
+    for (const x of [-edge, edge]) for (const z of [-edge, edge]) pts.push(new THREE.Vector3(x, badge, z));
     const ang = free ? this.angles() : cfg;
     const az = DEG(ang.az), el = DEG(ang.el);
     const dir = new THREE.Vector3(Math.sin(az) * Math.cos(el), Math.sin(el), Math.cos(az) * Math.cos(el));
@@ -719,7 +721,8 @@ export class BoardView {
   }
 
   // ---------------------------------------------------------------- export
-  async toCanvas({ width = 1600, height, transparent = false } = {}) {
+  // current: true keeps the free camera's angle, zoom and pan (otherwise the preset view)
+  async toCanvas({ width = 1600, height, transparent = false, current = false } = {}) {
     const { w, h } = this.size;
     width = Math.round(width);
     height = Math.round(height ?? (width * h) / Math.max(1, w));
@@ -738,8 +741,7 @@ export class BoardView {
     this.stylePass.uniforms.resolution.value.set(W, H);
     // print dots and pixels grow with the picture, so it looks the same
     this.syncStyleUniforms(Math.max(1, Math.min(W, H) / 900));
-    // exports always show the preset view, whatever the free camera does
-    this.fit(W / H, false);
+    this.fit(W / H, current);
     const bg = this.scene.background;
     if (transparent) {
       this.scene.background = null;

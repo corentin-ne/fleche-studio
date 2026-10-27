@@ -108,10 +108,11 @@ glisser pour tourner et incliner, clic droit, bouton du milieu ou touche de modi
 molette pour zoomer ; au doigt, glisser de côté pour tourner (le glissé vertical fait défiler la page),
 deux doigts pour zoomer, tourner et déplacer. Méthodes : `nudgeCamera({ az, el, zoom })` (animé, en
 degrés et en facteur), `moveCamera(…)` (immédiat), `resetCamera()`, `cameraMoved` ; `onCamera(moved)`
-est appelé après chaque mouvement. Les exports (`toCanvas`, `renderImage`) gardent toujours le point de
-vue prédéfini.
+est appelé après chaque mouvement. Les exports gardent le point de vue prédéfini, sauf
+`toCanvas({ current: true })` qui reprend l'angle, le zoom et le déplacement de la vue affichée (choix
+« Angle actuel » de la fenêtre d'export, proposé quand la vue a bougé).
 
-Vue de base haute (3/4 à 66°, ou de dessus) et projection « debout » des jeux vus de haut : plus la
+Vue de base plongeante (84°, ou plan à plat vu de dessus) et projection « debout » des jeux vus de haut : plus la
 vue est haute, plus tout ce qui a une hauteur penche vers l'arrière (`standUpAngle` dans
 `src3d/looks.js`), pour que figurines et meubles montrent leur face. Seule l'image est cisaillée :
 lumière, ombres et clic sur les cases voient la vraie scène. Les figurines se tournent vers la caméra.

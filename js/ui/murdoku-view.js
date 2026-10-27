@@ -230,15 +230,21 @@ MF.murdokuView = (() => {
     return r >= 0 && c >= 0 && r < N && c < N ? { r, c } : null;
   }
 
-  /** Image du plateau (export) : 3D si choisie et disponible, sinon plan 2D. */
-  async function boardCanvas(pz, show, width) {
+  /** La vue 3D affichée a-t-elle été tournée, zoomée ou déplacée (export « angle actuel ») ? */
+  const cameraMoved = () => !!live?.state && !!live.view.cameraMoved;
+
+  /**
+   * Image du plateau (export) : 3D si choisie et disponible, sinon plan 2D.
+   * current : l'angle de la vue affichée (tourné, zoomé, déplacé) au lieu de la vue classique.
+   */
+  async function boardCanvas(pz, show, width, current = false) {
     const puzzle = pz.layout.pages[0];
     if (want3d(pz)) {
       // Vue déjà affichée : on la réutilise le temps de l'image (bien plus rapide qu'une nouvelle scène)
       if (live?.state) {
         try {
           live.view.setPuzzle(for3d(puzzle), { show });
-          return await live.view.toCanvas({ width, height: width });
+          return await live.view.toCanvas({ width, height: width, current });
         } catch (e) { console.warn(e); } finally { live?.view.setPuzzle(for3d(puzzle), live.state); }
       }
       const m = await load3d();
@@ -378,12 +384,12 @@ MF.murdokuView = (() => {
 
   /* ---------------- Export ---------------- */
   /** Page d'export : titre, plateau, personnes, indices (et coupable pour la solution). */
-  async function composePage(pz, { solution = false, width = 2400 } = {}) {
+  async function composePage(pz, { solution = false, width = 2400, current = false } = {}) {
     const puzzle = pz.layout.pages[0];
     const W = width, pad = Math.round(W * 0.06), S = W / 2400;
     const accent = MF.murdokuThemes.get(puzzle.theme).colors[0];
     const font = MF.design.font(pz.design.font.clue).css, titleFont = MF.design.font(pz.design.title?.font || 'fraunces').css;
-    const board = await boardCanvas(pz, solution ? 'solution' : 'blank', W - pad * 2);
+    const board = await boardCanvas(pz, solution ? 'solution' : 'blank', W - pad * 2, current);
     const ctx0 = document.createElement('canvas').getContext('2d');
     // Mise en page du texte (indices sur deux colonnes si la page est large)
     const lines = [];
@@ -455,11 +461,14 @@ MF.murdokuView = (() => {
 
   /** Fenêtre d'export Murdoku : énoncé, solution ou les deux ; PNG, JPEG ou impression / PDF. */
   async function openExport(pz) {
-    const st = { content: 'blank', type: 'png', width: 2400 };
+    // Angle : la vue classique, ou celle qu'on a tournée à la main (proposée seulement si elle a bougé)
+    const moved = want3d(pz) && cameraMoved();
+    const st = { content: 'blank', type: 'png', width: 2400, angle: moved ? 'current' : 'classic' };
     const slug = MF.util.slug(pz.name, t('grille'));
     const res = await MF.ui.modal({
       title: t('Exporter l\'enquête'), icon: 'download', size: 'small',
       body: `<div class="field"><span>${esc(t('Contenu'))}</span>${MF.ui.segmented('content', [['blank', t('Énoncé')], ['solution', t('Solution')], ['both', t('Les deux')]], st.content, 'data-mx')}</div>
+        ${moved ? `<div class="field"><span>${esc(t('Angle du plateau'))}</span>${MF.ui.segmented('angle', [['classic', t('Vue classique')], ['current', t('Angle actuel')]], st.angle, 'data-mx')}</div>` : ''}
         <div class="field"><span>${esc(t('Type de fichier'))}</span>${MF.ui.segmented('type', [['png', 'PNG'], ['jpeg', 'JPEG']], st.type, 'data-mx')}</div>
         <div class="field"><span>${esc(t('Résolution'))}</span>${MF.ui.segmented('width', [[1200, 'Web'], [2400, 'HD'], [3600, t('Impression')]], st.width, 'data-mx')}</div>
         <p class="field-hint">${esc(t('Le plateau, les personnes et tous les indices sur une seule page, prête à imprimer.'))}</p>`,
@@ -477,7 +486,7 @@ MF.murdokuView = (() => {
     const variants = st.content === 'both' ? [false, true] : [st.content === 'solution'];
     try {
       const pages = [];
-      for (const solution of variants) pages.push({ solution, cv: await composePage(pz, { solution, width: res === 'print' ? 2400 : st.width }) });
+      for (const solution of variants) pages.push({ solution, cv: await composePage(pz, { solution, width: res === 'print' ? 2400 : st.width, current: st.angle === 'current' }) });
       if (res === 'print') {
         const area = document.getElementById('print-area');
         area.innerHTML = pages.map(p => `<div class="print-page"><img src="${p.cv.toDataURL('image/png')}" alt="" style="max-width:100%;max-height:100%"></div>`).join('');

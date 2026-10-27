@@ -43,8 +43,13 @@ const WOBBLE_VERTEX = /* glsl */ `#include <begin_vertex>
 {
   vec3 wp = (modelMatrix * vec4(transformed, 1.0)).xyz;
   vec3 q = wp * 0.45;
-  transformed += uWobble * vec3(0.045 * vnoise(q), 0.03 * vnoise(q + 11.3), 0.045 * vnoise(q + 27.1))
-               + uWobble * 0.012 * vec3(vnoise(wp * 2.1 + 5.0), vnoise(wp * 2.1 + 9.0), vnoise(wp * 2.1 + 13.0));
+  vec3 w = uWobble * vec3(0.045 * vnoise(q), 0.03 * vnoise(q + 11.3), 0.045 * vnoise(q + 27.1))
+         + uWobble * 0.012 * vec3(vnoise(wp * 2.1 + 5.0), vnoise(wp * 2.1 + 9.0), vnoise(wp * 2.1 + 13.0));
+  // flat on the floor (floors, rugs, mats, footprints): no vertical sag. Meshes of
+  // different density bend differently, and what lies just under would show through
+  // as dark blots.
+  w.y *= smoothstep(0.02, 0.3, abs(wp.y));
+  transformed += w;
 }`;
 export function handmade(m) {
   m.onBeforeCompile = (sh) => {

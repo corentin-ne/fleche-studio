@@ -1040,7 +1040,7 @@ MF.i18n.add('en', {
   "Rendu": "Rendering",
   "Ambiance": "Mood",
   "Vue": "View",
-  "Diorama (3/4)": "Diorama (3/4)",
+  "Diorama": "Diorama",
   "De dessus": "Top-down",
   "Repères des lignes et colonnes": "Row and column labels",
   "Une enquête en plan : place chaque suspect grâce aux indices, puis démasque le coupable.": "A floor-plan mystery: place each suspect using the clues, then unmask the culprit.",
@@ -1325,4 +1325,8 @@ MF.i18n.add('en', {
   "12 nouveaux thèmes de grille (Manoir, Château hanté, Paris, Far West, Chevaliers…) et 4 nouveaux univers Murdoku : Forêt enchantée, Nuit de Noël, Fête d'anniversaire, Saint-Valentin": "12 new grid themes (Manor, Haunted castle, Paris, Wild West, Knights…) and 4 new Murdoku worlds: Enchanted forest, Christmas Eve, Birthday party, Valentine's Day",
   "Murdoku : caméra libre sur le plateau 3D (glisser pour tourner, molette ou pincer pour zoomer, clic droit ou deux doigts pour déplacer) et boutons pour tourner, incliner et recadrer": "Murdoku: free camera on the 3D board (drag to turn, scroll or pinch to zoom, right-click or two fingers to move) and buttons to turn, tilt and reset the view",
   "Murdoku : vue 3D plus haute et plus lisible, jusqu'au fond du plateau ; figurines et meubles légèrement couchés vers l'arrière pour rester lisibles vu de haut, aussi dans les exports": "Murdoku: a higher, clearer 3D view, right to the back of the board; people and furniture lean back slightly so they stay readable from above, in exports too",
+  "Angle du plateau": "Board angle",
+  "Vue classique": "Standard view",
+  "Angle actuel": "Current angle",
+  "Murdoku : vue 3D plongeante par défaut, sans taches sur le sol ; export avec la vue classique ou l'angle actuel (tourné, zoomé, déplacé)": "Murdoku: a steep bird's-eye 3D view by default, with no more blots on the floor; export with the standard view or the current angle (turned, zoomed, moved)",
 });
