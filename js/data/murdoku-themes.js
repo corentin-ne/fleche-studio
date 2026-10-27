@@ -646,20 +646,20 @@ MF.murdokuThemes = (() => {
   /* ---------------- Générateur : histoires et noms mélangés ---------------- */
   // Morceaux communs à tous les univers (fr, en), assemblés avec ceux de l'univers
   const FIND = [
-    ['{victim} a été retrouvé·e sans vie.', 'On a retrouvé {victim}, immobile pour toujours.', '{victim} ne s\'est jamais relevé·e.', 'Un cri a déchiré le silence : {victim} gisait à terre.', 'Au petit matin, {victim} manquait à l\'appel… avant d\'être retrouvé·e, glacé·e.'],
-    ['{victim} was found dead.', '{victim} was found, still forever.', '{victim} never got up again.', 'A scream broke the silence: {victim} lay on the floor.', 'By morning, {victim} was missing… until they were found, cold as ice.'],
+    ['{victim} a été retrouvé·e sans vie.', 'On a retrouvé {victim}, immobile pour toujours.', '{victim} ne s\'est jamais relevé·e.', 'Un cri a déchiré le silence : {victim} gisait à terre.', 'Au petit matin, {victim} manquait à l\'appel… avant d\'être retrouvé·e, glacé·e.', 'La fête s\'est arrêtée net : {victim} ne répondait plus.', 'Quand les lumières se sont rallumées, {victim} gisait au sol.'],
+    ['{victim} was found dead.', '{victim} was found, still forever.', '{victim} never got up again.', 'A scream broke the silence: {victim} lay on the floor.', 'By morning, {victim} was missing… until they were found, cold as ice.', 'The party stopped dead: {victim} was no longer answering.', 'When the lights came back on, {victim} lay on the floor.'],
   ];
   const CLUE = [
-    ['Sur place, un seul indice : {thing}.', 'Près du corps traînait {thing}.', 'Et puis il y a ce détail : {thing}, là où rien ne devrait être.', 'Le seul témoin muet : {thing}.', 'Dans la poche de la victime : {thing}. Étrange…'],
-    ['At the scene, a single clue: {thing}.', 'Near the body lay {thing}.', 'And then there is this detail: {thing}, where nothing should be.', 'The only silent witness: {thing}.', 'In the victim\'s pocket: {thing}. Strange…'],
+    ['Sur place, un seul indice : {thing}.', 'Près du corps traînait {thing}.', 'Et puis il y a ce détail : {thing}, là où rien ne devrait être.', 'Le seul témoin muet : {thing}.', 'Dans la poche de la victime : {thing}. Étrange…', 'Quelqu\'un a oublié {thing}… mais qui ?', 'Sous la table, quelqu\'un a remarqué {thing}.'],
+    ['At the scene, a single clue: {thing}.', 'Near the body lay {thing}.', 'And then there is this detail: {thing}, where nothing should be.', 'The only silent witness: {thing}.', 'In the victim\'s pocket: {thing}. Strange…', 'Someone forgot {thing}… but who?', 'Under the table, someone spotted {thing}.'],
   ];
   const TWIST = [
-    ['Tout le monde a un alibi… mais un seul ment.', 'Les portes étaient fermées : le coupable est encore là.', 'Chacun accuse son voisin, personne ne dit tout.', 'Les témoignages se contredisent… presque tous.', 'L\'horloge s\'est arrêtée pile au moment du drame.', 'Personne n\'a rien entendu. Vraiment personne ?'],
-    ['Everyone has an alibi… but one of them is lying.', 'The doors were locked: the culprit is still here.', 'Everyone blames their neighbour, nobody tells the whole story.', 'The statements contradict each other… almost all of them.', 'The clock stopped at the very moment of the crime.', 'Nobody heard a thing. Really, nobody?'],
+    ['Tout le monde a un alibi… mais un seul ment.', 'Les portes étaient fermées : le coupable est encore là.', 'Chacun accuse son voisin, personne ne dit tout.', 'Les témoignages se contredisent… presque tous.', 'L\'horloge s\'est arrêtée pile au moment du drame.', 'Personne n\'a rien entendu. Vraiment personne ?', 'Chacun jure n\'avoir pas quitté sa pièce.', 'Deux suspects se tiennent mutuellement… ou se couvrent ?', 'Le coupable est forcément resté seul avec la victime.'],
+    ['Everyone has an alibi… but one of them is lying.', 'The doors were locked: the culprit is still here.', 'Everyone blames their neighbour, nobody tells the whole story.', 'The statements contradict each other… almost all of them.', 'The clock stopped at the very moment of the crime.', 'Nobody heard a thing. Really, nobody?', 'Everyone swears they never left their room.', 'Two suspects vouch for each other… or cover for each other?', 'The culprit must have been alone with the victim.'],
   ];
   const END = [
-    ['À toi de démasquer le coupable !', 'Place chaque suspect et trouve qui était seul avec la victime.', 'L\'enquête commence maintenant.', 'Ouvre l\'œil : chaque indice compte.'],
-    ['Unmask the culprit!', 'Place every suspect and find who was alone with the victim.', 'The investigation starts now.', 'Keep your eyes open: every clue counts.'],
+    ['À toi de démasquer le coupable !', 'Place chaque suspect et trouve qui était seul avec la victime.', 'L\'enquête commence maintenant.', 'Ouvre l\'œil : chaque indice compte.', 'Sors ta loupe, détective.', 'Une seule disposition est possible : trouve-la.'],
+    ['Unmask the culprit!', 'Place every suspect and find who was alone with the victim.', 'The investigation starts now.', 'Keep your eyes open: every clue counts.', 'Get your magnifying glass out, detective.', 'Only one arrangement is possible: find it.'],
   ];
 
   /**

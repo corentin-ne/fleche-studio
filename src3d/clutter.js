@@ -368,7 +368,7 @@ const FLOOR_SCALE = 1.35;
 /**
  * Builds the decor of a board into one Builder group.
  * @param {any} puzzle
- * @param {{ n: number, cells: any[][], cellCenter: Function, roomType: Function, isOpen?: Function, spots: Map<string, number[][]>, clutter?: string }} o
+ * @param {{ n: number, cells: any[][], cellCenter: Function, roomType: Function, isOpen?: Function, plates?: Set<string>, spots: Map<string, number[][]>, clutter?: string }} o
  */
 export function buildClutter(puzzle, o) {
   const amount = AMOUNT[o.clutter] ?? AMOUNT.some;
@@ -400,10 +400,12 @@ export function buildClutter(puzzle, o) {
       if (cell.object) continue; // beds, sofas, rugs, plants… fill the cell already
       // On the floor: one or two props in the corners (people stand in the middle)
       const n = r() < amount ? (r() < amount * 0.55 ? (r() < amount * 0.3 ? 3 : 2) : 1) : 0;
-      const free = corners.slice().sort(() => r() - 0.5);
+      // keep the back corners clear under a room-name plate
+      const plate = o.plates?.has(`${rr},${cc}`);
+      const free = corners.filter(([, sz]) => !plate || sz > 0).sort(() => r() - 0.5);
       const open = o.isOpen?.(rr, cc);
       const pool = open ? [...OUTDOOR, ...OUTDOOR, ...extra] : [...(FLOOR[type] ?? FLOOR.living), ...extra, ...extra];
-      for (let i = 0; i < n; i++) {
+      for (let i = 0; i < Math.min(n, free.length); i++) {
         const [sx, sz] = free[i];
         const off = 0.56 + r() * 0.06;
         put(pick(r, pool), p.x + sx * off, 0.005, p.z + sz * off, r() * 6.28, FLOOR_SCALE);

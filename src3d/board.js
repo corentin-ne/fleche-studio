@@ -3,6 +3,7 @@
 // building-builder's "Inside" view), door gaps with stone sills, a subtle grid,
 // row/column labels and one piece of furniture per object cell.
 import * as THREE from 'three';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { Builder, handmade, patternMaterial, rng, seedBuilders, foliage } from './geo.js';
 import { buildObject } from './furniture.js';
 import { buildClutter, PROPS } from './clutter.js';
@@ -124,13 +125,14 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
       if (!perMat.has(m)) perMat.set(m, []);
       perMat.get(m).push(g);
     }
+  // one mesh per floor material (a draw call per room look, not per cell)
   for (const [m, gs] of perMat) {
-    for (const g of gs) {
-      const mesh = new THREE.Mesh(g, m);
-      mesh.receiveShadow = true;
-      mesh.userData.floor = true;
-      group.add(mesh);
-    }
+    const g = gs.length > 1 ? mergeGeometries(gs, false) : gs[0];
+    if (gs.length > 1) gs.forEach((x) => x.dispose());
+    const mesh = new THREE.Mesh(g, m);
+    mesh.receiveShadow = true;
+    mesh.userData.floor = true;
+    group.add(mesh);
   }
 
   // ---- grid: a transparent overlay with the cell lines, same subdivisions
@@ -225,6 +227,7 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
   const roomLabels = new THREE.Group();
   roomLabels.name = 'roomLabels';
   const hasObj = new Set((puzzle.objects ?? []).map((o) => `${o.r},${o.c}`));
+  const plates = new Set(); // cells whose back edge holds a name plate (no decor there)
   for (const [id, rm] of rooms) {
     const text = String(puzzle.roomLabels?.[id] ?? rm.name ?? '').trim();
     if (!text) continue;
@@ -239,6 +242,7 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
     if (!best) continue;
     let span = 1;
     while (best.cc + span < n && roomOf(best.rr, best.cc + span) === id && !hasObj.has(`${best.rr},${best.cc + span}`)) span++;
+    for (let k = 0; k < span; k++) plates.add(`${best.rr},${best.cc + k}`);
     const tex = plateTexture(text.toUpperCase());
     const maxW = span * CELL - 0.3, h = 0.46;
     const w = Math.min(maxW, (h * tex.image.width) / tex.image.height);
@@ -307,7 +311,7 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
   }
 
   // ---- decor: food, books, crates, shells… (never part of the puzzle)
-  const decor = buildClutter(puzzle, { n, cells, cellCenter, roomType: (rr, cc) => typeOf(roomOf(rr, cc)), isOpen: (rr, cc) => isOpen(roomOf(rr, cc)), spots, clutter });
+  const decor = buildClutter(puzzle, { n, cells, cellCenter, roomType: (rr, cc) => typeOf(roomOf(rr, cc)), isOpen: (rr, cc) => isOpen(roomOf(rr, cc)), plates: puzzle.roomLabels ? plates : new Set(), spots, clutter });
   if (decor) group.add(decor);
 
   group.traverse((o) => {
