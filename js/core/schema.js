@@ -105,7 +105,7 @@ MF.schema = (() => {
       camera: oneOf(o.camera, ['iso', 'top'], 'iso'),
       labels: bool(o.labels, true),
       render: oneOf(o.render, ['3d', '2d'], '3d'),
-      clutter: oneOf(o.clutter, ['none', 'some', 'lots'], 'lots'),
+      clutter: oneOf(o.clutter, ['none', 'some', 'lots'], 'none'),
       roomLabels: bool(o.roomLabels, true),
       // Variante des noms et de l'histoire (générateur), indépendante de l'énigme
       flavor: int(o.flavor, 0, 2147483647, 0),

@@ -393,8 +393,8 @@
 /* Panneau Mots plus compact */
 .composer { gap: 10px; padding: 12px; }
 .composer .textarea { min-height: 48px; }
-.import-row { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
-.import-row .import-btn { flex: 1 1 auto; flex-direction: row; justify-content: center; gap: 5px; padding: 7px 8px; font-size: 11.5px; font-weight: 600; border-radius: var(--r-sm); }
+.import-row { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 4px; margin-top: 10px; }
+.import-row .import-btn { min-width: 0; white-space: nowrap; flex: 1 1 auto; flex-direction: row; justify-content: center; gap: 5px; padding: 7px 5px; font-size: 11.5px; font-weight: 600; border-radius: var(--r-sm); }
 .import-row .import-btn .ic { width: 15px; height: 15px; margin: 0; }
 .list-head { margin: 12px 0 6px; }
 .word-item { padding: 6px 6px; gap: 8px; }

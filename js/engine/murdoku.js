@@ -347,6 +347,52 @@ MF.murdoku = (() => {
     return pz.clues.every(cl => !validClue(cl, pz) || holds(cl, x, pos));
   }
 
+  /**
+   * Indice contredit par une disposition partielle (seules les personnes déjà placées comptent) ?
+   * Sert à signaler une erreur pendant la partie, sans rien dire des personnes pas encore placées.
+   */
+  function broken(pz, cl, placement) {
+    if (!validClue(cl, pz)) return false;
+    const x = context(pz), pos = fromMap(pz, placement);
+    const at = id => pos[x.idx.get(id)];
+    const all = pos.every(k => k >= 0);
+    if (UNARY.has(cl.kind)) { const k = at(cl.person); return k >= 0 && !cellTest(cl, x, k); }
+    if (PAIR.has(cl.kind)) { const a = at(cl.a), b = at(cl.b); return a >= 0 && b >= 0 && !pairTest(cl.kind, x, a, b); }
+    const count = R => pos.filter(k => k >= 0 && x.room[k] === R).length;
+    if (cl.kind === 'alone') { const k = at(cl.person); return k >= 0 && count(x.room[k]) > 1; }
+    if (cl.kind === 'roomCount') return count(cl.room) > cl.n || (all && count(cl.room) !== cl.n);
+    if (cl.kind === 'emptyRoom') return count(cl.room) > 0;
+    return false;
+  }
+
+  /**
+   * Règles enfreintes par une disposition partielle : deux personnes sur une ligne ou une colonne,
+   * ou trop de monde avec la victime. Retour : { rows, cols, victimRoom } (indices concernés).
+   */
+  function ruleErrors(pz, placement) {
+    const x = context(pz), pos = fromMap(pz, placement);
+    const placed = pos.filter(k => k >= 0);
+    const dup = of => [...new Set(placed.map(k => of[k]).filter((v, i, a) => a.indexOf(v) !== i))];
+    const kv = pos[x.victim];
+    const inV = kv >= 0 ? placed.filter(k => x.room[k] === x.room[kv]).length : 0;
+    return { rows: dup(x.rowOf), cols: dup(x.colOf), victimRoom: kv >= 0 && (inV > 2 || (placed.length === x.P && inV !== 2)) };
+  }
+
+  /** Cases concernées par un indice (objet, pièce, ligne, colonne, bord), pour les montrer sur le plateau. */
+  function clueCells(pz, cl) {
+    const N = pz.size, out = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
+      const room = pz.cells[r][c], edge = !r || !c || r === N - 1 || c === N - 1;
+      const ok = cl.object ? pz.objects.some(o => o.r === r && o.c === c && o.type === cl.object)
+        : cl.room !== undefined ? room === cl.room
+        : cl.kind === 'row' ? r === cl.row
+        : cl.kind === 'column' ? c === cl.col
+        : cl.kind === 'edge' || cl.kind === 'notEdge' ? edge : false;
+      if (ok) out.push(`${r},${c}`);
+    }
+    return out;
+  }
+
   /** Coupable d'une disposition : le seul suspect seul avec la victime (sinon null). */
   function murdererOf(pz, placement) {
     const x = context(pz), pos = fromMap(pz, placement);
@@ -741,7 +787,11 @@ MF.murdoku = (() => {
     return same.length > 1 ? `${base} ${same.indexOf(room) + 1}` : base;
   }
   /** Nom affiché d'un objet d'une énigme. */
-  const objectName = (pz, type) => pz?.objectNames?.[type]?.name || objectLabel(type);
+  const objectName = (pz, type, lang) => {
+    if (pz?.objectNames?.[type]?.name) return pz.objectNames[type].name;
+    forced = lang === 'fr' || lang === 'en' ? lang : '';
+    try { return objectLabel(type); } finally { forced = ''; }
+  };
   const rowLabel = r => String(r + 1);
   const colLabel = c => String.fromCharCode(65 + c);
 
@@ -811,17 +861,21 @@ MF.murdoku = (() => {
   }
 
   /** Règles du jeu, une phrase par règle. */
-  const rulesText = () => [
+  const rulesText = (lang) => {
+    forced = lang === 'fr' || lang === 'en' ? lang : '';
+    try { return rules(); } finally { forced = ''; }
+  };
+  const rules = () => [
     t('Chaque ligne et chaque colonne contient exactement une personne.'),
     t('Personne ne se tient sur un objet bloquant (table, plante, meuble…) : seulement sur une case libre ou un objet où l\'on peut s\'asseoir ou s\'allonger (lit, canapé, fauteuil, chaise, tapis, banc).'),
     t('« À côté » veut dire sur une case voisine, par un côté (pas en diagonale). « Plus haut » ou « plus à gauche » : n\'importe quelle distance.'),
-    t('Le coupable est le seul suspect seul dans une pièce avec la victime.'),
+    t('Le coupable est le seul suspect seul dans une pièce avec la victime : la pièce de la victime compte exactement deux personnes.'),
     t('Les indices mènent à une seule disposition : à toi de démasquer le coupable !'),
   ];
 
   return {
     OBJECTS, ROOMS, ROOM_TYPES, NAMES, VICTIMS, COLORS, VICTIM_COLOR, KINDS, LEVELS,
-    generate, options, solve, isSolved, murdererOf, validClue, holds: (pz, cl, placement) => holds(cl, context(pz), fromMap(pz, placement)),
+    generate, options, solve, isSolved, murdererOf, validClue, broken, ruleErrors, clueCells, holds: (pz, cl, placement) => holds(cl, context(pz), fromMap(pz, placement)),
     clueText, rulesText, roomLabel, objectLabel, roomName, objectName, rowLabel, colLabel,
   };
 })();

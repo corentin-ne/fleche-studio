@@ -68,16 +68,17 @@ MF.panels.words = (() => {
     root.innerHTML = `
       <form class="composer glass-soft" id="add-form" autocomplete="off">
         <label class="field"><span>${t('Nouveau mot')} <span class="field-hint" id="norm-preview"></span></span>
-          <input class="input input-lg" name="text" placeholder="${t('Tape un mot : autocomplétion et correction incluses')}" maxlength="${MF.schema.LIMITS.wordLen}" value="${esc(draft.text || '')}" spellcheck="false" autocapitalize="off"></label>
+          <input class="input input-lg" name="text" placeholder="${t('Tape un mot…')}" title="${t('Tape un mot : autocomplétion et correction incluses')}" maxlength="${MF.schema.LIMITS.wordLen}" value="${esc(draft.text || '')}" spellcheck="false" autocapitalize="off"></label>
         <div class="word-status" id="word-status" aria-live="polite"></div>
         ${game.clues ? `<label class="field"><span>${t('Définition')} <span class="field-hint">${t('courte, c\'est mieux')}</span></span>
           <div class="clue-wrap"><textarea class="textarea" name="clue" rows="2" maxlength="${MF.schema.LIMITS.clue}" placeholder="${t('ex : Il galope dans le pré')}" spellcheck="true" lang="${D.current()}">${esc(draft.clue || '')}</textarea>
           <button type="button" class="btn btn-sm btn-ghost find-def" id="btn-find-def" title="${t('Chercher une définition (dictionnaire, Wiktionnaire, Wikipédia)')}">${ic('book')}${t('Trouver')}</button></div></label>`
         : `<p class="muted small game-note">${ic('info')}${t('Pas besoin de définition pour les {game}.', { game: esc(game.label.toLowerCase()) })}</p>`}
-        <div class="row">
+        <div class="row composer-actions">
           <button class="btn btn-primary" type="submit">${ic('plus')}${t('Ajouter')}</button>
+          <button type="button" class="btn" data-import="paste" title="${t('Une ligne par mot, avec ou sans définition, ou des colonnes copiées d\'un tableur')}">${ic('list')}${t('Ajouter une liste')}</button>
           <span class="spacer"></span>
-          <span class="muted small">${t('<kbd>Entrée</kbd> pour ajouter')}</span>
+          <span class="muted small kbd-hint">${t('<kbd>Entrée</kbd> pour ajouter')}</span>
         </div>
       </form>
 
@@ -85,7 +86,6 @@ MF.panels.words = (() => {
         <button type="button" class="import-btn" data-import="library" title="${t('{n} mots déjà définis', { n: MF.i18n.num(D.size()) })}">${ic('book')}${t('Bibliothèque')}</button>
         <button type="button" class="import-btn" data-import="random" title="${t('Choisis combien de mots et leur longueur')}">${ic('dice')}${t('Hasard')}</button>
         <button type="button" class="import-btn" data-import="themes" title="${t('Packs prêts et thèmes du Wiktionnaire')}">${ic('sparkle')}${t('Thèmes')}</button>
-        <button type="button" class="import-btn" data-import="paste" title="${t('Texte ou colonnes de tableur')}">${ic('paste')}${t('Coller')}</button>
         <button type="button" class="import-btn" data-import="file" title="Excel, CSV, TXT, JSON">${ic('file')}${t('Fichier')}</button>
       </div>
 
@@ -106,8 +106,8 @@ MF.panels.words = (() => {
 
     bindComposer(root, puzzle, actions, view, game);
 
-    root.querySelector('.import-row').addEventListener('click', e => {
-      const b = e.target.closest('[data-import]'); if (!b) return;
+    root.addEventListener('click', e => {
+      const b = e.target.closest('[data-import]'); if (!b || !root.contains(b)) return;
       if (b.dataset.import === 'file') root.querySelector('#words-file').click();
       else actions.importWords(b.dataset.import);
     });

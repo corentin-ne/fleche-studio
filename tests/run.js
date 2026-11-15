@@ -747,6 +747,31 @@
     for (const t of Object.keys(M.OBJECTS)) assert(M.objectLabel(t) && M.objectLabel(t) !== t, `objet ${t}`);
   });
 
+  test('murdoku : erreurs signalées pendant la partie (indices contredits, règles, cases d\'un indice)', () => {
+    const M = MF.murdoku;
+    const pz = M.generate({ size: 6, difficulty: 'easy', lang: 'fr' }, 4242);
+    const sol = Object.fromEntries(pz.people.map(p => [p.id, { r: p.r, c: p.c }]));
+    // La solution ne contredit rien, ni en entier ni en partie
+    for (const cl of pz.clues) assert(!M.broken(pz, cl, sol), `solution : ${cl.kind}`);
+    eq(M.ruleErrors(pz, sol), { rows: [], cols: [], victimRoom: false }, 'solution sans faute');
+    const half = Object.fromEntries(Object.entries(sol).slice(0, 2));
+    for (const cl of pz.clues) assert(!M.broken(pz, cl, half), `partielle : ${cl.kind}`);
+    eq(M.broken(pz, pz.clues[0], {}), false, 'personne placée : rien à dire');
+    // Deux personnes sur la même ligne et la même colonne
+    const [a, b] = pz.people;
+    const err = M.ruleErrors(pz, { [a.id]: { r: 0, c: 0 }, [b.id]: { r: 0, c: 0 } });
+    eq([err.rows, err.cols], [[0], [0]], 'ligne et colonne en double');
+    // Un indice faux pour cette disposition est signalé
+    const other = { ...sol, [a.id]: { r: (a.r + 1) % pz.size, c: a.c } };
+    eq(M.broken(pz, { kind: 'row', person: a.id, row: a.r }, other), true, 'ligne contredite');
+    // Cases d'un indice : la pièce entière, les objets d'un type
+    const room = pz.cells[0][0];
+    eq(M.clueCells(pz, { kind: 'inRoom', person: a.id, room }).length, pz.cells.flat().filter(v => v === room).length, 'cases de la pièce');
+    const ob = pz.objects[0];
+    assert(M.clueCells(pz, { kind: 'besideObject', person: a.id, object: ob.type }).includes(`${ob.r},${ob.c}`), 'cases de l\'objet');
+    eq(M.clueCells(pz, { kind: 'withPerson', a: a.id, b: b.id }), [], 'relation : aucune case');
+  });
+
   test('bibliothèque : chaque thème rangé une fois, univers et thèmes de grille reliés', () => {
     const L = MF.library, listed = L.SHELVES.flatMap(s => s.items);
     eq(listed.length, new Set(listed).size, 'thème rangé deux fois');

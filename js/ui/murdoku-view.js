@@ -52,7 +52,7 @@ MF.murdokuView = (() => {
 
   /* ---------------- Plan 2D ---------------- */
   const FLOORS = { living: '#ecd9b6', kitchen: '#dfe9e1', bedroom: '#efd9d6', bathroom: '#d3e6ee', office: '#e6dcc8', library: '#dcc6a8', dining: '#f0dcc0', garden: '#cfe4b4', hall: '#e7e2d6', music: '#e2d8ec' };
-  const ICONS = { bed: '🛏️', sofa: '🛋️', armchair: '💺', chair: '🪑', bench: '🪵', table: '🍽️', desk: '🖥️', plant: '🪴', bookshelf: '📚', piano: '🎹', bath: '🛁', sink: '🚰', tv: '📺', fireplace: '🔥', counter: '🍳', cabinet: '🗄️', lamp: '💡', tree: '🌳', fountain: '⛲' };
+  const ICONS = { rug: '🧶', bed: '🛏️', sofa: '🛋️', armchair: '💺', chair: '🪑', bench: '🪵', table: '🍽️', desk: '🖥️', plant: '🪴', bookshelf: '📚', piano: '🎹', bath: '🛁', sink: '🚰', tv: '📺', fireplace: '🔥', counter: '🍳', cabinet: '🗄️', lamp: '💡', tree: '🌳', fountain: '⛲' };
   const colLabel = c => String.fromCharCode(65 + c);
   const initial = name => (String(name || '?').trim()[0] || '?').toUpperCase();
 
@@ -93,6 +93,10 @@ MF.murdokuView = (() => {
       if (named.has(id)) continue;
       named.add(id);
       out.push(`<text x="${X(c) + 8}" y="${Y(r) + 20}" font-size="15" font-weight="700" fill="#3b2f2a" fill-opacity=".6" font-family="Inter, sans-serif">${esc(MF.murdoku.roomName(pz, id))}</text>`);
+    }
+    for (const k of o.spots || []) {
+      const [r, c] = k.split(',').map(Number);
+      out.push(`<rect x="${X(c) + 5}" y="${Y(r) + 5}" width="${U - 10}" height="${U - 10}" rx="14" fill="#ffd666" fill-opacity=".35" stroke="#ffb020" stroke-width="7"/>`);
     }
     if (o.highlight) out.push(`<rect x="${X(o.highlight.c) + 4}" y="${Y(o.highlight.r) + 4}" width="${U - 8}" height="${U - 8}" rx="12" fill="none" stroke="#7b3fe4" stroke-width="6"/>`);
     for (const ob of pz.objects) {
@@ -168,12 +172,14 @@ MF.murdokuView = (() => {
       ${btn('left', 'rotateLeft', t('Tourner vers la gauche'))}${btn('right', 'rotate', t('Tourner vers la droite'))}
       ${btn('up', 'arrowUp', t('Voir de plus haut'))}${btn('down', 'arrowDown', t('Voir de plus bas'))}
       ${btn('in', 'plus', t('Zoomer'))}${btn('out', 'minus', t('Dézoomer'))}
-      <span class="mdk-cam-reset">${btn('reset', 'recenter', t('Recadrer le plateau'))}</span></div>`);
+      <span class="mdk-cam-reset">${btn('reset', 'recenter', t('Recadrer le plateau'))}</span>
+      <button type="button" class="mdk-cam-btn mdk-cam-toggle" data-cam="toggle" aria-expanded="false" title="${esc(t('Caméra'))}" aria-label="${esc(t('Caméra'))}">${ic('rotate')}</button></div>`);
     const moves = { left: { az: 45 }, right: { az: -45 }, up: { el: 12 }, down: { el: -12 }, in: { zoom: 1.25 }, out: { zoom: 0.8 } };
     bar.addEventListener('click', e => {
       const b = /** @type {any} */ (e.target).closest('[data-cam]');
       if (!b) return;
-      if (b.dataset.cam === 'reset') view.resetCamera();
+      if (b.dataset.cam === 'toggle') { const open = bar.classList.toggle('open'); b.setAttribute('aria-expanded', String(open)); }
+      else if (b.dataset.cam === 'reset') view.resetCamera();
       else view.nudgeCamera(moves[b.dataset.cam]);
     });
     // Le pointeur sur la barre ne fait ni tourner ni jouer
@@ -214,7 +220,7 @@ MF.murdokuView = (() => {
       }
     } else release();
     // Plan 2D
-    el.innerHTML = planSvg(puzzle, { people: state.show === 'solution' ? 'solution' : state.show === 'play' ? state.placements : 'none', crosses: state.crosses, highlight: state.highlight, selected: state.selected, interactive: true, labels: viewOpts(pz).labels });
+    el.innerHTML = planSvg(puzzle, { people: state.show === 'solution' ? 'solution' : state.show === 'play' ? state.placements : 'none', crosses: state.crosses, spots: state.spots, highlight: state.highlight, selected: state.selected, interactive: true, labels: viewOpts(pz).labels });
     el.querySelector('svg').addEventListener('click', e => {
       const cell = /** @type {any} */ (e.target).closest?.('[data-r]');
       const pt = cell ? { r: +cell.dataset.r, c: +cell.dataset.c } : hitCell(/** @type {any} */ (e.currentTarget), e, puzzle.size, viewOpts(pz).labels);
@@ -267,17 +273,68 @@ MF.murdokuView = (() => {
   const clueList = puzzle => puzzle.clues.map(c => MF.murdoku.clueText(c, puzzle, puzzle.lang));
   const suspects = puzzle => puzzle.people.filter(p => p.role !== 'victim');
   const victim = puzzle => puzzle.people.find(p => p.role === 'victim');
+  const objIcon = (puzzle, type) => puzzle.objectNames?.[type]?.icon || ICONS[type] || '▪';
+  const seatable = type => !!MF.murdoku.OBJECTS[type]?.occupiable;
+  const avatar = p => `<i style="--p:${esc(p.color)}">${p.role === 'victim' ? '💀' : esc(initial(p.name))}</i>`;
 
-  function sheetHtml(puzzle, { checks = [], murderer = false } = {}) {
+  /**
+   * Cases à montrer sur le plateau : « o:type » (objets d'un type) ou « c:n » (cases d'un indice).
+   * @returns {string[]} clés « r,c »
+   */
+  function spotCells(puzzle, key) {
+    if (!key) return [];
+    if (key.startsWith('o:')) return puzzle.objects.filter(o => o.type === key.slice(2)).map(o => `${o.r},${o.c}`);
+    const cl = puzzle.clues[+key.slice(2)];
+    return cl ? MF.murdoku.clueCells(puzzle, cl) : [];
+  }
+
+  /** Légende : chaque objet du plan, ceux où l'on peut se tenir puis les bloquants ; toucher = le voir sur le plateau. */
+  function legendHtml(puzzle, spot) {
+    const types = [...new Set(puzzle.objects.map(o => o.type))];
+    if (!types.length) return '';
+    const chip = type => {
+      const on = spot === `o:${type}`;
+      return `<button type="button" class="mdk-leg ${seatable(type) ? 'seat' : 'block'} ${on ? 'active' : ''}" data-spot="o:${esc(type)}" aria-pressed="${on}"><span aria-hidden="true">${esc(objIcon(puzzle, type))}</span>${esc(MF.murdoku.objectName(puzzle, type, puzzle.lang))}</button>`;
+    };
+    const row = (list, label, cls) => (list.length ? `<div class="mdk-leg-row"><span class="mdk-leg-k ${cls}">${label}</span>${list.map(chip).join('')}</div>` : '');
+    return `<div class="mdk-legend">
+      <p class="mdk-legend-head"><b>${esc(t('Objets du plan'))}</b><span>${esc(t('Touche-en un pour le voir sur le plateau'))}</span></p>
+      ${row(types.filter(seatable), `${ic('check', 'ic-xs')}${esc(t('On peut s\'y tenir'))}`, 'seat')}
+      ${row(types.filter(ty => !seatable(ty)), `${ic('x', 'ic-xs')}${esc(t('Bloquant'))}`, 'block')}
+    </div>`;
+  }
+
+  /** Les trois règles, toujours visibles (en une phrase). */
+  const quickRules = () => `<p class="mdk-quick"><b>${esc(t('Règles'))}</b> ${[t('une personne par ligne et par colonne'), t('jamais sur un objet bloquant'), t('la victime est seule avec le coupable')].map(esc).join(' <span aria-hidden="true">·</span> ')}</p>`;
+
+  /**
+   * Énoncé : histoire, personnes, règles, légende des objets et indices.
+   * @param {any} puzzle
+   * @param {{ checks?: number[], murderer?: boolean, play?: boolean, bad?: Set<number>, spot?: string }} [o]
+   */
+  function sheetHtml(puzzle, { checks = [], murderer = false, play = false, bad = new Set(), spot = '' } = {}) {
     const v = victim(puzzle);
     const theme = MF.murdokuThemes.get(puzzle.theme);
+    const who = cl => [cl.person, cl.a, cl.b].filter(Boolean).map(id => puzzle.people.find(p => p.id === id)).filter(Boolean);
+    const story = puzzle.story ? (play
+      ? `<details class="mdk-story mdk-story-d"><summary><span aria-hidden="true">${theme.emoji}</span>${esc(t('L\'histoire'))}</summary>${esc(puzzle.story)}</details>`
+      : `<p class="mdk-story"><span aria-hidden="true">${theme.emoji}</span>${esc(puzzle.story)}</p>`) : '';
     return `<div class="mdk-sheet">
-      ${puzzle.story ? `<p class="mdk-story"><span aria-hidden="true">${theme.emoji}</span>${esc(puzzle.story)}</p>` : ''}
+      ${story}
       <div class="mdk-cast">${puzzle.people.map(p => `<span class="mdk-person ${p.role}" style="--p:${esc(p.color)}"><i>${p.role === 'victim' ? '💀' : esc(initial(p.name))}</i>${esc(p.name)}${p.role === 'victim' ? ` <small>${esc(t('victime'))}</small>` : ''}</span>`).join('')}</div>
-      <ol class="mdk-clues">${clueList(puzzle).map((txt, i) => `<li><label><input type="checkbox" data-clue="${i}" ${checks.includes(i) ? 'checked' : ''}><span>${esc(txt)}</span></label></li>`).join('')}</ol>
+      ${quickRules()}
+      ${legendHtml(puzzle, spot)}
+      <ol class="mdk-clues">${clueList(puzzle).map((txt, i) => {
+        const on = spot === `c:${i}`, wrong = bad.has(i);
+        return `<li class="${wrong ? 'bad' : ''} ${checks.includes(i) ? 'done' : ''}">
+          <button type="button" class="mdk-clue ${on ? 'active' : ''}" data-spot="c:${i}" aria-pressed="${on}"><span class="mdk-n">${i + 1}</span><span class="mdk-who">${who(puzzle.clues[i]).map(avatar).join('')}</span><span class="mdk-clue-t">${esc(txt)}${wrong ? `<em>${ic('alert', 'ic-xs')}${esc(t('Contredit par ton plateau'))}</em>` : ''}</span></button>
+          <input type="checkbox" data-clue="${i}" ${checks.includes(i) ? 'checked' : ''} aria-label="${esc(t('Indice {n} traité', { n: i + 1 }))}" title="${esc(t('Coche les indices déjà utilisés'))}">
+        </li>`;
+      }).join('')}</ol>
       ${murderer ? `<p class="mdk-verdict">${ic('magnifier')} ${esc(t('Coupable : {name}', { name: puzzle.people.find(p => p.id === puzzle.murderer)?.name || '?' }))}</p>` : ''}
-      <details class="mdk-rules"><summary>${ic('help')} ${esc(t('Règles'))}</summary><ul>${MF.murdoku.rulesText().map(r => `<li>${esc(r)}</li>`).join('')}</ul>
-        <p class="muted small">${esc(t('{victim} a été retrouvé·e sans vie. Place chaque personne, puis désigne le coupable.', { victim: v?.name || '?' }))}</p></details>
+      <details class="mdk-rules"><summary>${ic('help')} ${esc(t('Toutes les règles'))}</summary><ul>${MF.murdoku.rulesText().map(r => `<li>${esc(r)}</li>`).join('')}</ul>
+        <p class="muted small">${esc(t('{victim} a été retrouvé·e sans vie. Place chaque personne, puis désigne le coupable.', { victim: v?.name || '?' }))}</p>
+        <p class="muted small">${esc(t('Touche un indice pour voir sur le plateau les cases dont il parle.'))}</p></details>
     </div>`;
   }
 
@@ -286,14 +343,30 @@ MF.murdokuView = (() => {
   function renderStudio(box, pz, mode) {
     const puzzle = pz.layout?.engine === 'murdoku' ? pz.layout.pages[0] : null;
     if (!puzzle) { box.innerHTML = `<div class="empty"><span class="spinner"></span><h3>${esc(t('Préparation de l\'enquête…'))}</h3></div>`; return; }
-    let stage = box.querySelector('.mdk-stage');
+    let stage = /** @type {HTMLElement | null} */ (box.querySelector('.mdk-stage'));
     if (!stage || stage.dataset.mode !== 'studio') {
       box.innerHTML = `<div class="mdk-stage" data-mode="studio"><div class="mdk-board"></div><div class="mdk-side"></div></div>`;
-      stage = box.querySelector('.mdk-stage');
+      stage = /** @type {HTMLElement} */ (box.querySelector('.mdk-stage'));
+      studio.spot = '';
+      // Légende et indices : toucher montre les cases concernées (sans recalculer l'énigme)
+      stage.addEventListener('click', e => {
+        const b = /** @type {any} */ (e.target).closest('[data-spot]');
+        if (!b || !studio.last) return;
+        studio.spot = studio.spot === b.dataset.spot ? '' : b.dataset.spot;
+        renderStudio(box, studio.last.pz, studio.last.mode);
+      });
     }
-    stage.querySelector('.mdk-side').innerHTML = sheetHtml(puzzle, { murderer: mode === 'solution' });
-    mountBoard(stage.querySelector('.mdk-board'), pz, { show: mode === 'solution' ? 'solution' : 'blank' }, null);
+    // Une autre énigme : plus rien de surligné
+    if (studio.sig !== puzzle.seed + puzzle.clues.length) { studio.sig = puzzle.seed + puzzle.clues.length; studio.spot = ''; }
+    studio.last = { pz, mode };
+    const side = stage.querySelector('.mdk-side');
+    const keep = side.scrollTop;
+    side.innerHTML = sheetHtml(puzzle, { murderer: mode === 'solution', spot: studio.spot });
+    side.scrollTop = keep;
+    mountBoard(stage.querySelector('.mdk-board'), pz, { show: mode === 'solution' ? 'solution' : 'blank', spots: spotCells(puzzle, studio.spot) }, null);
   }
+  /** État du studio : case(s) mises en avant, dernière énigme affichée. */
+  const studio = { spot: '', sig: 0, last: /** @type {any} */ (null) };
 
   /* ---------------- Jeu ---------------- */
   /**
@@ -304,10 +377,13 @@ MF.murdokuView = (() => {
     const puzzle = pz.layout.pages[0];
     const st = { m: {}, x: [], k: [], accused: '', ...(o.entries || {}) };
     let tool = st.tool || suspects(puzzle)[0]?.id || 'x';
+    let spot = '';
     const placements = () => Object.fromEntries(Object.entries(st.m).map(([id, k]) => { const [r, c] = String(k).split(',').map(Number); return [id, { r, c }]; }));
     const save = () => o.onEntries?.({ ...st, tool });
     box.innerHTML = `<div class="mdk-stage" data-mode="play"><div class="mdk-board"></div><div class="mdk-side">
       <div class="mdk-tools" role="toolbar" aria-label="${esc(t('Personnes à placer'))}"></div>
+      <p class="mdk-warn" role="status" hidden></p>
+      <p class="mdk-tip"></p>
       <div class="mdk-sheet-wrap"></div></div></div>`;
     const stage = box.querySelector('.mdk-stage');
     const boardEl = stage.querySelector('.mdk-board');
@@ -316,14 +392,37 @@ MF.murdokuView = (() => {
         const placed = !!st.m[p.id];
         return `<button type="button" class="mdk-tool ${tool === p.id ? 'active' : ''} ${placed ? 'placed' : ''}" data-tool="${p.id}" style="--p:${esc(p.color)}" aria-pressed="${tool === p.id}"><i>${p.role === 'victim' ? '💀' : esc(initial(p.name))}</i><span>${esc(p.name)}</span>${placed ? ic('check', 'ic-xs') : ''}</button>`;
       }), `<button type="button" class="mdk-tool cross ${tool === 'x' ? 'active' : ''}" data-tool="x" aria-pressed="${tool === 'x'}"><i>✕</i><span>${esc(t('Barrer'))}</span></button>`].join('');
-      stage.querySelector('.mdk-sheet-wrap').innerHTML = sheetHtml(puzzle, { checks: st.k });
-      mountBoard(boardEl, pz, { show: 'play', placements: placements(), crosses: st.x, selected: tool }, onCell);
+      stage.querySelector('.mdk-tip').textContent = tool === 'x' ? t('Touche une case pour la barrer (ou la débarrer).') : t('Touche une case pour y placer {name}. Touche-la encore pour l\'enlever.', { name: puzzle.people.find(p => p.id === tool)?.name || '' });
+      // Erreurs visibles : indices contredits et règles enfreintes par les personnes déjà placées
+      const at = placements();
+      const bad = new Set(puzzle.clues.map((cl, i) => (MF.murdoku.broken(puzzle, cl, at) ? i : -1)).filter(i => i >= 0));
+      const errs = MF.murdoku.ruleErrors(puzzle, at);
+      const warn = [
+        ...errs.rows.map(r => t('Deux personnes sur la ligne {n}', { n: r + 1 })),
+        ...errs.cols.map(c => t('Deux personnes sur la colonne {col}', { col: colLabel(c) })),
+        ...(errs.victimRoom ? [t('La victime doit être seule avec le coupable')] : []),
+      ];
+      const wb = stage.querySelector('.mdk-warn');
+      wb.innerHTML = warn.length ? `${ic('alert', 'ic-xs')}<span>${esc(warn.join(' · '))}</span>` : '';
+      wb.hidden = !warn.length;
+      const wrap = stage.querySelector('.mdk-sheet-wrap');
+      const open = !!wrap.querySelector('.mdk-story-d[open]'), rulesOpen = !!wrap.querySelector('.mdk-rules[open]');
+      wrap.innerHTML = sheetHtml(puzzle, { checks: st.k, play: true, bad, spot });
+      if (open) wrap.querySelector('.mdk-story-d')?.setAttribute('open', '');
+      if (rulesOpen) wrap.querySelector('.mdk-rules')?.setAttribute('open', '');
+      mountBoard(boardEl, pz, { show: 'play', placements: at, crosses: st.x, spots: spotCells(puzzle, spot), selected: tool }, onCell);
     };
+    const blockerAt = (r, c) => puzzle.objects.find(ob => ob.r === r && ob.c === c && !seatable(ob.type));
     const onCell = (r, c) => {
       const key = `${r},${c}`;
       if (tool === 'x') {
         st.x = st.x.includes(key) ? st.x.filter(k => k !== key) : [...st.x, key];
       } else {
+        const blocker = blockerAt(r, c);
+        if (blocker && st.m[tool] !== key) {
+          MF.ui.toast(t('Personne ne peut se tenir ici : {obj} est un objet bloquant.', { obj: MF.murdoku.objectName(puzzle, blocker.type, puzzle.lang) }), 'warn', 3000);
+          return;
+        }
         const here = Object.keys(st.m).find(id => st.m[id] === key);
         if (here === tool) delete st.m[tool];
         else { if (here) delete st.m[here]; st.m[tool] = key; st.x = st.x.filter(k => k !== key); }
@@ -336,7 +435,9 @@ MF.murdokuView = (() => {
     };
     stage.addEventListener('click', e => {
       const b = /** @type {any} */ (e.target).closest('[data-tool]');
-      if (b) { tool = b.dataset.tool; save(); draw(); }
+      if (b) { tool = b.dataset.tool; save(); draw(); return; }
+      const sp = /** @type {any} */ (e.target).closest('[data-spot]');
+      if (sp) { spot = spot === sp.dataset.spot ? '' : sp.dataset.spot; draw(); }
     });
     stage.addEventListener('change', e => {
       const cb = /** @type {any} */ (e.target).closest('[data-clue]');

@@ -100,10 +100,11 @@ MF.panels.murdoku = (() => {
         <div class="field"><span>${t('Mobilier')}</span>${ui.segmented('density', [['sparse', t('Épuré')], ['normal', t('Normal')], ['full', t('Chargé')]], o.density, 'data-mdk')}</div>`)}
 
       ${o.render === '3d' ? ui.advanced('mdk-look', t('Rendu'), `
-        <div class="field"><span>${t('Style')}</span>${ui.segmented('look', V().LOOKS(), o.look, 'data-mdk')}</div>
+        <div class="field"><span>${t('Style')}</span>${ui.segmented('look', V().LOOKS(), o.look, 'data-mdk')}
+          <span class="field-hint">${t('« Net » est le plus lisible, surtout sur téléphone.')}</span></div>
         <div class="field"><span>${t('Ambiance')}</span>${ui.segmented('mood', V().MOODS(), o.mood, 'data-mdk')}</div>
         <div class="field"><span>${t('Décor')}</span>${ui.segmented('clutter', [['none', t('Aucun')], ['some', t('Un peu')], ['lots', t('Beaucoup')]], o.clutter, 'data-mdk')}
-          <span class="field-hint">${t('Nourriture, livres, tonneaux, coquillages… pour le plaisir des yeux : le décor ne compte pas dans l\'énigme.')}</span></div>
+          <span class="field-hint">${t('Petits objets pour le plaisir des yeux (nourriture, livres, tonneaux…). Ils ne comptent pas dans l\'énigme : « Aucun » garde le plateau le plus lisible.')}</span></div>
         <div class="field"><span>${t('Vue')}</span>${ui.segmented('camera', [['iso', t('Diorama')], ['top', t('De dessus')]], o.camera, 'data-mdk')}</div>
         <label class="check"><input type="checkbox" id="mdk-labels" ${o.labels ? 'checked' : ''}> ${t('Repères des lignes et colonnes')}</label>
         <label class="check"><input type="checkbox" id="mdk-room-labels" ${o.roomLabels ? 'checked' : ''}> ${t('Noms des pièces sur le plateau')}</label>`) : `<label class="check"><input type="checkbox" id="mdk-labels" ${o.labels ? 'checked' : ''}> ${t('Repères des lignes et colonnes')}</label>`}

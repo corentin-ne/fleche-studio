@@ -23,6 +23,10 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Murdoku plus clair : légende des objets du plan (ceux où l\'on peut se tenir, ceux qui bloquent) ; touche un objet ou un indice pour voir sur le plateau les cases dont il parle',
+    'Murdoku : les règles en une phrase toujours visible, les indices contredits par ton plateau et deux personnes sur une même ligne ou colonne signalés aussitôt, et impossible de poser quelqu\'un sur un objet bloquant',
+    'Murdoku : plateau sans petits objets de décor par défaut (réglable dans Rendu), plus lisible ; sur téléphone, le plateau et les personnes restent en haut pendant qu\'on lit les indices',
+    'Téléphone : bouton « Ajouter une liste » à côté de « Ajouter », une seule ligne d\'outils au-dessus de la grille, barre du bas qui occupe toute la largeur',
     'Créer et jouer : choisis tes réglages et la partie commence aussitôt, la grille se construit sans montrer la solution (aussi depuis la Salle de jeu : « Nouvelle partie »)',
     'Sudoku, kakuro, picross, logigramme et les autres jeux de chiffres et de logique se remplissent sous tes yeux à la création, comme les grilles de mots',
     '12 nouveaux jeux : mots casés, mot mystère, citation codée, échelle de mots, wordoku, sudoku (classique, irrégulier, X), kakuro, nombres fléchés et croisés, calcudoku, futoshiki, picross et logigramme, chacun avec une seule solution',

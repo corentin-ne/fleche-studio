@@ -27,7 +27,7 @@ const CAMERAS = {
 // How much the texts escape the look (1: clean solid print, 0: printed like the rest)
 const TEXT_KEEP = 0.92;
 
-const DEFAULTS = { look: 'print', mood: 'day', camera: 'iso', labels: true, roomLabels: true, names: false, clutter: 'some', interactive: true, ao: true, padding: 0.04, maxPixelRatio: 2, background: null };
+const DEFAULTS = { look: 'print', mood: 'day', camera: 'iso', labels: true, roomLabels: true, names: false, clutter: 'none', interactive: true, ao: true, padding: 0.04, maxPixelRatio: 2, background: null };
 
 const _v = new THREE.Vector3();
 const DEG = THREE.MathUtils.degToRad;
@@ -186,6 +186,24 @@ export class BoardView {
     this.xMat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, depthTest: false, depthWrite: false, toneMapped: false });
     this.xGeo = new THREE.PlaneGeometry(CELL * 0.62, CELL * 0.62).rotateX(-Math.PI / 2);
     this.owned.add(tex);
+
+    // Spots: cells picked out on top of everything (objects named in a clue, the legend)
+    const sc = document.createElement('canvas');
+    sc.width = sc.height = S;
+    const sg = sc.getContext('2d');
+    sg.fillStyle = 'rgba(255, 214, 102, 0.28)';
+    sg.strokeStyle = 'rgba(255, 176, 32, 0.95)';
+    sg.lineWidth = 18;
+    sg.beginPath();
+    sg.roundRect(14, 14, S - 28, S - 28, 34);
+    sg.fill();
+    sg.stroke();
+    const stex = new THREE.CanvasTexture(sc);
+    stex.colorSpace = THREE.SRGBColorSpace;
+    stex.anisotropy = 8;
+    this.spotMat = new THREE.MeshBasicMaterial({ map: stex, transparent: true, depthTest: false, depthWrite: false, toneMapped: false });
+    this.spotGeo = new THREE.PlaneGeometry(CELL * 0.98, CELL * 0.98).rotateX(-Math.PI / 2);
+    this.owned.add(stex);
   }
 
   // ---------------------------------------------------------------- options
@@ -385,7 +403,7 @@ export class BoardView {
       this.fit();
     }
     this.puzzle = puzzle;
-    this.state = { show: 'blank', placements: null, crosses: [], selected: null, highlight: null, ...state };
+    this.state = { show: 'blank', placements: null, crosses: [], spots: [], selected: null, highlight: null, ...state };
     this.refresh();
   }
 
@@ -436,6 +454,15 @@ export class BoardView {
       badge.position.set(at.x, y + (victim ? 0.72 : FIGURE_H * 1.12 + 0.16), at.z);
       this.marks.add(badge);
       want.add(bk);
+    }
+    for (const key of st.spots ?? []) {
+      const [r, c] = String(key).split(',').map(Number);
+      if (!(r >= 0 && r < n && c >= 0 && c < n)) continue;
+      const m = new THREE.Mesh(this.spotGeo, this.spotMat);
+      const at = cellCenter(n, r, c);
+      m.position.set(at.x, 0.04, at.z);
+      m.renderOrder = 4;
+      this.marks.add(m);
     }
     for (const key of st.crosses ?? []) {
       const [r, c] = String(key).split(',').map(Number);
@@ -780,6 +807,8 @@ export class BoardView {
     disposeTree(this.overlay);
     this.xGeo.dispose();
     this.xMat.dispose();
+    this.spotGeo.dispose();
+    this.spotMat.dispose();
     for (const t of this.owned) t.dispose();
     this.envRT.dispose();
     this.textMask.dispose();
