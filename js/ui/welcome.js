@@ -10,7 +10,7 @@ MF.welcome = (() => {
   const ic = MF.icons.svg;
 
   let seen = false;
-  function render(root, { legacy = 0, onNew, onOpen, onLegacy, onQuick }) {
+  function render(root, { legacy = 0, onNew, onOpen, onLegacy, onQuick, onPlay }) {
     root.innerHTML = `<div class="welcome${seen ? ' seen' : ''}">
       <div class="welcome-hero">
         <span class="hero-logo">${MF.brand.svg()}</span>
@@ -18,8 +18,9 @@ MF.welcome = (() => {
         <p class="lead">${t('Mots fléchés, croisés, mêlés, sudoku, picross, logigrammes… : avec tes mots, ton style. Prêts à imprimer ou à partager.')}</p>
         <div class="row hero-actions">
           <button class="btn btn-primary btn-lg" data-w="new">${ic('plus')}${t('Nouvelle grille')}</button>
-          <button class="btn btn-lg" data-w="open">${ic('upload')}${t('Ouvrir une sauvegarde')}</button>
+          <button class="btn btn-lg" data-w="play">${ic('gamepad')}${t('Jouer tout de suite')}</button>
         </div>
+        <button class="btn btn-ghost btn-sm" data-w="open">${ic('upload')}${t('Ouvrir une sauvegarde')}</button>
         ${legacy ? `<button class="btn btn-ghost btn-sm legacy" data-w="legacy">${ic('archive')}${t('Récupérer mes {n} anciennes grilles enregistrées dans ce navigateur', { n: legacy })}</button>` : ''}
       </div>
       ${MF.games.FAMILIES.map(([f, label]) => `<section class="quick-family"><h2>${esc(label)}</h2><div class="quick-grid">
@@ -33,6 +34,7 @@ MF.welcome = (() => {
     </div>`;
     root.querySelector('[data-w="new"]').onclick = onNew;
     root.querySelector('[data-w="open"]').onclick = onOpen;
+    root.querySelector('[data-w="play"]').onclick = onPlay;
     root.querySelector('[data-w="legacy"]')?.addEventListener('click', onLegacy);
     root.querySelectorAll('[data-quick]').forEach(b => (b.onclick = () => onQuick(b.dataset.quick)));
     seen = true;
@@ -42,12 +44,12 @@ MF.welcome = (() => {
    * Assistant de création, en trois étapes (pensé d'abord pour le téléphone) :
    * 1. le jeu, 2. le contenu (mots ou univers d'enquête), 3. les réglages et le nom.
    * « Créer » est possible à chaque étape : les valeurs par défaut suffisent.
-   * « Créer et jouer » ouvre directement la partie, sans montrer la solution.
-   * `defaults.play` : ce bouton passe en premier (ouverture depuis la salle de jeu).
+   * Jouer sans rien régler : c'est la salle de jeu (MF.arcade.setup).
    * Renvoie { name, game, shape, theme, start, lang, play, … } ou null.
    */
   function wizard(defaults = {}) {
-    const { play: playFirst = false, ...init } = defaults;
+    const init = /** @type {any} */ ({ ...defaults });
+    delete init.play;
     const st = { game: 'fleches', shape: 'rect', theme: 'violet', start: 'empty', lang: MF.lexicon.preferred(), mdkSize: '6', mdkDifficulty: 'medium', mdkTheme: 'manor', mdkRender: '3d', level: 'medium', ...init };
     const isLogic = () => MF.games.get(st.game).engine === 'logic';
     let step = defaults.game ? 1 : 0;
@@ -64,9 +66,8 @@ MF.welcome = (() => {
       return { ...st, play, name: root.querySelector('#wz-name').value.trim(), count: MF.util.clamp(n('#wz-count') || 20, 1, 200), min: MF.util.clamp(n('#wz-min') || 3, 2, 15), max: MF.util.clamp(n('#wz-max') || 9, 2, 15) };
     };
     const actCreate = kind => ({ label: t('Créer'), kind, icon: 'sparkle', value: root => result(root, false) });
-    const actPlay = kind => ({ label: t('Créer et jouer'), kind, icon: 'gamepad', title: t('La grille se construit en secret et la partie commence aussitôt'), value: root => result(root, true) });
     return MF.ui.modal({
-      title: playFirst ? t('Nouvelle partie') : t('Nouvelle grille'), wide: true, icon: 'sparkle', className: 'wizard',
+      title: t('Nouvelle grille'), wide: true, icon: 'sparkle', className: 'wizard',
       body: `<div class="wizard-body">
         <ol class="wz-steps" aria-label="${esc(t('Étapes'))}"></ol>
 
@@ -106,11 +107,12 @@ MF.welcome = (() => {
 
         <section class="wz-step" data-step="2" hidden>
           <div class="wz-style">
-            <div class="field wz-shape"><span>${t('Forme')}</span>${MF.shapePicker.html(st.shape, { compact: true, attrs: id => `data-wz="shape" data-v="${id}"` })}</div>
             <div class="field"><span>${t('Style')} <span class="field-hint">${t('modifiable à tout moment dans Design')}</span></span><div class="theme-strip">${themes.map(([id, th]) => {
               const { bg, C } = MF.themes.swatch(id);
               return `<button type="button" class="theme-chip ${id === st.theme ? 'active' : ''}" data-wz="theme" data-v="${id}"><span style="background:${esc(bg)}"><i style="background:${C.frame}"></i><i style="background:${C.clue}"></i></span>${esc(th.label)}</button>`;
             }).join('')}</div></div>
+            <details class="wz-more wz-shape"><summary>${ic('shapes')}<span>${t('Forme de la grille')}</span><b class="wz-shape-now">${esc(MF.shapes.SHAPES[st.shape]?.label || '')}</b>${ic('chevronDown', 'ic-sm')}</summary>
+              ${MF.shapePicker.html(st.shape, { compact: true, attrs: id => `data-wz="shape" data-v="${id}"` })}</details>
           </div>
           <div class="wz-mdk">
             <div class="field"><span>${t('Difficulté')}</span>${MF.panels.murdoku.levelCards(st.mdkDifficulty, 'data-wz-level')}</div>
@@ -179,6 +181,7 @@ MF.welcome = (() => {
           st[b.dataset.wz] = b.dataset.v;
           root.querySelectorAll(`[data-wz="${b.dataset.wz}"]`).forEach(x => x.classList.toggle('active', x === b));
           root.querySelector('.wz-random').hidden = st.start !== 'random';
+          if (b.dataset.wz === 'shape') root.querySelector('.wz-shape-now').textContent = MF.shapes.SHAPES[st.shape]?.label || '';
           // Choisir le jeu passe à l'étape suivante
           if (b.dataset.wz === 'game') go(1);
         });
@@ -187,7 +190,7 @@ MF.welcome = (() => {
       actions: [
         { label: t('Retour'), icon: 'chevronLeft', kind: 'ghost', value: null, validate: root => { /** @type {any} */ (root).wizardGo(step - 1); return false; } },
         { label: t('Suivant'), value: null, validate: root => { /** @type {any} */ (root).wizardGo(step + 1); return false; } },
-        ...(playFirst ? [actPlay('primary'), actCreate('')] : [actPlay(''), actCreate('primary')]),
+        actCreate('primary'),
       ],
     });
   }

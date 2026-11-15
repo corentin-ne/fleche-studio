@@ -1,7 +1,7 @@
 // @ts-check
 /* =========================================================================
-   Tableau de bord « Mes grilles » (clic sur le logo) : toutes les grilles en
-   vignettes réelles, recherche, tri, statistiques, création rapide.
+   Espace Créer, accueil « Mes créations » : toutes les grilles en vignettes
+   réelles ; une grille s'ouvre dans le studio. (Jouer : js/ui/arcade.js.)
    ========================================================================= */
 window.MF = window.MF || {};
 
@@ -47,51 +47,43 @@ MF.dashboard = (() => {
   };
 
   /**
-   * @param {any} o  options : { mode: 'create'|'play', onMode(m), onPlay(id), puzzles, activeId, view, backup: { at, due }, onOpen(id), onNew(play), onQuick(game, play), onDuplicate(id), onDelete(id), onImport(), onBackup() }
+   * Espace Créer : mes créations. Une action principale (nouvelle grille), les grilles en
+   * vignettes ; la recherche et le tri n'apparaissent qu'à partir de quelques grilles.
+   * @param {any} o  options : { puzzles, activeId, view, accent, backup: { at, due }, onOpen(id), onPlay(id), onNew(), onDuplicate(id), onDelete(id), onImport(), onBackup() }
    */
   function render(root, o) {
     const v = o.view;
     v.dashSort = SORTS[v.dashSort] ? v.dashSort : 'recent';
     const q = normalize(v.dashQuery || '');
     const list = o.puzzles.filter(p => !q || normalize(`${p.name} ${MF.games.get(p.game).label}`).includes(q)).sort(SORTS[v.dashSort]);
-    const words = o.puzzles.reduce((n, p) => n + p.words.length, 0);
-    const byGame = Object.keys(MF.games.GAMES).map(g => [g, o.puzzles.filter(p => p.game === g).length]).filter(([, n]) => n);
-    const play = o.mode === 'play';
-    const modes = `<div class="segmented dash-mode" role="tablist" aria-label="${esc(t('Mode'))}">${[['create', 'edit', t('Créer')], ['play', 'gamepad', t('Jouer')]].map(([id, icon, label]) => `<button type="button" role="tab" data-mode="${id}" class="${o.mode === id ? 'active' : ''}" aria-selected="${o.mode === id}">${ic(icon)}${label}</button>`).join('')}</div>`;
+    const many = o.puzzles.length > 6;
 
     root.innerHTML = `<div class="dash">
       <header class="dash-head">
         <div class="dash-title"><span class="dash-logo">${MF.brand.svg(o.accent)}</span>
-          <div><h1>${play ? t('Salle de jeu') : t('Mes grilles')}</h1><p class="muted small">${plural(o.puzzles.length, 'grille')} · ${plural(words, 'mot')}${byGame.length ? ` · ${byGame.map(([g, n]) => `${n} ${MF.games.get(g).short.toLowerCase()}`).join(', ')}` : ''}</p></div></div>
+          <div><h1>${t('Mes créations')}</h1><p class="muted small">${plural(o.puzzles.length, 'grille')}</p></div></div>
         <div class="dash-actions">
-          ${modes}
-          <input class="input input-search" id="dash-q" placeholder="${esc(t('Rechercher une grille…'))}" value="${esc(v.dashQuery || '')}">
-          <select class="select select-sm" id="dash-sort" aria-label="${esc(t('Trier'))}">${[['recent', t('Récentes')], ['name', t('Nom')], ['words', t('Nombre de mots')]].map(([k, l]) => `<option value="${k}" ${v.dashSort === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
-          <button class="btn" id="dash-import" title="${esc(t('Ouvrir une sauvegarde ou une liste de mots'))}">${ic('folder')}${t('Ouvrir')}</button>
-          <button class="btn" id="dash-backup" title="${esc(t('Sauvegarder toutes mes grilles'))}">${ic('download')}${t('Sauvegarder')}</button>
-          <button class="btn btn-primary" id="dash-new">${ic(play ? 'gamepad' : 'plus')}${play ? t('Nouvelle partie') : t('Nouvelle grille')}</button>
+          <button class="btn btn-primary" id="dash-new">${ic('plus')}${t('Nouvelle grille')}</button>
         </div>
       </header>
-
-      ${play ? `<p class="dash-play-hint muted small">${ic('gamepad', 'ic-inline')} ${t('Choisis une grille pour jouer : chronomètre, indices et vérification. Pour la modifier, passe en mode « Créer ».')} ${t('Une nouvelle partie se construit sans montrer la solution.')}</p>` : ''}
-      ${!play && o.backup?.due ? `<div class="dash-backup" role="status">${ic('alert')}<span><b>${o.backup.at ? t('Dernière sauvegarde : {when}', { when: ago(o.backup.at) }) : t('Aucune sauvegarde pour l\'instant')}</b> ${t('Si le navigateur efface ses données, tes grilles seront perdues. Garde une copie sur ton appareil.')}</span><button class="btn btn-sm btn-primary" id="dash-backup-now">${ic('download')}${t('Sauvegarder')}</button></div>` : ''}
-
-      <div class="dash-quick">${Object.entries(MF.games.GAMES).map(([id, g]) => `<button class="quick-chip" data-quick="${id}">${ic(g.icon)}<span><b>${esc(g.short)}</b><small>${play ? t('Jouer') : t('Créer')}</small></span></button>`).join('')}</div>
+      ${o.backup?.due ? `<div class="dash-backup" role="status">${ic('alert')}<span><b>${o.backup.at ? t('Dernière sauvegarde : {when}', { when: ago(o.backup.at) }) : t('Aucune sauvegarde pour l\'instant')}</b> ${t('Si le navigateur efface ses données, tes grilles seront perdues. Garde une copie sur ton appareil.')}</span><button class="btn btn-sm btn-primary" id="dash-backup-now">${ic('download')}${t('Sauvegarder')}</button></div>` : ''}
+      ${many ? `<div class="dash-filter">
+          <input class="input input-search" id="dash-q" placeholder="${esc(t('Rechercher une grille…'))}" value="${esc(v.dashQuery || '')}">
+          <select class="select select-sm" id="dash-sort" aria-label="${esc(t('Trier'))}">${[['recent', t('Récentes')], ['name', t('Nom')], ['words', t('Nombre de mots')]].map(([k, l]) => `<option value="${k}" ${v.dashSort === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
+        </div>` : ''}
 
       <div class="dash-grid">
-        <button class="dash-card dash-new" id="dash-new-card">${play ? `${ic('gamepad', 'ic-lg')}<b>${t('Nouvelle partie')}</b><span class="muted small">${t('Tes réglages, puis on joue : solution cachée')}</span>` : `${ic('plus', 'ic-lg')}<b>${t('Nouvelle grille')}</b><span class="muted small">${t('Mots, chiffres ou logique')}</span>`}</button>
+        <button class="dash-card dash-new" id="dash-new-card">${ic('plus', 'ic-lg')}<b>${t('Nouvelle grille')}</b><span class="muted small">${t('Mots, chiffres ou logique')}</span></button>
         ${list.map(p => {
           const g = MF.games.get(p.game);
           const svg = thumb(p);
-          const best = MF.play.bestOf(p);
-          return `<article class="dash-card ${p.id === o.activeId ? 'is-active' : ''}" data-id="${p.id}" style="--c:${p.design.accent}" tabindex="0" aria-label="${esc(t(play ? 'Jouer à {name}' : 'Ouvrir {name}', { name: p.name }))}">
+          return `<article class="dash-card ${p.id === o.activeId ? 'is-active' : ''}" data-id="${p.id}" style="--c:${p.design.accent}" tabindex="0" aria-label="${esc(t('Ouvrir {name}', { name: p.name }))}">
             <div class="dash-thumb">${svg || `<div class="dash-empty">${ic('grid', 'ic-lg')}<span>${p.words.length ? t('Pas encore calculée') : t('Aucun mot')}</span></div>`}</div>
             <div class="dash-info">
               <div class="dash-name"><i class="dot"></i><b>${esc(p.name)}</b></div>
-              <div class="dash-meta">${ic(g.icon, 'ic-xs')}${esc(g.short)}${p.options.shape !== 'rect' ? ` · ${esc(MF.shapes.SHAPES[p.options.shape].label)}` : ''} · ${p.game === 'murdoku' ? plural(p.layout?.pages?.[0]?.clues?.length || 0, 'indice') : g.engine === 'logic' ? esc({ easy: t('Facile'), medium: t('Moyen'), hard: t('Difficile'), expert: t('Expert') }[p.layout?.pages?.[0]?.level] || '') : plural(p.words.length, 'mot')} · ${ago(p.updatedAt)}${best ? ` · <span class="dash-best">${ic('star', 'ic-xs')}${MF.play.clock(best)}</span>` : ''}</div>
+              <div class="dash-meta">${ic(g.icon, 'ic-xs')}${esc(g.short)} · ${p.game === 'murdoku' ? plural(p.layout?.pages?.[0]?.clues?.length || 0, 'indice') : g.engine === 'logic' ? esc({ easy: t('Facile'), medium: t('Moyen'), hard: t('Difficile'), expert: t('Expert') }[p.layout?.pages?.[0]?.level] || '') : plural(p.words.length, 'mot')} · ${ago(p.updatedAt)}</div>
             </div>
-            ${play ? `<span class="dash-play-badge">${ic('play')}${t('Jouer')}</span>` : ''}
-            <div class="dash-tools" ${play ? 'hidden' : ''}>
+            <div class="dash-tools">
               <button class="btn btn-sm btn-icon btn-ghost" data-act="play" title="${esc(t('Jouer'))}" aria-label="${esc(t('Jouer'))}">${ic('gamepad')}</button>
               <button class="btn btn-sm btn-icon btn-ghost" data-act="dup" title="${esc(t('Dupliquer'))}" aria-label="${esc(t('Dupliquer'))}">${ic('copy')}</button>
               <button class="btn btn-sm btn-icon btn-ghost btn-danger" data-act="del" title="${esc(t('Supprimer'))}" aria-label="${esc(t('Supprimer'))}">${ic('trash')}</button>
@@ -100,25 +92,26 @@ MF.dashboard = (() => {
         }).join('')}
       </div>
       ${q && !list.length ? `<p class="empty small">${t('Aucune grille ne correspond.')}</p>` : ''}
-      <footer class="dash-foot muted small">${ic('lock', 'ic-inline')} ${t('Tout est enregistré dans ce navigateur, rien sur un serveur. Pense à sauvegarder de temps en temps.')}</footer>
+      <footer class="dash-foot muted small">
+        <span>${ic('lock', 'ic-inline')} ${t('Tout est enregistré dans ce navigateur, rien sur un serveur.')}</span>
+        <span class="dash-foot-actions"><button type="button" class="link-btn" id="dash-import">${ic('folder', 'ic-inline')} ${t('Ouvrir un fichier')}</button><button type="button" class="link-btn" id="dash-backup">${ic('download', 'ic-inline')} ${t('Sauvegarder toutes mes grilles')}</button></span>
+      </footer>
     </div>`;
 
-    root.querySelector('#dash-new').onclick = () => o.onNew(play);
-    root.querySelector('#dash-new-card').onclick = () => o.onNew(play);
+    root.querySelector('#dash-new').onclick = () => o.onNew();
+    root.querySelector('#dash-new-card').onclick = () => o.onNew();
     root.querySelector('#dash-import').onclick = o.onImport;
     root.querySelector('#dash-backup').onclick = o.onBackup;
     root.querySelector('#dash-backup-now')?.addEventListener('click', o.onBackup);
-    root.querySelectorAll('[data-quick]').forEach(b => (b.onclick = () => o.onQuick(b.dataset.quick, play)));
-    const qi = root.querySelector('#dash-q');
-    qi.addEventListener('input', MF.util.debounce(() => {
+    const qi = /** @type {HTMLInputElement | null} */ (root.querySelector('#dash-q'));
+    qi?.addEventListener('input', MF.util.debounce(() => {
       v.dashQuery = qi.value;
       render(root, o);
-      const again = root.querySelector('#dash-q');
+      const again = /** @type {HTMLInputElement} */ (root.querySelector('#dash-q'));
       again.focus();
       again.setSelectionRange(again.value.length, again.value.length);
     }, 150));
-    root.querySelector('.dash-mode').addEventListener('click', e => { const b = /** @type {any} */ (e.target).closest('[data-mode]'); if (b && b.dataset.mode !== o.mode) o.onMode(b.dataset.mode); });
-    root.querySelector('#dash-sort').addEventListener('change', e => { v.dashSort = e.target.value; render(root, o); });
+    root.querySelector('#dash-sort')?.addEventListener('change', e => { v.dashSort = /** @type {any} */ (e.target).value; render(root, o); });
     const grid = root.querySelector('.dash-grid');
     grid.addEventListener('click', e => {
       const card = e.target.closest('.dash-card[data-id]');
@@ -136,5 +129,5 @@ MF.dashboard = (() => {
     });
   }
 
-  return { render };
+  return { render, thumb };
 })();

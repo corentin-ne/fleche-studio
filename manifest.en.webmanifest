@@ -56,10 +56,10 @@
       ]
     },
     {
-      "name": "My puzzles",
-      "short_name": "My puzzles",
-      "description": "All my puzzles",
-      "url": "./?action=home",
+      "name": "Play",
+      "short_name": "Play",
+      "description": "Games room: a ready-made game",
+      "url": "./?action=play",
       "icons": [
         {
           "src": "icons/icon-192.png",

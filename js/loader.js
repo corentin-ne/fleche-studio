@@ -44,7 +44,7 @@
       'js/ui/components.js', 'js/ui/phone-nav.js', 'js/ui/pinch-zoom.js', 'js/ui/brand.js', 'js/ui/grid-view.js',
       'js/ui/live-build.js', 'js/ui/sticker-editor.js', 'js/ui/previews.js', 'js/ui/shape-picker.js', 'js/ui/layout-controls.js',
       'js/ui/pickers.js', 'js/ui/panels/words.js', 'js/ui/panels/clues.js', 'js/ui/panels/design.js', 'js/ui/panels/decor.js',
-      'js/ui/panels/settings.js', 'js/ui/panels/murdoku.js', 'js/ui/logic-input.js', 'js/ui/panels/logic.js', 'js/ui/exporter.js', 'js/ui/share-dialog.js', 'js/ui/murdoku-view.js', 'js/ui/welcome.js', 'js/ui/dashboard.js',
+      'js/ui/panels/settings.js', 'js/ui/panels/murdoku.js', 'js/ui/logic-input.js', 'js/ui/panels/logic.js', 'js/ui/exporter.js', 'js/ui/share-dialog.js', 'js/ui/murdoku-view.js', 'js/ui/welcome.js', 'js/ui/dashboard.js', 'js/ui/arcade.js',
     ],
     app: ['js/app/guard.js', 'js/app/actions.js', 'js/app/export-flow.js', 'js/app/play.js', 'js/app/help.js', 'js/app/shortcuts.js', 'js/app/updates.js', 'js/app.js'],
   };

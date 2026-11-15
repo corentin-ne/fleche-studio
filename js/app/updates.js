@@ -23,6 +23,10 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Deux espaces bien séparés : Créer (mes créations, le studio) et Jouer (la salle de jeu), à un geste dans la barre du haut',
+    'Jouer : choisis un jeu, deux réglages au plus, et la partie se prépare sans montrer la solution ; tes grilles s\'y jouent aussi (nouvelle, en cours, record), et « Éditer » les ouvre dans le studio',
+    'Création plus simple : assistant sans détour (la forme de la grille est repliée), « Mes créations » épuré, et dans Options le changement de jeu est replié sous le nom et la langue',
+    'Murdoku : les pastilles des personnages ne s\'écrasent plus, un nom long passe à la ligne ; petits objets du bord du plateau de retour',
     'Fin de construction sans saut : la grille animée se pose exactement à la taille et à la place de la grille finale, qui prend le relais en douceur ; sur téléphone, panneau d\'état compact en bas pour laisser toute la place à la grille',
     'Murdoku : rendu « Livre d\'art » un peu adouci (trame et décalage des couleurs moins forts), toujours par défaut',
     'Murdoku plus clair : légende des objets du plan (ceux où l\'on peut se tenir, ceux qui bloquent) ; touche un objet ou un indice pour voir sur le plateau les cases dont il parle',

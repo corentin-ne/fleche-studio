@@ -56,10 +56,10 @@
       ]
     },
     {
-      "name": "Mes grilles",
-      "short_name": "Mes grilles",
-      "description": "Toutes mes grilles",
-      "url": "./?action=home",
+      "name": "Jouer",
+      "short_name": "Jouer",
+      "description": "Salle de jeu : une partie toute prête",
+      "url": "./?action=play",
       "icons": [
         {
           "src": "icons/icon-192.png",

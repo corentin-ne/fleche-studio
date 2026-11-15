@@ -49,13 +49,16 @@
 
   <div class="app">
     <header class="topbar glass">
-      <button class="brand" id="btn-home" type="button" title="Mes grilles (H)" aria-label="Tableau de bord : mes grilles">
+      <button class="brand" id="btn-home" type="button" title="Accueil (H)" aria-label="Accueil">
         <span class="brand-mark" data-brand aria-hidden="true"></span>
         <span class="brand-text" translate="no"><strong>Flèche</strong><small>Studio</small></span>
       </button>
+      <div class="space-switch" id="space-switch" role="tablist" aria-label="Espace">
+        <button type="button" role="tab" id="space-create" data-space="create" title="Créer et modifier mes grilles"><span data-icon="edit"></span><span class="lbl">Créer</span></button>
+        <button type="button" role="tab" id="space-play" data-space="play" title="Salle de jeu"><span data-icon="gamepad"></span><span class="lbl">Jouer</span></button>
+      </div>
       <nav class="puzzle-tabs" id="puzzle-tabs" aria-label="Mes grilles"></nav>
       <div class="play-title" id="play-title" aria-live="polite"></div>
-      <button class="btn btn-ghost arcade-btn" id="btn-arcade" type="button" title="Salle de jeu : jouer à mes grilles" aria-label="Salle de jeu"><span data-icon="gamepad"></span><span class="lbl">Jouer</span></button>
       <div class="topbar-actions">
         <button class="btn btn-ghost btn-icon" id="btn-undo" title="Annuler (Ctrl+Z)" aria-label="Annuler la dernière action"><span data-icon="undo"></span></button>
         <button class="btn btn-ghost btn-icon" id="btn-redo" title="Rétablir (Ctrl+Y)" aria-label="Rétablir"><span data-icon="redo"></span></button>
@@ -90,7 +93,7 @@
               <input type="range" id="zoom" min="10" max="160" step="2" aria-label="Zoom" title="Zoom (Ctrl + molette)">
             </div>
             <button class="btn" id="btn-shuffle" title="Calculer une autre grille (M)"><span data-icon="shuffle"></span><span class="lbl">Mélanger</span></button>
-            <button class="btn" id="btn-play" title="Jouer à cette grille (P)"><span data-icon="gamepad"></span><span class="lbl">Jouer</span></button>
+            <button class="btn" id="btn-play" title="Tester : jouer à cette grille (P)"><span data-icon="gamepad"></span><span class="lbl">Jouer</span></button>
             <button class="btn btn-primary" id="btn-export" title="Exporter (E)"><span data-icon="download"></span><span class="lbl lbl-export">Exporter</span></button>
           </div>
         </div>
@@ -104,14 +107,15 @@
           <button class="btn btn-sm btn-primary" data-regen><span data-icon="refresh"></span>Mettre à jour la grille</button>
         </div>
         <div class="play-bar" id="play-bar" hidden>
-          <button class="btn btn-sm" id="btn-play-exit" title="Revenir au studio (Échap)"><span data-icon="chevronLeft"></span><span class="lbl">Studio</span></button>
+          <button class="btn btn-sm" id="btn-play-exit" title="Salle de jeu (Échap)" aria-label="Salle de jeu"><span data-icon="chevronLeft"></span><span class="lbl">Retour</span></button>
           <span class="play-time"><span data-icon="clock"></span><b id="play-time">0:00</b></span>
           <span class="muted small play-tip">Clique une case et tape · re-clic ou Espace : change de sens</span>
           <span class="spacer"></span>
           <button class="btn btn-sm btn-ghost" id="btn-hint"></button>
-          <button class="btn btn-sm btn-ghost" id="btn-hint-word"><span data-icon="wand"></span>Mot</button>
+          <button class="btn btn-sm btn-ghost" id="btn-hint-word" title="Révéler le mot" aria-label="Révéler le mot"><span data-icon="wand"></span><span class="lbl lbl-hint">Mot</span></button>
           <button class="btn btn-sm" id="btn-check"><span data-icon="check"></span>Vérifier</button>
           <button class="btn btn-sm btn-ghost" id="btn-clear-play" title="Tout effacer"><span data-icon="refresh"></span></button>
+          <button class="btn btn-sm btn-ghost" id="btn-play-edit" title="Modifier cette grille dans le studio" aria-label="Éditer"><span data-icon="edit"></span><span class="lbl">Éditer</span></button>
         </div>
         <!-- Jeu : définition du mot en cours (indispensable sur téléphone, où les cases sont petites) -->
         <div class="play-clue" id="play-clue" hidden>

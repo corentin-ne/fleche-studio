@@ -35,11 +35,12 @@ listes de mots par thème), sans cookie ni référent.
 - **Bibliothèque de thèmes** commune à tous les jeux (`js/data/library.js`) : un seul ordre, rangé en rayons
   (Styles, Univers, Fêtes). Un thème a sa version 2D (grilles), 3D (univers Murdoku) ou les deux ; les styles
   simples restent en 2D. Réorganiser = déplacer un identifiant dans la liste des rayons.
-- **Studio et jeu séparés** : le studio crée (solution ou grille vierge) ; on joue sur une page à
-  part, depuis la Salle de jeu du tableau de bord.
-- **Créer et jouer** : on choisit ses réglages et la partie commence aussitôt ; la grille se
-  construit sous les yeux sans montrer la solution. En création normale, toutes les grilles
-  (mots, chiffres, logique) se remplissent en direct, sauf le diorama 3D du Murdoku.
+- **Deux espaces, Créer et Jouer** (barre du haut) : Créer = « Mes créations » et le studio
+  (solution ou grille vierge) ; Jouer = la salle de jeu (`js/ui/arcade.js`) : une nouvelle partie
+  en deux réglages au plus, dont la grille se construit sans montrer la solution, et toutes ses
+  grilles à jouer (nouvelle, en cours, record). En partie, « Éditer » ouvre la grille dans le studio.
+  En création, toutes les grilles (mots, chiffres, logique) se remplissent en direct, sauf le
+  diorama 3D du Murdoku.
 - **Mots** : saisie avec autocomplétion et correction, dictionnaire intégré (FR, EN),
   18 packs à thème de 25 mots définis, catégories du Wiktionnaire, tirage au hasard,
   import texte, CSV, JSON ou Excel.

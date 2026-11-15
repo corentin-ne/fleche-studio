@@ -54,6 +54,8 @@ MF.shortcuts = (() => {
       // La grille de mots mêlés gère ses propres touches (curseur clavier)
       if (typing || e.ctrlKey || e.metaKey || e.altKey || document.querySelector('.modal-scrim') || /** @type {Element} */ (e.target).closest?.('.ws-layer')) return;
       const pz = store.active();
+      // Salle de jeu : pas de raccourci du studio
+      if (store.get().ui.space === 'play' && !view.play) return;
       if (!pz) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } return; }
       if (e.key === 'h') { c.showHome(!view.home); return; }
       if (view.home) { if (e.key === 'n') { e.preventDefault(); actions.newPuzzle(); } if (e.key === 'Escape') c.showHome(false); return; }

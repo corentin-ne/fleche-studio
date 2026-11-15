@@ -11,7 +11,7 @@
   const store = MF.store;
   const ic = MF.icons.svg;
 
-  const view = { home: false, filter: '', sort: 'added', draft: {}, page: 0, selected: null, sections: {}, emojiCat: null, sideLocked: false, entries: {}, entriesFor: null, playStart: 0, play: false, dashMode: 'create' };
+  const view = { home: false, filter: '', sort: 'added', draft: {}, page: 0, selected: null, sections: {}, emojiCat: null, sideLocked: false, entries: {}, entriesFor: null, playStart: 0, play: false, phonePanel: false };
   const jobs = new Map();
   let derivedCache = { key: null, value: null };
   let lastView = null;
@@ -119,7 +119,8 @@
 
     const total = prepared(pz).length;
     const placed = pages.reduce((n, pg) => n + MF.gridModel.placedIn(pg).length, 0);
-    MF.ui.toast(t(pages.length > 1 ? '2 grilles prêtes : {placed} / {total} de tes mots placés' : 'Grille prête : {placed} / {total} de tes mots placés', { placed, total }), placed === total ? 'ok' : 'warn', 4000);
+    // En partie, la grille prête se suffit à elle-même (pas de bilan du studio)
+    if (!view.play) MF.ui.toast(t(pages.length > 1 ? '2 grilles prêtes : {placed} / {total} de tes mots placés' : 'Grille prête : {placed} / {total} de tes mots placés', { placed, total }), placed === total ? 'ok' : 'warn', 4000);
   }
 
   /** Jeu de chiffres ou de logique : une seule page, calculée dans le worker (solution unique vérifiée). */
@@ -153,7 +154,7 @@
     }
     view.page = 0;
     store.update(s => { const p = s.puzzles.find(x => x.id === pz.id); if (p) p.layout = layout; }, 'layout');
-    MF.ui.toast(t('{game} prêt : une seule solution possible.', { game: MF.games.get(pz.game).label }), 'ok', 3000);
+    if (!view.play) MF.ui.toast(t('{game} prêt : une seule solution possible.', { game: MF.games.get(pz.game).label }), 'ok', 3000);
   }
 
   /** Murdoku : nouvelle énigme (calcul rapide, sur place). */
@@ -302,8 +303,11 @@
     $('#play-clue').hidden = $('#play-bar').hidden || !game.clues;
     syncClock();
     $('#btn-fit').classList.toggle('active', !!s.ui.fit);
-    $('#btn-hint-word').hidden = game.wordSearch;
-    $('#btn-hint').innerHTML = `${ic('bulb')}${t(game.wordSearch || isMurdoku(pz) || isLogic(pz) ? 'Indice' : 'Lettre')}`;
+    // « Mot » : seulement les grilles de mots avec définitions (pas les mêlés, chiffres, logique)
+    $('#btn-hint-word').hidden = game.wordSearch || isLogic(pz) || isMurdoku(pz);
+    const hintLabel = t(game.wordSearch || isMurdoku(pz) || isLogic(pz) ? 'Indice' : 'Lettre');
+    $('#btn-hint').innerHTML = `${ic('bulb')}<span class="lbl lbl-hint">${hintLabel}</span>`;
+    $('#btn-hint').setAttribute('aria-label', hintLabel);
 
     const entriesFor = MF.play.keyOf(pz, d.page);
     if (view.entriesFor !== entriesFor) {
@@ -324,6 +328,11 @@
     }
     if (!d.model.cols) {
       lastView = null;
+      // En partie : rien à jouer tant que la grille n'a pas de contenu (elle se prépare dans le studio)
+      if (view.play) {
+        box.innerHTML = `<div class="empty">${ic(game.icon)}<h3>${t('Cette grille est encore vide')}</h3><p>${t('Ajoute ses mots dans le studio, puis reviens jouer.')}</p><p><button class="btn btn-primary" data-edit-puzzle>${ic('edit')}${t('Éditer dans le studio')}</button></p></div>`;
+        return;
+      }
       box.innerHTML = isLogic(pz)
         ? `<div class="empty">${ic(game.icon)}<h3>${esc(game.label)}</h3><p>${esc(game.desc)}</p><p><button class="btn btn-primary" data-regen>${ic('sparkle')}${t('Construire la grille')}</button></p></div>`
         : total
@@ -448,17 +457,23 @@
     // Autocomplétion, bibliothèque, tirages : dans la langue des mots de la grille ouverte
     MF.dictionary.use(pz?.options.lang || MF.lexicon.preferred());
     // Booléen strict : classList.toggle(x, undefined) inverserait la classe au lieu de la fixer
-    const home = !pz || !!view.home;
+    // Deux espaces : Créer (accueil « Mes créations », studio) et Jouer (salle de jeu, page de jeu)
+    const playing = space() === 'play';
+    if (playing && !pz) view.play = false;
+    const home = playing ? !view.play : !pz || !!view.home;
     document.body.classList.toggle('no-puzzle', !pz);
+    document.body.classList.toggle('space-play', playing);
+    document.body.classList.toggle('space-create', !playing);
     document.body.classList.toggle('show-home', home);
     document.body.classList.toggle('show-play', !home && !!view.play);
-    document.body.classList.toggle('dash-play', home && view.dashMode === 'play');
+    $$('#space-switch [data-space]').forEach(b => { const on = b.dataset.space === space(); b.classList.toggle('active', on); b.setAttribute('aria-selected', String(on)); });
     applyAccent(pz);
     renderTabs();
     renderToolbar();
     if (home) MF.play.keepAwake(false);
+    if (playing && home) { renderArcade(); return; }
     if (!pz) {
-      MF.welcome.render($('#welcome'), { legacy: store.legacy().length, onNew: () => actions.newPuzzle(), onOpen: () => $('#file-open').click(), onLegacy: actions.recoverLegacy, onQuick: actions.quickStart });
+      MF.welcome.render($('#welcome'), { legacy: store.legacy().length, onNew: () => actions.newPuzzle(), onOpen: () => $('#file-open').click(), onLegacy: actions.recoverLegacy, onQuick: actions.quickStart, onPlay: () => setSpace('play') });
       return;
     }
     if (home) { renderDashboard(); return; }
@@ -466,17 +481,48 @@
     renderSide();
   }
 
-  /** Tableau de bord « Mes grilles » (clic sur le logo). */
+  /** Espace ouvert : 'create' (studio) ou 'play' (salle de jeu). */
+  const space = () => store.get().ui.space;
+  /**
+   * Change d'espace. Créer : retour à la grille en cours (ou à « Mes créations ») ;
+   * Jouer : la salle de jeu. Re-toucher l'espace ouvert ramène à son accueil.
+   */
+  function setSpace(sp) {
+    const same = sp === space();
+    if (sp === 'play') view.play = false;
+    else { if (same || !store.active()) view.home = true; view.play = false; }
+    view.selected = null;
+    if (same) renderAll();
+    else store.update(s => { s.ui.space = sp; }, 'ui');
+    $('#welcome').scrollTop = 0;
+  }
+  /** Depuis la partie : la grille s'ouvre dans le studio pour être modifiée. */
+  function editPuzzle(id) {
+    view.play = false; view.home = false; view.selected = null;
+    MF.play.keepAwake(false);
+    store.update(s => { s.ui.space = 'create'; if (id) s.activeId = id; }, 'ui');
+  }
+
+  /** Salle de jeu : nouvelle partie toute prête, ou une de ses grilles. */
+  function renderArcade() {
+    const s = store.get();
+    MF.arcade.render($('#welcome'), {
+      puzzles: s.puzzles, view,
+      onGame: game => actions.newGame(game),
+      onPlay: id => openPlay(id),
+      onEdit: id => editPuzzle(id),
+      onCreate: () => setSpace('create'),
+    });
+  }
+
+  /** Accueil de l'espace Créer : « Mes créations ». */
   function renderDashboard() {
     const s = store.get();
     MF.dashboard.render($('#welcome'), {
       puzzles: s.puzzles, activeId: s.activeId, view, accent: store.active()?.design.accent,
-      mode: view.dashMode,
-      onMode: m => { view.dashMode = m; renderDashboard(); },
-      onOpen: id => (view.dashMode === 'play' ? openPlay(id) : actions.switchPuzzle(id)),
+      onOpen: id => actions.switchPuzzle(id),
       onPlay: id => openPlay(id),
-      onNew: play => actions.newPuzzle({ play }),
-      onQuick: (game, play) => actions.quickStart(game, play),
+      onNew: () => actions.newPuzzle(),
       onDuplicate: id => actions.duplicatePuzzle(id),
       onDelete: id => actions.deletePuzzle(id),
       onImport: () => $('#file-open').click(),
@@ -485,11 +531,12 @@
     });
   }
 
-  function showHome(on = true, dashMode) {
+  /** Accueil de l'espace Créer (« Mes créations ») ou retour à la grille. */
+  function showHome(on = true) {
     if (!store.active()) return;
+    if (space() !== 'create') { setSpace('create'); return; }
     view.home = on;
     if (on) view.play = false;
-    if (dashMode) view.dashMode = dashMode;
     view.selected = null;
     renderAll();
     if (on) $('#welcome').scrollTop = 0;
@@ -508,14 +555,17 @@
     if (!pz) return;
     view.play = true; view.home = false; view.selected = null;
     view.entriesFor = null; // progression relue, chronomètre relancé
+    if (space() !== 'play') store.update(s => { s.ui.space = 'play'; }, 'ui');
     if (pz.id !== store.get().activeId) { view.page = 0; store.update(s => { s.activeId = pz.id; }, 'active'); } else renderAll();
     if (!compatible(pz) && prepared(pz).length && !jobs.has(pz.id)) regenerate(pz.id);
   }
+  /** Fin de partie : retour à la salle de jeu. */
   function closePlay() {
     if (!view.play) return;
     view.play = false;
     MF.play.keepAwake(false);
     renderAll();
+    $('#welcome').scrollTop = 0;
   }
 
   /** Chronomètre : ne tourne que si la barre de jeu est affichée. */
@@ -541,7 +591,7 @@
   }
 
   /* ---------------- Événements globaux ---------------- */
-  const app = { view, regenerate, renderAll, renderSide, renderGrid, setMode, openPlay, closePlay, derive };
+  const app = { view, regenerate, renderAll, renderSide, renderGrid, setMode, openPlay, closePlay, editPuzzle, derive };
   const actions = MF.createActions(app);
   const exportFlow = MF.createExportFlow({ derive, openPage: () => actions.openPage() });
   function openExport() {
@@ -553,10 +603,16 @@
 
   function bind() {
     // Logo + nom : tableau de bord « Mes grilles » (re-clic : retour à la grille)
-    $('#btn-home').onclick = () => (view.home && view.dashMode === 'create' ? showHome(false) : showHome(true, 'create'));
-    $('#btn-arcade').onclick = () => (view.home && view.dashMode === 'play' ? showHome(false) : showHome(true, 'play'));
+    // Logo : accueil de l'espace ouvert (re-clic dans Créer : retour à la grille)
+    $('#btn-home').onclick = () => {
+      if (space() === 'play') { if (view.play) closePlay(); return; }
+      if (view.home && store.active()) showHome(false); else showHome(true);
+    };
+    $('#space-switch').addEventListener('click', e => { const b = e.target.closest('[data-space]'); if (b) setSpace(b.dataset.space); });
     $('#btn-play').onclick = () => openPlay();
     $('#btn-play-exit').onclick = () => closePlay();
+    $('#btn-play-edit').onclick = () => editPuzzle();
+    document.addEventListener('click', e => { if (/** @type {Element} */ (e.target).closest('[data-edit-puzzle]')) editPuzzle(); });
     $('#puzzle-tabs').addEventListener('click', e => {
       const b = e.target.closest('.ptab');
       if (!b) return;
@@ -689,7 +745,7 @@
     if (!pz) return;
     if (!await MF.shareDialog.received(pz)) return;
     view.play = true; view.home = false; view.entriesFor = null;
-    store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; }, 'puzzles');
+    store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.space = 'play'; }, 'puzzles');
   }
 
   /** Raccourcis de l'application installée (manifest) : ?action=new ou ?action=home. */
@@ -699,8 +755,9 @@
     if (!act) return;
     url.searchParams.delete('action');
     history.replaceState(null, '', url.pathname + url.search + url.hash);
-    if (act === 'new') actions.newPuzzle();
+    if (act === 'new') { if (space() !== 'create') setSpace('create'); actions.newPuzzle(); }
     else if (act === 'home') showHome(true);
+    else if (act === 'play') setSpace('play');
   }
 
   async function boot() {

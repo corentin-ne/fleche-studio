@@ -276,8 +276,6 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
   const spotsB = [];
   for (const sx of [-1, 1]) for (const sz of [-1, 1]) spotsB.push([sx * (half + MARGIN * 0.5), sz * (half + MARGIN * 0.5)]);
   for (let i = 0; i < n; i++) if (dr() < 0.55) spotsB.push([half + MARGIN * 0.5, (i - (n - 1) / 2) * CELL + (dr() - 0.5) * 0.6]);
-  // no decor at all: the border stays bare too (only what counts for the puzzle)
-  if (clutter === 'none') spotsB.length = 0;
   for (const [x, z] of spotsB) {
     const name = st.deco[Math.floor(dr() * st.deco.length)];
     const sub = new Builder();

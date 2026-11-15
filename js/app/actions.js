@@ -73,7 +73,7 @@ MF.createActions = app => {
       for (const [page, pg] of (pz.layout?.pages || []).entries()) {
         const slot = pg.words.findIndex(w => w.wid === id);
         if (slot < 0) continue;
-        if (view.play) app.closePlay();
+        if (view.play) app.editPuzzle();
         if (page !== view.page) { view.page = page; app.renderAll(); }
         MF.gridView.highlight(MF.gridModel.wordKey(pg, slot));
         return;
@@ -209,7 +209,7 @@ MF.createActions = app => {
       if (base.kind === 'text') base.ar = MF.stickers.textAspect(base);
       const s = S.sticker(base);
       if (!s) return;
-      if (view.play) app.closePlay();
+      if (view.play) app.editPuzzle();
       view.selected = s.id;
       mutate(p => p.stickers.push(s), 'stickers');
     },
@@ -273,9 +273,22 @@ MF.createActions = app => {
     refreshSide() { app.renderSide(); },
 
     /* ---------------- Grilles & données ---------------- */
+    /** Studio : assistant de création, puis la grille s'ouvre dans le studio. */
     async newPuzzle(defaults = {}) {
       const res = await MF.welcome.wizard(defaults);
-      if (!res) return;
+      if (res) await actions.createPuzzle(res);
+    },
+    /** Salle de jeu : réglages d'une partie toute prête, puis la partie commence. */
+    async newGame(game) {
+      const res = await MF.arcade.setup(game);
+      if (res) await actions.createPuzzle({ ...res, play: true });
+    },
+    /**
+     * Crée une grille à partir des réglages (assistant du studio ou nouvelle partie).
+     * res.play : la page de jeu s'ouvre aussitôt et la grille s'y construit sans montrer la solution.
+     */
+    async createPuzzle(res) {
+      res = { shape: 'rect', theme: MF.games.get(res.game).theme, start: 'random', count: 20, min: 3, max: 9, lang: MF.lexicon.preferred(), mdkTheme: 'manor', mdkSize: '6', mdkDifficulty: 'medium', mdkRender: '3d', level: 'medium', name: '', ...res };
       // Créer et jouer : une grille de mots a besoin de mots, tirés au hasard si la liste est vide
       if (res.play && res.start === 'empty') res.start = 'random';
       const pack = res.start.startsWith('pack:') ? MF.lexicon.packs(res.lang)[res.start.slice(5)] : null;
@@ -298,14 +311,19 @@ MF.createActions = app => {
       pz.words = words.map(S.word).filter(Boolean);
       // Créer et jouer : la page de jeu s'ouvre tout de suite, la grille s'y construit sans montrer la solution
       view.page = 0; view.selected = null; view.filter = ''; view.home = false; view.play = !!res.play; view.entriesFor = null;
-      store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; }, 'puzzles');
+      // Grille à remplir soi-même (téléphone) : on arrive directement sur la saisie des mots
+      view.phonePanel = !res.play && !mdk && !isLogic && !words.length;
+      store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; s.ui.space = res.play ? 'play' : 'create'; }, 'puzzles');
       if (mdk || isLogic || (res.play && pz.words.length)) { app.regenerate(pz.id); return; }
       if (!words.length) requestAnimationFrame(() => /** @type {HTMLInputElement | null} */ (document.querySelector('#add-form [name=text]'))?.focus());
     },
     quickStart(game, play = false) {
-      return actions.newPuzzle({ game, start: 'random', theme: MF.games.get(game).theme, play });
+      if (play) return actions.newGame(game);
+      return actions.newPuzzle({ game, start: 'random', theme: MF.games.get(game).theme });
     },
+    /** Ouvre une grille dans le studio (espace Créer). */
     switchPuzzle(id) {
+      if (store.get().ui.space !== 'create') store.update(s => { s.ui.space = 'create'; }, 'ui', { history: false });
       if (view.home || view.play) { view.home = false; view.play = false; if (id === store.get().activeId) { app.renderAll(); return; } }
       if (id === store.get().activeId) return;
       view.filter = ''; view.draft = {}; view.page = 0; view.selected = null;

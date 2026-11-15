@@ -241,10 +241,14 @@
 
 /* ---------- Page de jeu (séparée du studio) ---------- */
 .play-title { display: none; min-width: 0; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.arcade-btn { gap: 6px; font-weight: 600; }
-.arcade-btn .ic { color: var(--accent); }
-.show-home.dash-play .arcade-btn, .show-play .arcade-btn { background: rgba(var(--accent-rgb), .14); box-shadow: inset 0 0 0 1px rgba(var(--accent-rgb), .4); }
-.no-puzzle .arcade-btn { display: none; }
+/* Deux espaces : Créer (studio) et Jouer (salle de jeu) */
+.space-switch { display: inline-flex; flex: none; padding: 3px; gap: 2px; border-radius: var(--r-pill); background: var(--field-bg); border: 1px solid var(--line); }
+.space-switch button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 14px; border: 0; border-radius: var(--r-pill); background: transparent; color: var(--text-2); font: 600 var(--fs-sm) var(--font-sans); cursor: pointer; transition: background var(--t-fast), color var(--t-fast); -webkit-tap-highlight-color: transparent; }
+.space-switch button .ic { width: 16px; height: 16px; }
+.space-switch button:hover { color: var(--text); }
+.space-switch button.active { background: var(--accent); color: var(--on-accent); box-shadow: 0 4px 14px -6px rgba(var(--accent-rgb), .8); }
+.space-play .puzzle-tabs, .space-play #btn-undo, .space-play #btn-redo { display: none !important; }
+.space-play .topbar .spacer-flex { flex: 1; }
 .show-play .workspace { grid-template-columns: minmax(0, 1fr); }
 .show-play .side, .show-play .grid-head, .show-play #stale-bar, .show-play .puzzle-tabs, .show-play .phone-nav,
 .show-play #btn-undo, .show-play #btn-redo { display: none !important; }
@@ -252,10 +256,13 @@
 .show-play .play-bar { padding-top: 10px; }
 .show-play .grid-card { max-width: 1100px; width: 100%; margin: 0 auto; }
 @media (max-width: 760px) {
-  .arcade-btn .lbl { display: none; }
   .show-play .app { padding-bottom: max(6px, var(--safe-b)); }
-  #btn-play-exit .lbl { display: none; }
+  #btn-play-exit .lbl, #btn-play-edit .lbl { display: none; }
+  .space-switch button { height: 34px; padding: 0 11px; }
 }
+@media (max-width: 380px) { .space-switch button .lbl { display: none; } }
+/* Pendant la partie, sur téléphone : le titre laisse la place aux deux espaces */
+@media (max-width: 760px) { .show-play .play-title { display: none; } }
 
 /* ---------- Murdoku : plateau et énoncé ---------- */
 .game-murdoku .zoom, .game-murdoku #btn-shuffle, .game-murdoku .play-tip { display: none; }
@@ -290,7 +297,9 @@
 .mdk-side { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .mdk-sheet { display: flex; flex-direction: column; gap: 12px; }
 .mdk-cast { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 140px), 1fr)); gap: 6px; }
-.mdk-cast .mdk-person { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mdk-cast .mdk-person { min-width: 0; line-height: 1.25; overflow-wrap: anywhere; }
+/* La pastille ne rétrécit jamais : un nom long passe à la ligne, rien n'est coupé */
+.mdk-person i, .mdk-tool i, .mdk-who i, .mdk-accuse i { flex: none; }
 .mdk-person { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px 3px 3px; border-radius: var(--r-pill); background: var(--glass-bg-soft); border: 1px solid var(--line); font-size: var(--fs-sm); font-weight: 600; }
 .mdk-person i, .mdk-tool i { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: var(--p); color: #fff; font-style: normal; font-weight: 800; font-size: 12px; box-shadow: inset 0 0 0 2px rgba(255,255,255,.7); }
 .mdk-person small { color: var(--text-3); font-weight: 500; }
@@ -338,7 +347,9 @@
 .mdk-rules summary { min-height: 32px; cursor: pointer; display: flex; align-items: center; gap: 6px; font-size: var(--fs-sm); font-weight: 600; color: var(--text-2); }
 .mdk-rules ul { margin: 8px 0; padding-left: 18px; font-size: var(--fs-sm); color: var(--text-2); display: flex; flex-direction: column; gap: 4px; }
 .mdk-tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 130px), 1fr)); gap: 6px; }
-.mdk-tools .mdk-tool span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mdk-tools .mdk-tool { min-width: 0; text-align: left; }
+.mdk-tools .mdk-tool span { min-width: 0; line-height: 1.2; overflow-wrap: anywhere; }
+.mdk-person small { flex: none; }
 .mdk-accuse { display: flex; flex-wrap: wrap; gap: 6px; }
 .mdk-tool { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 4px; border-radius: var(--r-pill); border: 1px solid var(--line); background: var(--glass-bg-soft); color: var(--text); font: 600 var(--fs-sm) var(--font-sans); cursor: pointer; }
 .mdk-tool.active { border-color: var(--p, var(--accent)); box-shadow: 0 0 0 2px color-mix(in srgb, var(--p, var(--accent)) 60%, transparent); }
@@ -361,6 +372,7 @@
   [data-mode="play"] .mdk-tools { display: flex; position: sticky; top: var(--mdk-bw); z-index: 3; flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -8px; padding: 8px; background: var(--bg-2); box-shadow: 0 8px 12px -12px rgba(0, 0, 0, .5); }
   [data-mode="play"] .mdk-tools::-webkit-scrollbar { display: none; }
   [data-mode="play"] .mdk-tool { flex: none; min-height: 36px; }
+  [data-mode="play"] .mdk-tool span { white-space: nowrap; }
 }
 
 /* ---------- Murdoku : histoire, personnalisation ---------- */

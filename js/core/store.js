@@ -40,7 +40,7 @@ MF.createStore = ({ key: KEY = MF.storage.KEYS.state, persist = true } = {}) => 
 
   function defaults() {
     const light = typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: light)').matches;
-    return { v: 2, activeId: null, theme: light ? 'light' : 'dark', ui: { cell: 64, fit: true, mode: 'solution', tab: 'words', photoMarks: false, decor: 'emoji' }, puzzles: [] };
+    return { v: 2, activeId: null, theme: light ? 'light' : 'dark', ui: { cell: 64, fit: true, mode: 'solution', tab: 'words', photoMarks: false, decor: 'emoji', space: 'create' }, puzzles: [] };
   }
 
   function sanitizeState(s) {
@@ -60,6 +60,8 @@ MF.createStore = ({ key: KEY = MF.storage.KEYS.state, persist = true } = {}) => 
         tab: S.oneOf(ui.tab, ['words', 'diag', 'design', 'decor', 'settings'], 'words'),
         photoMarks: S.bool(ui.photoMarks, false),
         decor: S.oneOf(ui.decor, ['emoji', 'shapes', 'text', 'images'], 'emoji'),
+        // Espace ouvert en dernier : le studio (Créer) ou la salle de jeu (Jouer)
+        space: S.oneOf(ui.space, ['create', 'play'], 'create'),
       },
       puzzles,
       activeId: null,

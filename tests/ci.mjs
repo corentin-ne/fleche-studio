@@ -300,19 +300,21 @@ try {
         // Une case cochée ou remplie, puis vérification
         if (await page.locator('.toggle-cell:not(:disabled)').count()) await page.locator('.toggle-cell:not(:disabled)').first().click();
         await page.click('#btn-check');
-        await page.click('#btn-play-exit');
+        // « Éditer » : la grille revient dans le studio (espace Créer)
+        await page.click('#btn-play-edit');
+        await page.waitForFunction(() => document.body.classList.contains('space-create') && !document.body.classList.contains('show-play'), null, { timeout: 5000 });
         ok.push(`${game} ${cells}`);
       } catch (e) { fail(`nouveaux jeux : ${game}\n    ${e.message.split('\n')[0]}`); await page.keyboard.press('Escape').catch(() => {}); }
     }
     if (errors.length) fail(`nouveaux jeux : erreurs dans la console\n    ${errors.join('\n    ')}`);
     else console.log(`✔ nouveaux jeux : ${ok.length} / ${games.length} créés et jouables (${ok.join(', ')})`);
 
-    // Créer et jouer : la partie s'ouvre aussitôt, la construction ne montre aucune réponse
+    // Espace Jouer : nouvelle partie toute prête, la construction ne montre aucune réponse
     const played = [];
     for (const game of ['sudoku', 'fleches']) {
       try {
-        await page.click('#btn-new-puzzle');
-        await page.click(`.wz-game[data-v="${game}"]`);
+        await page.click('#space-play');
+        await page.click(`.arcade [data-game="${game}"]`);
         await page.evaluate(() => {
           window.__shown = 0;
           const spy = () => {
@@ -322,17 +324,19 @@ try {
           };
           new MutationObserver(spy).observe(document.querySelector('#grid-scroll'), { subtree: true, childList: true, characterData: true, attributes: true });
         });
-        await page.click('.modal-foot button:has-text("Créer et jouer")');
+        await page.click('.quick-play .modal-foot .btn-primary');
         await page.waitForSelector('.play-cell', { timeout: 60000 });
         const state = await page.evaluate(() => ({ play: document.body.classList.contains('show-play'), shown: window.__shown, filled: [...document.querySelectorAll('.play-cell')].filter(i => /** @type {HTMLInputElement} */ (i).value && !/** @type {HTMLInputElement} */ (i).readOnly).length }));
         if (!state.play) throw new Error('la page de jeu ne s\'est pas ouverte');
         if (state.shown) throw new Error(`${state.shown} réponses visibles pendant la construction`);
         if (state.filled) throw new Error(`${state.filled} cases déjà remplies`);
+        // Retour : la salle de jeu, où la partie est listée
         await page.click('#btn-play-exit');
+        await page.waitForSelector('.arcade .arc-card', { timeout: 5000 });
         played.push(game);
-      } catch (e) { fail(`créer et jouer : ${game}\n    ${e.message.split('\n')[0]}`); await page.keyboard.press('Escape').catch(() => {}); }
+      } catch (e) { fail(`salle de jeu : ${game}\n    ${e.message.split('\n')[0]}`); await page.keyboard.press('Escape').catch(() => {}); }
     }
-    if (played.length === 2) console.log(`✔ créer et jouer : ${played.join(', ')} (partie ouverte, aucune réponse montrée)`);
+    if (played.length === 2) console.log(`✔ salle de jeu : ${played.join(', ')} (partie ouverte, aucune réponse montrée, retour à la salle de jeu)`);
     await ctx.close();
   }
 

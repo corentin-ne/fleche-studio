@@ -30,14 +30,18 @@ MF.panels.settings = (() => {
       <nav class="subtabs" id="settings-tabs">${TABS.map(([k, l, i]) => `<button type="button" data-stab="${k}" class="${k === tab ? 'active' : ''}">${ic(i)}<span>${l}</span></button>`).join('')}</nav>
       ${tab === 'game' ? `<label class="field"><span>${t('Nom de la grille')}</span><input class="input" id="set-name" value="${esc(puzzle.name)}" maxlength="${MF.schema.LIMITS.name}"></label>` : ''}
 
-      ${S('game', t('Type de jeu'), 'grid', `${MF.games.FAMILIES.map(([f, label]) => `<div class="pgroup-title">${esc(label)}</div><div class="game-grid">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `
-        <button type="button" class="game-card ${puzzle.game === id ? 'active' : ''}" data-game="${id}">${ic(g.icon)}<b>${esc(g.label)}</b><small>${esc(g.desc)}</small></button>`).join('')}</div>`).join('')}
+      ${S('game', t('Type de jeu'), 'grid', `
         <div class="field"><span>${t('Langue des mots')}</span>${ui.segmented('lang', MF.lexicon.ids.map(l => [l, MF.lexicon.LANGS[l].label]), o.lang, 'data-opt')}
           <span class="field-hint">${t('Mots ajoutés, définitions proposées et recherches en ligne dans cette langue.')}</span></div>
         ${puzzle.game === 'codes' ? ui.slider('opt.givens', t('Lettres données au départ'), o.givens, 0, 8, 1) : ''}
         ${puzzle.game === 'mystere' ? `<label class="field"><span>${t('Mot mystère')} <span class="field-hint">${t('vide : un mot du dictionnaire')}</span></span><input class="input" id="set-mystery" maxlength="30" value="${esc(o.logic.text)}" autocapitalize="characters">
           <span class="field-hint">${t('Les lettres qui restent, une fois tous les mots trouvés, l\'écrivent dans l\'ordre de lecture.')}</span></label>` : ''}
-        ${MF.games.get(puzzle.game).wordSearch ? `<div class="field"><span>${t('Sens des mots cachés')}</span>${ui.segmented('directions', [['easy', t('Facile →↓')], ['normal', t('Normal + diagonales')], ['hard', t('Expert : tous sens')]], o.directions, 'data-opt')}</div>` : ''}`)}
+        ${MF.games.get(puzzle.game).wordSearch ? `<div class="field"><span>${t('Sens des mots cachés')}</span>${ui.segmented('directions', [['easy', t('Facile →↓')], ['normal', t('Normal + diagonales')], ['hard', t('Expert : tous sens')]], o.directions, 'data-opt')}</div>` : ''}
+        <details class="wz-more game-switch"><summary>${ic(game.icon)}<span>${t('Changer de jeu')}</span><b>${esc(game.label)}</b>${ic('chevronDown', 'ic-sm')}</summary>
+          <p class="field-hint">${t('Tes mots restent : seule la façon de les mettre en grille change.')}</p>
+          ${MF.games.FAMILIES.map(([f, label]) => `<div class="pgroup-title">${esc(label)}</div><div class="game-grid">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `
+          <button type="button" class="game-card ${puzzle.game === id ? 'active' : ''}" data-game="${id}">${ic(g.icon)}<b>${esc(g.label)}</b><small>${esc(g.desc)}</small></button>`).join('')}</div>`).join('')}
+        </details>`)}
 
       ${S('shape', t('Forme de la grille'), 'heart', `${MF.shapePicker.html(o.shape)}
         <p class="field-hint">${t('Les mots ne sont placés qu\'à l\'intérieur de la forme. Une forme (ou une lettre) demande un peu plus de place : la grille s\'agrandit toute seule. Astuce : une lettre ressort mieux sur une grande grille.')}</p>`)}
