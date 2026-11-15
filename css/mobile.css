@@ -51,6 +51,11 @@
   .grid-stats { display: none; }
   .grid-tools { margin-left: 0; width: 100%; gap: 6px; }
   .grid-tools > * { flex: none; }
+  /* Toujours sur une ligne, quel que soit le téléphone : « Jouer » prend la place qui reste */
+  .grid-tools #btn-play { flex: 1 1 auto; min-width: 0; max-width: 140px; justify-content: center; }
+  .grid-tools #btn-play .lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grid-tools #btn-shuffle, .grid-tools #btn-fit { width: 40px; padding: 0; justify-content: center; }
+  .grid-tools #btn-shuffle.busy { width: auto; padding: 0 10px; }
   .stale-bar { gap: 8px; }
   .stale-bar .btn { margin-left: auto; }
   .grid-tools #btn-export { margin-left: auto; }
@@ -121,9 +126,6 @@
   .pn-badge.warn { background: var(--warn); color: #231f20; }
   .pn-badge.err { background: var(--err); }
 
-  /* Construction en direct : son panneau montre déjà la progression (la zone de la grille ne bouge pas à la fin) */
-  .grid-card:has(.live-build) .gen-bar { display: none; }
-
   /* Pas de clavier physique : l'astuce « Entrée » est inutile */
   .kbd-hint { display: none; }
   .composer-actions { flex-wrap: wrap; gap: 8px; }
@@ -162,7 +164,10 @@
   #btn-export { width: 40px; padding: 0; justify-content: center; }
 }
 
+@media (max-width: 420px) { #btn-shuffle .busy-pct { display: none; } .grid-tools #btn-shuffle.busy { width: 40px; padding: 0; } }
 @media (max-width: 380px) {
+  .grid-tools #btn-play { flex: none; width: 44px; padding: 0; }
+  .grid-tools #btn-play .lbl { display: none; }
   .lbl-hint { display: none; }
   .play-bar #btn-hint { width: 34px; padding: 0; justify-content: center; }
 }

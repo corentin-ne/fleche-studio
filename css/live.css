@@ -180,26 +180,14 @@
   .lb-hud { flex-wrap: wrap; }
   .lb-steps { display: none; }
 }
-/* Téléphone : panneau d'état compact posé en bas, la grille en construction prend
-   la place qu'aura la grille finale (pas de saut de taille à la fin du calcul) */
-@media (max-width: 760px) {
-  .live-build { padding: 0 0 64px; gap: 0; }
-  .lb-hud {
-    position: absolute; left: 0; right: 0; bottom: 0; z-index: 2;
-    flex-wrap: nowrap; gap: 10px; max-width: none; padding: 6px 8px;
-    transition: opacity var(--t-med) var(--ease), transform var(--t-med) var(--ease);
-  }
-  .lb-ring { width: 40px; height: 40px; }
-  .lb-pct { font-size: 9.5px; }
-  .lb-info { gap: 3px; flex: 1; }
-  .lb-title { font-size: var(--fs-sm); gap: 6px; }
-  .lb-stats { min-height: 0; flex-wrap: nowrap; overflow: hidden; }
-  .lb-stats .lb-chip:nth-child(n + 3) { display: none; }
-  .lb-chip { padding: 1px 7px; font-size: 11px; white-space: nowrap; }
-  .lb-stop { padding: 0 8px; }
-  /* Grille prête : le panneau s'efface, la grille reste seule à l'écran */
-  .live-build.done .lb-hud { opacity: 0; transform: translateY(8px); pointer-events: none; }
-}
+/* Le panneau d'état flotte dans un coin (il ne prend jamais de place à la grille, qui garde
+   sa taille finale du début à la fin). Sur téléphone, il laisse place à la fine barre de
+   progression et au bouton « Arrêter » de la barre d'outils. */
+.live-build { padding: 0; }
+.lb-hud { position: absolute; top: 10px; right: 10px; z-index: 3; max-width: 320px; flex-wrap: wrap; transition: opacity var(--t-med) var(--ease); }
+.live-build.done .lb-hud { opacity: 0; pointer-events: none; }
+.lb-hud .lb-steps { display: none; }
+@media (max-width: 760px) { .lb-hud { display: none; } }
 
 /* ---------- Habillage au design de la grille ----------
    La grille en construction ressemble déjà au rendu final : fond de l'affiche,

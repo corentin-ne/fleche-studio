@@ -43,6 +43,11 @@
 .gen-bar, .play-bar { display: flex; align-items: center; gap: 10px; padding: 0 12px 8px 16px; font-size: var(--fs-xs); color: var(--text-2); flex-wrap: wrap; }
 /* Fin liseré de progression (le détail est dans la construction en direct) */
 .gen-bar .progress { flex: 1; height: 3px; }
+/* Barre de progression posée sur le haut de la zone : elle n'en change pas la hauteur */
+#gen-bar { position: relative; z-index: 2; height: 3px; padding: 0 12px; margin-bottom: -3px; }
+#btn-shuffle.busy { color: var(--accent); border-color: rgba(var(--accent-rgb), .5); }
+#btn-shuffle .busy-pct { font: 700 11px var(--font-sans); font-variant-numeric: tabular-nums; }
+#btn-shuffle .busy-pct:empty { display: none; }
 .play-time { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; color: var(--text); padding: 4px 10px; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .14); }
 .play-time .ic { width: 15px; height: 15px; color: var(--accent); }
 @media (max-width: 900px) { .play-tip { display: none; } }

@@ -188,15 +188,41 @@
     } catch (e) { console.warn(e); return null; }
   }
 
+  /**
+   * Place prévue de la grille finale pendant la construction en direct, dès que ses dimensions
+   * sont connues : une page provisoire de mêmes dimensions (mots déjà posés compris) donne la
+   * taille de l'affiche. La grille animée garde ainsi sa taille jusqu'au bout.
+   */
+  function predictPlace(pz, frame, snap) {
+    if (!snap?.frame || snap.cells) return null;
+    const { w, h } = frame;
+    const words = (snap.words || []).map(x => ({ ...x, len: x.word.length }));
+    if (snap.engine === 'meles') return finalPlace(pz, { engine: 'meles', frame, rows: Array.from({ length: h }, () => 'A'.repeat(w)), words: words.filter(x => Number.isInteger(x.dr)) });
+    // Fléchés, croisés… : les mots déjà posés (définitions des croisés à côté de la grille)
+    const grid = Array.from({ length: h }, () => Array(w).fill('#'));
+    const placed = words.filter(x => x.dir && x.word.split('').every((ch, i) => grid[x.r + (x.dir === 'V' ? i : 0)]?.[x.c + (x.dir === 'H' ? i : 0)] !== undefined));
+    for (const x of placed) [...x.word].forEach((ch, i) => { grid[x.r + (x.dir === 'V' ? i : 0)][x.c + (x.dir === 'H' ? i : 0)] = ch; });
+    return finalPlace(pz, { engine: 'builder', frame, rows: grid.map(r => r.join('')), words: placed.filter(x => x.sr >= 0 && x.sr < h && x.sc >= 0 && x.sc < w) });
+  }
+
   /** Construction en direct (chaque instantané est mis en file et rejoué à l'image par MF.liveBuild). */
   function renderLive(job) {
     if (jobs.get(store.get().activeId) !== job || view.home) return;
-    MF.liveBuild.update($('#grid-scroll'), job.live, { onCancel: cancelGeneration, design: store.active()?.design, secret: view.play });
+    const pz = store.active();
+    MF.liveBuild.update($('#grid-scroll'), job.live, { onCancel: cancelGeneration, design: pz?.design, secret: view.play, place: (f, snap) => predictPlace(pz, f, snap) });
   }
 
+  /** Calcul en cours : fine barre de progression (sans prendre de place) et « Mélanger » devient « Arrêter ». */
   function setBusy(on, p = 0) {
     $('#gen-bar').hidden = !on;
     $('#gen-progress').style.width = `${Math.round(p * 100)}%`;
+    const b = $('#btn-shuffle');
+    b.classList.toggle('busy', on);
+    const label = on ? t('Arrêter le calcul') : t('Calculer une autre grille (M)');
+    if (b.title !== label) { b.title = label; b.setAttribute('aria-label', on ? t('Arrêter le calcul') : t('Mélanger')); }
+    const icon = on ? 'x' : 'shuffle';
+    if (b.dataset.state !== icon) { b.dataset.state = icon; b.innerHTML = `${ic(icon)}<span class="lbl">${on ? t('Arrêter') : t('Mélanger')}</span><b class="busy-pct"></b>`; }
+    b.querySelector('.busy-pct').textContent = on ? `${Math.round(p * 100)}%` : '';
   }
 
   /** Arrête le calcul en cours de la grille affichée. */
@@ -280,6 +306,8 @@
     const game = MF.games.get(pz.game);
     $('#grid-name').textContent = pz.name;
     $('#grid-game').innerHTML = `${ic(game.icon, 'ic-sm')}${esc(game.label)}${pz.options.shape !== 'rect' ? ` · ${esc(MF.shapes.SHAPES[pz.options.shape].label)}` : ''}`;
+    // Grille nommée comme son jeu : pas besoin de le répéter à côté (place gagnée sur téléphone)
+    $('#grid-game').hidden = pz.options.shape === 'rect' && MF.util.normalize(pz.name) === MF.util.normalize(game.label);
 
     const total = prepared(pz).length;
     const missing = missingClues(pz, d);
@@ -323,7 +351,7 @@
       lastView = null;
       view.shownGrid = null;
       // En partie, la grille se construit sans montrer la solution
-      MF.liveBuild.update(box, jobs.get(pz.id).live || { engine: engineOf(pz) }, { onCancel: cancelGeneration, design: pz.design, secret: view.play });
+      MF.liveBuild.update(box, jobs.get(pz.id).live || { engine: engineOf(pz) }, { onCancel: cancelGeneration, design: pz.design, secret: view.play, place: (f, snap) => predictPlace(pz, f, snap) });
       return;
     }
     if (!d.model.cols) {
@@ -646,7 +674,7 @@
       if (document.activeElement?.matches?.('.play-cell')) return;
       if (key !== lastBox && store.get().ui.fit && store.active()) { lastBox = key; renderGrid(); }
     }, 120)).observe($('#grid-scroll'));
-    $('#btn-shuffle').onclick = () => store.active() && regenerate(store.active().id);
+    $('#btn-shuffle').onclick = () => { const pz = store.active(); if (!pz) return; if (jobs.has(pz.id)) cancelGeneration(); else regenerate(pz.id); };
     document.addEventListener('click', e => { if (/** @type {Element} */ (e.target).closest('[data-regen]')) regenerate(store.active().id); });
     $('#btn-export').onclick = openExport;
     $('#btn-check').onclick = () => {

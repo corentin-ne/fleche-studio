@@ -96,7 +96,7 @@ MF.liveBuild = (() => {
       stage: root.querySelector('.lb-stage'),
       cells: [], state: [], words: new Set(), frameKey: null, frame: null,
       queue: [], last: null, shown: null, live: {}, raf: 0, idle: [], skinKey: null, secret: false,
-      target: null, fixed: false, settled: false,
+      target: null, fixed: false, settled: false, placedKey: null, predict: null,
     };
     root.querySelector('.lb-stop').onclick = () => o.onCancel?.();
   }
@@ -165,6 +165,7 @@ MF.liveBuild = (() => {
     // Nouvelle grille (page suivante) : elle reprend sa taille et sa place dans la zone
     st.fixed = false;
     st.settled = false;
+    st.placedKey = null;
     st.stage.style.transform = '';
     if (!reduced()) {
       st.grid.animate([
@@ -263,36 +264,53 @@ MF.liveBuild = (() => {
     st.words = seen;
   }
 
-  /** Taille des cases : la grille entière tient dans la zone, au-dessus du panneau d'état. */
+  /**
+   * Taille des cases quand la place finale n'est pas encore connue : la grille et son cadre
+   * tiennent dans toute la zone (le panneau d'état flotte par-dessus, il ne prend pas de place).
+   */
   function fit() {
     const f = st.frame;
     if (!f || st.fixed) return;
-    // Téléphone : panneau d'état compact en bas (réservé par le padding), marges étroites comme la grille finale
-    const phone = matchMedia('(max-width: 760px)').matches;
-    const W = st.box.clientWidth - (phone ? 30 : 40);
-    const H = st.box.clientHeight - (phone ? 64 + 30 : st.hud.offsetHeight + 64);
-    const cs = Math.max(9, Math.min(46, Math.floor(Math.min(W / f.w, H / f.h))));
+    const W = st.box.clientWidth - 28, H = st.box.clientHeight - 28;
+    let cs = Math.max(9, Math.min(46, Math.floor(Math.min(W / f.w, H / f.h))));
     st.grid.style.setProperty('--cs', `${cs}px`);
+    // Le cadre et les marges de l'affiche s'ajoutent aux cases : on réduit si ça déborde
+    const b = st.root.querySelector('.lb-board')?.getBoundingClientRect();
+    if (b?.width && (b.width > W || b.height > H)) {
+      cs = Math.max(8, Math.floor(cs * Math.min(W / b.width, H / b.height)));
+      st.grid.style.setProperty('--cs', `${cs}px`);
+    }
   }
 
   /**
-   * Grille trouvée : la grille animée prend la taille et la place exactes qu'aura la grille
-   * finale (affiche centrée dans la zone), en glissant. Le rendu final la remplace sans saut.
+   * La grille animée prend la taille et la place qu'aura la grille finale (affiche centrée dans
+   * la zone) : prévues dès le premier instantané, exactes quand la grille est trouvée (petit
+   * glissement si besoin). Le rendu final la remplace sans saut ni changement de taille.
    * @param {{ gw: number, gx: number, gy: number, sw: number, sh: number }} tg  géométrie finale (px)
    */
-  function settle2(tg) {
-    st.settled = true;
+  function placeAt(tg, animate) {
     const box = st.box, grid = st.grid, stage = st.stage;
-    const r0 = grid.getBoundingClientRect();
+    const r0 = grid.getBoundingClientRect(); // là où on la voit (pour glisser depuis cette place)
     if (!r0.width || !(tg.gw > 0)) return;
+    stage.style.transform = '';
     st.fixed = true;
+    // Mesures de mise en page, sans les animations en cours (apparition de la grille, glissement)
+    const layout = () => {
+      let x = 0, y = 0;
+      for (let e = /** @type {HTMLElement | null} */ (grid); e && e !== stage; e = /** @type {HTMLElement | null} */ (e.offsetParent)) {
+        x += e.offsetLeft + (/** @type {HTMLElement | null} */ (e.offsetParent)?.clientLeft || 0);
+        y += e.offsetTop + (/** @type {HTMLElement | null} */ (e.offsetParent)?.clientTop || 0);
+      }
+      const sr = stage.getBoundingClientRect();
+      return { left: sr.left + x, top: sr.top + y, width: grid.offsetWidth, x, y };
+    };
     // Taille : deux passes (les espaces entre cases ne suivent pas tout à fait la taille des cases)
     let cs = parseFloat(grid.style.getPropertyValue('--cs')) || 28;
     for (let i = 0; i < 2; i++) {
-      cs *= tg.gw / grid.getBoundingClientRect().width;
+      cs *= tg.gw / (grid.offsetWidth || tg.gw);
       grid.style.setProperty('--cs', `${cs}px`);
     }
-    const r1 = grid.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    const r1 = layout();
     // Place : l'affiche finale est centrée dans la zone (sans rogner si elle déborde)
     const b = box.getBoundingClientRect(), cst = getComputedStyle(box);
     const pl = parseFloat(cst.paddingLeft), pt = parseFloat(cst.paddingTop);
@@ -300,9 +318,9 @@ MF.liveBuild = (() => {
     const fx = b.left + box.clientLeft + pl + Math.max(0, (innerW - tg.sw) / 2) + tg.gx;
     const fy = b.top + box.clientTop + pt + Math.max(0, (innerH - tg.sh) / 2) + tg.gy;
     const to = `translate(${fx - r1.left}px, ${fy - r1.top}px)`;
-    stage.style.transformOrigin = `${r1.left - sr.left}px ${r1.top - sr.top}px`;
+    stage.style.transformOrigin = `${r1.x}px ${r1.y}px`;
     stage.style.transform = to;
-    if (!reduced()) {
+    if (animate && !reduced()) {
       stage.animate([
         { transform: `translate(${r0.left - r1.left}px, ${r0.top - r1.top}px) scale(${r0.width / r1.width})` },
         { transform: to },
@@ -355,7 +373,14 @@ MF.liveBuild = (() => {
     if (key !== st.frameKey) { buildFrame(frame); st.frameKey = key; }
     if (snap) paint(snap);
     st.shown = snap;
-    if (snap?.phase === 'done' && st.target && !st.settled) settle2(st.target);
+    if (!snap) return;
+    if (snap.phase === 'done' && st.target && !st.settled) { st.settled = true; placeAt(st.target, true); st.placedKey = key; return; }
+    // Place prévue dès que la grille a ses dimensions : elle ne changera plus de taille
+    if (st.placedKey !== key) {
+      let tg = st.target;
+      if (!tg) try { tg = st.predict?.(frame, snap) || null; } catch { tg = null; }
+      if (tg) { placeAt(tg, false); st.placedKey = key; }
+    }
   }
 
   function pump() {
@@ -380,11 +405,13 @@ MF.liveBuild = (() => {
    * Affiche (ou met à jour) la construction en direct dans `box`. À appeler pour chaque
    * instantané reçu : ils sont mis en file et rejoués à l'image.
    * @param live  objet { snapshot?, progress, page, pages, engine }
-   * @param o     objet { onCancel, design } : design de la grille, appliqué dès la grille fantôme
+   * @param o     objet { onCancel, design, secret, place(frame, snap) } : design de la grille, appliqué dès la
+   *              grille fantôme ; place : géométrie prévue de la grille finale (px) pour ces dimensions
    */
   function update(box, live = {}, o = {}) {
     if (!active(box)) { mount(box, o); skin(o.design); show(null); }
     skin(o.design);
+    st.predict = o.place || null;
     if (!!o.secret !== st.secret) {
       st.secret = !!o.secret;
       st.root.classList.toggle('secret', st.secret);

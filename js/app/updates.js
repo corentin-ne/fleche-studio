@@ -23,6 +23,8 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Construction en direct : la grille garde sa taille et sa place du début à la fin (place finale prévue dès le premier essai) ; le panneau de chargement ne prend plus de place : sur téléphone, une fine barre de progression et « Mélanger » devient « Arrêter »',
+    'Téléphone : la barre d\'outils de la grille tient toujours sur une ligne (Exporter jamais coupé), nom du jeu pas répété à côté du titre',
     'Deux espaces bien séparés : Créer (mes créations, le studio) et Jouer (la salle de jeu), à un geste dans la barre du haut',
     'Jouer : choisis un jeu, deux réglages au plus, et la partie se prépare sans montrer la solution ; tes grilles s\'y jouent aussi (nouvelle, en cours, record), et « Éditer » les ouvre dans le studio',
     'Création plus simple : assistant sans détour (la forme de la grille est repliée), « Mes créations » épuré, et dans Options le changement de jeu est replié sous le nom et la langue',
