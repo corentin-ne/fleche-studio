@@ -40,8 +40,9 @@ MF.gridView = (() => {
     // on garde la case active, sinon le clavier virtuel se refermerait
     const act = container.contains(document.activeElement) && document.activeElement.matches('.play-cell') ? /** @type {HTMLElement} */ (document.activeElement) : null;
     const keep = act && ctx && mode === 'play' ? { r: act.dataset.r, c: act.dataset.c, dir: ctx.dir } : null;
-    container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''} ${o.animate ? 'enter' : ''}" style="width:${width}px">${markup}</div>`;
-    const sheet = container.firstElementChild;
+    container.innerHTML = `<div class="sheet ${mode === 'play' ? 'playing' : ''} ${o.animate && !o.morph ? 'enter' : ''}" style="width:${width}px">${markup}</div>`;
+    const sheet = /** @type {HTMLElement} */ (container.firstElementChild);
+    if (o.morph) morphFrom(sheet, o.morph, scene, model);
     ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: keep?.dir || 'H', o, cellPx: cell, markup, key: o.key };
     if (mode === 'play') {
       (model.game === 'meles' ? mountWordSearch : model.toggle ? mountToggle : mountPlay)(sheet);
@@ -49,10 +50,31 @@ MF.gridView = (() => {
     }
     if (keep) container.querySelector(`.play-cell[data-r="${keep.r}"][data-c="${keep.c}"]`)?.focus({ preventScroll: true });
     sheet.querySelector('.mf-svg').addEventListener('click', e => {
-      const m = e.target.closest('.missing');
+      const m = /** @type {any} */ (e.target).closest('.missing');
       if (m) ctx.o.onMissing?.(m.dataset.key);
     });
     return ctx;
+  }
+
+  /**
+   * Relais depuis la construction en direct : la grille finale part de la place et de la taille
+   * de la grille animée, puis glisse vers sa place (pas de saut de zoom à la fin du calcul).
+   */
+  function morphFrom(sheet, from, scene, model) {
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches || !sheet.animate) return;
+    const sb = sheet.getBoundingClientRect();
+    if (!sb.width) return;
+    const k = sb.width / scene.W;
+    const gx = scene.grid.ox * k, gy = scene.grid.oy * k, gw = model.cols * U * k;
+    const s = from.width / gw;
+    if (!(s > 0.2 && s < 6)) return;
+    const dx = from.left - (sb.left + gx), dy = from.top - (sb.top + gy);
+    sheet.style.transformOrigin = `${gx}px ${gy}px`;
+    const anim = sheet.animate([
+      { transform: `translate(${dx}px, ${dy}px) scale(${s})` },
+      { transform: 'none' },
+    ], { duration: 620, easing: 'cubic-bezier(.22,.8,.24,1)' });
+    anim.finished.then(() => { sheet.style.transformOrigin = ''; }, () => {});
   }
 
   const pct = (v, total) => `${(v / total) * 100}%`;

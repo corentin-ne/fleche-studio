@@ -98,7 +98,7 @@
       if (job.cancelled || out.cancelled) return;
       if (out.error || !out.result) { error = out.error; break; }
       // L'animation se termine sur la grille retenue avant le rendu final
-      if (shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, MF.games.engineModule(engine).prepare(group).length);
+      if (shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, MF.games.engineModule(engine).prepare(group).length, undefined, finalPlace(store.puzzle(pzId) || pz, out.result));
       if (job.cancelled) return;
       out.result.words.forEach(w => exclude.add(w.word));
       pages.push(out.result);
@@ -141,7 +141,7 @@
     const out = await job.run.promise;
     if (job.cancelled || out.cancelled) return;
     // Remplissage animé : les cases données, puis la solution, avant le rendu final
-    if (out.result && shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, 0, store.puzzle(pz.id) || pz);
+    if (out.result && shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, 0, store.puzzle(pz.id) || pz, finalPlace(store.puzzle(pz.id) || pz, out.result));
     if (job.cancelled) return;
     jobs.delete(pz.id);
     setBusy(false);
@@ -167,6 +167,24 @@
       const p = s.puzzles.find(x => x.id === pz.id);
       if (p) p.layout = MF.schema.layout({ engine: 'murdoku', pages: [puzzle], hash: hashOf(p), at: Date.now() });
     }, 'layout', { history: false });
+  }
+
+  /** Taille d'affichage (px pour 100 unités) qui fait tenir toute l'affiche dans la zone de la grille. */
+  const fitCell = (box, W, H) => Math.max(10, Math.min(160, Math.floor(Math.min((box.clientWidth - 28) / (W / 100), (box.clientHeight - 28) / (H / 100)))));
+
+  /**
+   * Géométrie à l'écran (px) de la grille finale d'une page tout juste calculée : la construction
+   * en direct s'y pose avant de passer la main au rendu final (aucun saut de zoom).
+   */
+  function finalPlace(pz, page) {
+    try {
+      const model = MF.gridModel.from(page, pz, MF.design.metrics(pz.design), { at: 1 });
+      if (!model.cols) return null;
+      const scene = MF.scene.compose(model, pz, { letters: false, assetUrl: MF.assets.url });
+      const ui = store.get().ui;
+      const k = (ui.fit ? fitCell($('#grid-scroll'), scene.W, scene.H) : ui.cell) / 100;
+      return { gw: model.cols * 100 * k, gx: scene.grid.ox * k, gy: scene.grid.oy * k, sw: scene.W * k, sh: scene.H * k };
+    } catch (e) { console.warn(e); return null; }
   }
 
   /** Construction en direct (chaque instantané est mis en file et rejoué à l'image par MF.liveBuild). */
@@ -313,13 +331,15 @@
           : `<div class="empty start-hint">${ic('edit')}<h3>${t('Commence par ajouter des mots')}</h3><p>${t('Tape-les dans le panneau « Mots », ou pioche dans la bibliothèque et les thèmes. La grille se construit toute seule.')}</p></div>`;
       return;
     }
-    const fit = (W, H) => Math.max(10, Math.min(160, Math.floor(Math.min((box.clientWidth - 28) / (W / 100), (box.clientHeight - 28) / (H / 100)))));
+    const fit = (W, H) => fitCell(box, W, H);
     const cell = s.ui.fit ? fit : s.ui.cell;
     // Petite animation d'apparition seulement pour une nouvelle grille (pas à chaque réglage)
     const animate = view.shownGrid !== entriesFor;
     view.shownGrid = entriesFor;
+    // Juste après la construction en direct : la grille finale part de la grille animée
+    const morph = animate ? MF.liveBuild.takeHandoff() : null;
     lastView = MF.gridView.render(box, d.model, pz, {
-      mode, cell, entries: view.entries, photoMarks: !!s.ui.photoMarks, assetUrl: MF.assets.url, animate, key: entriesFor,
+      mode, cell, entries: view.entries, photoMarks: !!s.ui.photoMarks, assetUrl: MF.assets.url, animate, morph, key: entriesFor,
       onEntries: e => { view.entries = e; MF.play.save(entriesFor, e); },
       onMissing: key => editMissing(key),
       onComplete: () => celebrate(),

@@ -41,6 +41,19 @@ MF.liveBuild = (() => {
   const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 
   let st = null; // { root, grid, cells, state, words, frameKey, ... }
+  /** Position de la grille animée au moment où elle passe la main (la grille finale part de là). */
+  let handoff = null;
+  function capture() {
+    if (!st?.grid?.isConnected) return;
+    const r = st.grid.getBoundingClientRect();
+    if (r.width > 0) handoff = { left: r.left, top: r.top, width: r.width, height: r.height, at: performance.now() };
+  }
+  /** Relais pour le rendu final : la place de la grille animée, si elle vient de se terminer. */
+  function takeHandoff() {
+    const h = handoff;
+    handoff = null;
+    return h && performance.now() - h.at < 1500 ? h : null;
+  }
 
   /* ---------------- Montage ---------------- */
   function mount(box, o) {
@@ -80,8 +93,10 @@ MF.liveBuild = (() => {
       stats: root.querySelector('.lb-stats'),
       steps: root.querySelector('.lb-steps'),
       hud: root.querySelector('.lb-hud'),
+      stage: root.querySelector('.lb-stage'),
       cells: [], state: [], words: new Set(), frameKey: null, frame: null,
       queue: [], last: null, shown: null, live: {}, raf: 0, idle: [], skinKey: null, secret: false,
+      target: null, fixed: false, settled: false,
     };
     root.querySelector('.lb-stop').onclick = () => o.onCancel?.();
   }
@@ -147,6 +162,10 @@ MF.liveBuild = (() => {
     st.state = new Array(w * h).fill('');
     st.words = new Set();
     st.frame = frame;
+    // Nouvelle grille (page suivante) : elle reprend sa taille et sa place dans la zone
+    st.fixed = false;
+    st.settled = false;
+    st.stage.style.transform = '';
     if (!reduced()) {
       st.grid.animate([
         { opacity: 0, transform: 'perspective(900px) rotateX(14deg) scale(.94)', filter: 'blur(8px)' },
@@ -247,11 +266,48 @@ MF.liveBuild = (() => {
   /** Taille des cases : la grille entière tient dans la zone, au-dessus du panneau d'état. */
   function fit() {
     const f = st.frame;
-    if (!f) return;
-    const W = st.box.clientWidth - 40;
-    const H = st.box.clientHeight - st.hud.offsetHeight - 64;
+    if (!f || st.fixed) return;
+    // Téléphone : panneau d'état compact en bas (réservé par le padding), marges étroites comme la grille finale
+    const phone = matchMedia('(max-width: 760px)').matches;
+    const W = st.box.clientWidth - (phone ? 30 : 40);
+    const H = st.box.clientHeight - (phone ? 64 + 30 : st.hud.offsetHeight + 64);
     const cs = Math.max(9, Math.min(46, Math.floor(Math.min(W / f.w, H / f.h))));
     st.grid.style.setProperty('--cs', `${cs}px`);
+  }
+
+  /**
+   * Grille trouvée : la grille animée prend la taille et la place exactes qu'aura la grille
+   * finale (affiche centrée dans la zone), en glissant. Le rendu final la remplace sans saut.
+   * @param {{ gw: number, gx: number, gy: number, sw: number, sh: number }} tg  géométrie finale (px)
+   */
+  function settle2(tg) {
+    st.settled = true;
+    const box = st.box, grid = st.grid, stage = st.stage;
+    const r0 = grid.getBoundingClientRect();
+    if (!r0.width || !(tg.gw > 0)) return;
+    st.fixed = true;
+    // Taille : deux passes (les espaces entre cases ne suivent pas tout à fait la taille des cases)
+    let cs = parseFloat(grid.style.getPropertyValue('--cs')) || 28;
+    for (let i = 0; i < 2; i++) {
+      cs *= tg.gw / grid.getBoundingClientRect().width;
+      grid.style.setProperty('--cs', `${cs}px`);
+    }
+    const r1 = grid.getBoundingClientRect(), sr = stage.getBoundingClientRect();
+    // Place : l'affiche finale est centrée dans la zone (sans rogner si elle déborde)
+    const b = box.getBoundingClientRect(), cst = getComputedStyle(box);
+    const pl = parseFloat(cst.paddingLeft), pt = parseFloat(cst.paddingTop);
+    const innerW = box.clientWidth - pl - parseFloat(cst.paddingRight), innerH = box.clientHeight - pt - parseFloat(cst.paddingBottom);
+    const fx = b.left + box.clientLeft + pl + Math.max(0, (innerW - tg.sw) / 2) + tg.gx;
+    const fy = b.top + box.clientTop + pt + Math.max(0, (innerH - tg.sh) / 2) + tg.gy;
+    const to = `translate(${fx - r1.left}px, ${fy - r1.top}px)`;
+    stage.style.transformOrigin = `${r1.left - sr.left}px ${r1.top - sr.top}px`;
+    stage.style.transform = to;
+    if (!reduced()) {
+      stage.animate([
+        { transform: `translate(${r0.left - r1.left}px, ${r0.top - r1.top}px) scale(${r0.width / r1.width})` },
+        { transform: to },
+      ], { duration: 460, easing: 'cubic-bezier(.22,.8,.24,1)' });
+    }
   }
 
   /* ---------------- Panneau d'état ---------------- */
@@ -299,6 +355,7 @@ MF.liveBuild = (() => {
     if (key !== st.frameKey) { buildFrame(frame); st.frameKey = key; }
     if (snap) paint(snap);
     st.shown = snap;
+    if (snap?.phase === 'done' && st.target && !st.settled) settle2(st.target);
   }
 
   function pump() {
@@ -380,10 +437,12 @@ MF.liveBuild = (() => {
    * Termine l'animation sur la grille retenue (résultat du moteur), puis rend la main.
    * Résolu quand la file est rejouée et la grille montrée un instant (borné à MAX_FINISH_MS).
    * `puzzle` : la grille, pour les jeux de logique (remplissage de la page trouvée).
+   * `place` : géométrie de la grille finale à l'écran (px), où la grille animée vient se poser.
    */
-  function finish(box, result, total, puzzle) {
+  function finish(box, result, total, puzzle, place = null) {
     // Onglet en arrière-plan : pas d'images à rejouer, le résultat s'affiche directement
     if (!active(box) || !result || document.hidden) return Promise.resolve();
+    st.target = place;
     if (result.engine === 'logic') {
       let snaps;
       try { snaps = logicSnaps(result, puzzle); } catch (e) { console.error(e); return Promise.resolve(); }
@@ -408,11 +467,12 @@ MF.liveBuild = (() => {
     schedule();
     return new Promise(resolve => {
       const t0 = performance.now();
-      const end = () => setTimeout(resolve, Math.max(0, Math.min(hold, MAX_FINISH_MS - (performance.now() - t0))));
-      const timer = setTimeout(() => { if (st) { st.queue.length && show(st.queue.pop()); st.queue.length = 0; } resolve(); }, MAX_FINISH_MS);
+      const done = () => { capture(); resolve(); };
+      const end = () => setTimeout(done, Math.max(0, Math.min(hold, MAX_FINISH_MS - (performance.now() - t0))));
+      const timer = setTimeout(() => { if (st) { st.queue.length && show(st.queue.pop()); st.queue.length = 0; fit(); } done(); }, MAX_FINISH_MS);
       st.idle.push(() => { clearTimeout(timer); end(); });
     });
   }
 
-  return { update, finish, active };
+  return { update, finish, active, takeHandoff };
 })();

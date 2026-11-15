@@ -23,6 +23,8 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Fin de construction sans saut : la grille animée se pose exactement à la taille et à la place de la grille finale, qui prend le relais en douceur ; sur téléphone, panneau d\'état compact en bas pour laisser toute la place à la grille',
+    'Murdoku : rendu « Livre d\'art » un peu adouci (trame et décalage des couleurs moins forts), toujours par défaut',
     'Murdoku plus clair : légende des objets du plan (ceux où l\'on peut se tenir, ceux qui bloquent) ; touche un objet ou un indice pour voir sur le plateau les cases dont il parle',
     'Murdoku : les règles en une phrase toujours visible, les indices contredits par ton plateau et deux personnes sur une même ligne ou colonne signalés aussitôt, et impossible de poser quelqu\'un sur un objet bloquant',
     'Murdoku : plateau sans petits objets de décor par défaut (réglable dans Rendu), plus lisible ; sur téléphone, le plateau et les personnes restent en haut pendant qu\'on lit les indices',

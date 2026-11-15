@@ -115,6 +115,9 @@
   .pn-badge.warn { background: var(--warn); color: #231f20; }
   .pn-badge.err { background: var(--err); }
 
+  /* Construction en direct : son panneau montre déjà la progression (la zone de la grille ne bouge pas à la fin) */
+  .grid-card:has(.live-build) .gen-bar { display: none; }
+
   /* Pas de clavier physique : l'astuce « Entrée » est inutile */
   .kbd-hint { display: none; }
   .composer-actions { flex-wrap: wrap; gap: 8px; }

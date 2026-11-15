@@ -254,7 +254,7 @@ export const standUpAngle = (el) => THREE.MathUtils.clamp((el - 30) * 0.6, 0, 32
 
 // Look presets (from building-builder's STYLES), with French labels.
 export const STYLES = {
-  print: { label: 'Impression art-book', halftone: 0.7, dot: 2.2, misreg: 0.9, pixel: 1, posterize: 0, lens: 0.05, chroma: 0.25, mist: 0.22, tilt: 0.12, vignette: 0.2, warmth: 0.2, fade: 0.06, grain: 0.05, saturation: 1.2, wobble: 1, ink: 0.45, wash: 0.45, hatch: 0, shadowTint: 0.55 },
+  print: { label: 'Impression art-book', halftone: 0.56, dot: 2.1, misreg: 0.72, pixel: 1, posterize: 0, lens: 0.05, chroma: 0.2, mist: 0.18, tilt: 0.12, vignette: 0.2, warmth: 0.2, fade: 0.06, grain: 0.04, saturation: 1.2, wobble: 1, ink: 0.38, wash: 0.38, hatch: 0, shadowTint: 0.55 },
   gouache: { label: 'Encre et gouache', halftone: 0, dot: 3, misreg: 0, pixel: 1, posterize: 0, lens: 0.05, chroma: 0.15, mist: 0.2, tilt: 0.1, vignette: 0.2, warmth: 0.32, fade: 0.05, grain: 0.06, saturation: 1.22, wobble: 1.15, ink: 0.85, wash: 0.85, hatch: 0.3, shadowTint: 0.8 },
   film: { label: 'Film rétro', halftone: 0, dot: 3, misreg: 0, pixel: 1, posterize: 0, lens: 0.1, chroma: 0.6, mist: 0.45, tilt: 0.22, vignette: 0.42, warmth: 0.55, fade: 0.2, grain: 0.09, saturation: 1.05, wobble: 1, ink: 0, wash: 0.15, hatch: 0, shadowTint: 0.4 },
   pixel: { label: 'Pixel art', halftone: 0, dot: 3, misreg: 0, pixel: 3, posterize: 10, lens: 0, chroma: 0, mist: 0.08, tilt: 0, vignette: 0.12, warmth: 0.22, fade: 0.04, grain: 0.012, saturation: 1.2, wobble: 0.6, ink: 0.3, wash: 0, hatch: 0, shadowTint: 0.5 },
