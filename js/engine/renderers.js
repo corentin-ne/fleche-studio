@@ -205,7 +205,7 @@ MF.renderers = (() => {
     const color = (hex, a = 1) => { if (a >= 1) return hex; const [r, gg, b] = MF.util.hexToRgb(hex); return `rgba(${r},${gg},${b},${a})`; };
 
     function paint(p) {
-      if (!p) return null;
+      if (!p || p === 'none') return null;
       if (typeof p === 'string') return p;
       if (p.type === 'linear' || p.type === 'radial') {
         const gr = p.type === 'linear' ? g.createLinearGradient(p.x1, p.y1, p.x2, p.y2) : g.createRadialGradient(p.cx, p.cy, 0, p.cx, p.cy, p.r);

@@ -50,7 +50,7 @@
 #btn-shuffle .busy-pct:empty { display: none; }
 .play-time { display: inline-flex; align-items: center; gap: 6px; font-variant-numeric: tabular-nums; color: var(--text); padding: 4px 10px; border-radius: var(--r-pill); background: rgba(var(--accent-rgb), .14); }
 .play-time .ic { width: 15px; height: 15px; color: var(--accent); }
-@media (max-width: 900px) { .play-tip { display: none; } }
+@media (max-width: 900px) { .play-tip { display: none; } #btn-rules .lbl { display: none; } }
 
 /* Jeu : définition du mot en cours */
 .play-clue { display: flex; align-items: center; gap: 4px; margin: 0 10px 8px; padding: 4px; border-radius: var(--r-md); background: rgba(var(--accent-rgb), .12); border: 1px solid rgba(var(--accent-rgb), .3); }
@@ -122,6 +122,40 @@
 .toggle-cell[data-v="O"]::after { inset: 28%; border-radius: 50%; background: var(--play-ink); }
 .toggle-cell[data-v="x"]::before, .toggle-cell[data-v="x"]::after { left: 28%; right: 28%; top: 46%; height: 8%; border-radius: 99px; background: var(--play-ink); opacity: .5; transform: rotate(45deg); }
 .toggle-cell[data-v="x"]::before { transform: rotate(-45deg); }
+.toggle-cell { isolation: isolate; }
+.toggle-cell.has-label { color: transparent; }
+.toggle-cell.has-label::after { z-index: -1; }
+.toggle-cell.has-label[data-v="1"] { color: #fff; }
+.toggle-cell[data-mark="shade"][data-v="1"]::after { inset: 5%; border-radius: 10%; }
+.toggle-cell[data-mark="star"][data-v="1"]::after { inset: 12%; border-radius: 0; clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+.toggle-cell[data-mark="lamp"][data-v="1"]::after { inset: 20%; border-radius: 50%; background: radial-gradient(circle at 35% 32%, rgba(255, 255, 255, .7) 0 16%, var(--play-ink) 18%); box-shadow: 0 0 0 5px rgba(255, 200, 40, .45); }
+.toggle-cell[data-mark="tent"][data-v="1"]::after { inset: 14%; border-radius: 0; clip-path: polygon(50% 4%, 98% 96%, 2% 96%); }
+.toggle-cell[data-mark="ship"][data-v="1"]::after { inset: 13%; border-radius: 34%; }
+.toggle-cell[data-mark="diff"][data-v="1"]::after { inset: 3%; border-radius: 50%; background: none; border: 4px solid #e4405f; }
+.toggle-cell[data-mark="diff"].wrong::after { border-color: #d11a2a; border-style: dashed; }
+.toggle-cell[data-mark="path"][data-v="1"]::after { inset: 28%; border-radius: 50%; background: rgb(var(--accent-rgb)); }
+.toggle-cell[data-mark="binary"]::after { content: attr(data-v); inset: 0; display: grid; place-items: center; background: none; border-radius: 0; font-size: 1.1em; color: var(--play-ink); }
+.toggle-cell[data-mark="binary"].wrong::after { color: #d11a2a; }
+.toggle-layer[data-toggle="paint"] .toggle-cell::after, .toggle-layer[data-toggle="paint"] .toggle-cell::before { display: none; }
+.toggle-layer[data-toggle="paint"] .toggle-cell[data-v]:not([data-v=""]) { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .12); }
+.toggle-layer[data-toggle="paint"] .toggle-cell.wrong { box-shadow: inset 0 0 0 4px #d11a2a; }
+.toggle-layer[data-outline] .toggle-cell[data-v="1"]::after { opacity: .22; inset: 0; border-radius: 0; }
+.toggle-layer[data-outline] .toggle-cell.has-label[data-v="1"] { color: transparent; }
+.outline-svg, .dots-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.outline-svg path, .dots-svg polyline { stroke: rgb(var(--accent-rgb)); }
+.grid-scroll:has(> .paint-bar) { flex-direction: column; }
+.paint-bar { position: sticky; top: 0; left: 0; z-index: 4; flex: none; align-self: center; display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin: 0 auto 10px; padding: 8px 10px; width: max-content; max-width: 100%; border-radius: 18px; background: var(--glass-bg-strong, rgba(255, 255, 255, .9)); border: 1px solid var(--glass-border, transparent); box-shadow: 0 4px 18px rgba(0, 0, 0, .12); backdrop-filter: blur(12px); }
+.paint-bar button { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .15); background: var(--sw, #fff); display: grid; place-items: center; cursor: pointer; font: 800 15px/1 var(--font-sans); color: #fff; text-shadow: 0 0 3px rgba(0, 0, 0, .8); transition: transform .15s; }
+.paint-bar button.active { transform: scale(1.12); box-shadow: 0 0 0 3px var(--bg, #fff), 0 0 0 6px rgb(var(--accent-rgb)); }
+.paint-bar .eraser { background: #fff; color: #444; text-shadow: none; }
+.dot-btn { transform: translate(-50%, -50%); border-radius: 50%; }
+.dot-btn:hover, .dot-btn.next { background: rgba(var(--accent-rgb), .18); }
+.dot-btn.next { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .7); animation: dotPulse 1.4s ease-in-out infinite; }
+.dot-btn.done { background: rgba(var(--accent-rgb), .12); }
+.dot-btn.nope { animation: dotNope .35s; }
+@keyframes dotPulse { 50% { box-shadow: 0 0 0 7px rgba(var(--accent-rgb), .25); } }
+@keyframes dotNope { 25% { transform: translate(-60%, -50%); } 75% { transform: translate(-40%, -50%); } }
+@media (prefers-reduced-motion: reduce) { .dot-btn.next, .dot-btn.nope { animation: none; } }
 .toggle-cell.wrong { --play-ink: #d11a2a; }
 .toggle-cell.revealed { --play-ink: #7b3fe4; }
 .ws-layer { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
@@ -396,3 +430,10 @@
   .mdk-rename { grid-template-columns: minmax(0, 1fr); }
   .mdk-names { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 }
+
+/* Règles du jeu (barre de jeu) : le bouton clignote tant qu'on ne les a pas lues pour ce jeu */
+#btn-rules.pulse { color: var(--accent); animation: rulesPulse 1.8s ease-in-out 4; }
+@keyframes rulesPulse { 50% { box-shadow: 0 0 0 5px rgba(var(--accent-rgb), .25); } }
+@media (prefers-reduced-motion: reduce) { #btn-rules.pulse { animation: none; } }
+.rules-body p { margin: 0; line-height: 1.5; }
+.rules-body b { display: block; margin-bottom: 2px; font-size: var(--fs-xs); text-transform: uppercase; letter-spacing: .05em; color: var(--text-3); }

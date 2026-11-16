@@ -13,6 +13,8 @@ MF.storage = (() => {
     state: 'mfm:v2',              // grilles, mots, réglages (MF.store)
     play: 'mfm:play:',            // progression des parties (MF.play), une clé par page
     best: 'mfm:best',             // meilleurs temps (MF.play)
+    rulesSeen: 'mfm:rules',       // jeux dont on a déjà lu les règles (bouton « Règles »)
+    quickPlay: 'mfm:quick',       // derniers réglages d'une nouvelle partie (salle de jeu)
     lang: 'fleche-studio-lang',   // langue de l'interface (MF.i18n)
     legacy: 'mots-fleches-maker:', // ancienne version de l'application (récupération)
   };

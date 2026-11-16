@@ -730,3 +730,31 @@ button.brand:hover { background: var(--glass-hover); }
 .emoji-pick button { aspect-ratio: 1; border: 1px solid var(--line); border-radius: var(--r-md, 10px); background: var(--glass-bg-soft); font-size: 22px; line-height: 1; cursor: pointer; transition: transform var(--t-fast), border-color var(--t-fast); }
 .emoji-pick button:hover { transform: scale(1.08); border-color: rgba(var(--accent-rgb), .5); }
 .emoji-pick button.active { border-color: var(--accent); background: rgba(var(--accent-rgb), .16); }
+
+/* Choix des jeux : recherche, filtres par famille, jeux récents */
+.game-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 4px; }
+.gf-search { position: relative; flex: 1 1 220px; max-width: 360px; display: flex; align-items: center; }
+.gf-search .ic { position: absolute; left: 12px; color: var(--text-3); pointer-events: none; }
+.gf-search .input { width: 100%; padding-left: 36px; }
+.gf-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.gf-chips .chip { height: 30px; padding: 0 12px; font-size: 12px; }
+.gf-empty { flex-basis: 100%; margin: 4px 0 0; }
+.quick-games { display: flex; flex-direction: column; gap: var(--sp-5); }
+.quick-games > .game-filter { justify-content: center; }
+.quick-card, .arc-game, .wz-game, .game-card { position: relative; }
+.new-badge { display: inline-block; padding: 2px 7px; border-radius: var(--r-pill); font: 800 9.5px/1.4 var(--font-sans); font-style: normal; letter-spacing: .04em; text-transform: uppercase; color: var(--on-accent, #fff); background: var(--accent); vertical-align: 2px; }
+.quick-card .new-badge, .arc-game .new-badge { position: absolute; top: 10px; right: 10px; }
+.arc-game .new-badge { top: 6px; right: 6px; font-size: 8.5px; padding: 1px 6px; }
+.wz-game .new-badge, .game-card .new-badge { margin-left: 6px; }
+.arc-sec-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.arc-sec-head h2 { margin: 0; }
+.arc-pick { display: flex; flex-direction: column; gap: 10px; }
+.arc-pick [data-gf-group] { display: flex; flex-direction: column; gap: 8px; }
+.game-switch-list { display: flex; flex-direction: column; gap: 6px; }
+[data-gf-group][hidden], [data-gf-text][hidden] { display: none !important; }
+@media (max-width: 520px) {
+  .quick-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .quick-card { padding: var(--sp-4); }
+  .quick-card > span { display: -webkit-box; -webkit-line-clamp: 3; line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .gf-search { max-width: none; }
+}

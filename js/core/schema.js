@@ -61,9 +61,9 @@ MF.schema = (() => {
     o = obj(o);
     const emoji = str(o.emoji, 16);
     return {
-      size: int(o.size, 0, 30, 0),
+      size: int(o.size, 0, 48, 0),
       level: oneOf(o.level, ['easy', 'medium', 'hard', 'expert'], 'medium'),
-      variant: oneOf(o.variant, ['', 'classic', 'jigsaw', 'diagonal', 'all', 'add', 'croises', 'fleches'], ''),
+      variant: oneOf(o.variant, ['', 'classic', 'jigsaw', 'diagonal', 'all', 'add', 'croises', 'fleches', 'numbrix', 'hidato', 'first', 'any'], ''),
       // Citation, mot mystère, mot caché du wordoku, paires de l'échelle, texte du picross
       text: str(o.text, 300),
       author: str(o.author, 60),

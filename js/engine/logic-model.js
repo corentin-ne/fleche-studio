@@ -237,9 +237,14 @@ MF.logicModel = (() => {
         m.digits = true;
         return m;
       }
-      default: return base(page.kind, 0, 0);
+      default: {
+        const g = MF.logicGames?.[page.kind];
+        return g ? g.model(page, { lang, puzzle, layout, kit: KIT }) : base(page.kind, 0, 0);
+      }
     }
   }
+  /** Outils des modèles, pour les jeux du registre (MF.logicGames). */
+  const KIT = { base, grid, letter, wallsOf, lineSlots };
 
-  return { from };
+  return { from, kit: KIT };
 })();

@@ -937,6 +937,76 @@
     const model = MF.gridModel.from(cit, MF.schema.puzzle({ game: 'citation' }), MF.design.metrics(MF.design.DEFAULT), { at: 3 });
     assert(model.game === 'codes' && model.note === '— Proverbe', 'modèle');
   });
+  test('jeux v6 : chiffres (gratte-ciel, binairo, suguru, numbrix) à solution unique', async () => {
+    const S = MF.solver, G = MF.logicGames, K = MF.logicKit;
+    const fixedOf = (sol, given) => Object.fromEntries([...given.join('')].map((g, i) => [i, g === '1' ? sol[i] : -1]).filter(([, v]) => v >= 0));
+    for (const level of ['easy', 'expert']) {
+      const gr = await logicPage('gratte', { size: 5, level });
+      const sol = [...gr.rows.join('')].map(Number), n = gr.n, P = G.gratte.byVis(n);
+      const tuples = [];
+      for (const side of ['t', 'b', 'l', 'r']) for (let i = 0; i < n; i++) if (gr.clues[side][i] !== '0') tuples.push({ cells: G.gratte.sight(side, i, n), list: P[+gr.clues[side][i]] });
+      eq(S.solve({ size: n * n, values: S.range(n), full: S.latinGroups(n), tuples, fixed: fixedOf(sol, gr.given) }, { limit: 2, maxNodes: 500000 }).count, 1, `gratte-ciel ${level}`);
+      const bi = await logicPage('binairo', { size: 8, level });
+      const bs = [...bi.rows.join('')].map(Number);
+      eq(S.solve({ ...G.binairo.problem(8), fixed: fixedOf(bs, bi.given) }, { limit: 2, maxNodes: 500000 }).count, 1, `binairo ${level}`);
+      for (let i = 0; i < 8; i++) eq(bi.rows[i].split('1').length - 1, 4, 'autant de 1 que de 0');
+      const su = await logicPage('suguru', { size: 6, level });
+      const ss = [...su.rows.join('')].map(Number);
+      eq(S.solve({ ...G.suguru.problem(K.regionsOf(su.regions), 6, 6), fixed: fixedOf(ss, su.given) }, { limit: 2, maxNodes: 500000 }).count, 1, `suguru ${level}`);
+      for (const variant of ['numbrix', 'hidato']) {
+        const nb = await logicPage('numbrix', { size: 6, level, variant });
+        const g = nb.given.join('');
+        eq(G.numbrix.count(nb.vals.map((v, i) => (g[i] === '1' ? v : 0)), 6, 6, variant === 'hidato', { maxNodes: 2000000 }).count, 1, `${variant} ${level}`);
+      }
+    }
+  });
+  test('jeux v6 : cases à cocher (étoiles, lumières, tentes, bataille, hitori, boucle, mosaïque) à solution unique', async () => {
+    const S = MF.solver, G = MF.logicGames, K = MF.logicKit;
+    const fixedOf = (sol, given) => (given ? Object.fromEntries([...given.join('')].map((g, i) => [i, g === '1' ? sol[i] : -1]).filter(([, v]) => v >= 0)) : {});
+    const one = (P, fixed, name) => eq(S.solve({ ...P, fixed }, { limit: 2, maxNodes: 2000000 }).count, 1, name);
+    const solOf = rows => [...rows.join('')].map(ch => (ch === '1' ? 1 : 0));
+    const et = await logicPage('etoiles', { size: 7 });
+    one(G.etoiles.problem(7, et.stars, K.regionsOf(et.regions)), fixedOf(solOf(et.rows), et.given), 'étoiles');
+    const lu = await logicPage('lumieres', { size: 7 });
+    const L = G.lumieres.problem(lu.walls, 7, 7);
+    one(L.P, { ...L.fixed, ...fixedOf(solOf(lu.rows), lu.given) }, 'lumières');
+    const te = await logicPage('tentes', { size: 7 });
+    const T = G.tentes.problem(te.rows, 7, 7);
+    one(T.P, { ...T.fixed, ...fixedOf(solOf(te.rows), te.given) }, 'tentes');
+    const ba = await logicPage('bataille', { size: 7 });
+    eq(G.bataille.ships(solOf(ba.rows), 7, 7), ba.fleet, 'flotte');
+    one(G.bataille.problem(solOf(ba.rows), 7, 7, ba.fleet), fixedOf(solOf(ba.rows), ba.given), 'bataille navale');
+    const hi = await logicPage('hitori', { size: 6 });
+    one(G.hitori.problem(hi.nums, 6), {}, 'hitori');
+    const bo = await logicPage('boucle', { size: 5 });
+    one(G.boucle.problem(bo.clues, 5, 5), {}, 'boucle');
+    assert(G.boucle.loopOk(solOf(bo.rows), 5, 5), 'une seule boucle');
+    const mo = await logicPage('mosaique', {}, { picture: { rows: ['01110', '11111', '01110', '00100', '01010'] } });
+    one(G.mosaique.problem(mo.clues, 5, 5), fixedOf(solOf(mo.rows), mo.given), 'mosaïque');
+  });
+  test('jeux v6 : labyrinthe, mots, dessins et 7 différences', async () => {
+    const G = MF.logicGames;
+    const la = await logicPage('labyrinthe', { size: 12, source: 'shape', shape: 'heart' });
+    assert(G.labyrinthe.route(la.mask, la.open, la.w, la.h, la.start, la.end).path.length > 5, 'chemin');
+    assert(!MF.logic.sanitize({ ...la, end: [0, 0] }) || la.mask[0][0] === '1', 'arrivée hors de la forme refusée');
+    const es = await logicPage('escalier', { size: 6 });
+    for (let i = 1; i < es.words.length; i++) eq(es.words[i].length, es.words[i - 1].length + 1, 'une lettre de plus');
+    assert(!MF.logic.sanitize({ ...es, words: [...es.words.slice(0, -1), 'ZZZZZZZZZ'] }), 'escalier trafiqué refusé');
+    const ac = await logicPage('acrostiche', { text: 'Bravo', variant: 'first' });
+    eq(ac.rows.map(r => r.w[r.at]).join(''), 'BRAVO', 'mot caché');
+    const an = await logicPage('anagrammes', { size: 6 });
+    assert(an.items.length === 6 && an.items.every(x => x.mix !== x.word && [...x.mix].sort().join('') === [...x.word].sort().join('')), 'lettres mélangées');
+    const co = await logicPage('coloriage', {}, { colors: { rows: ['0120', '1221', '0120'], palette: ['#ffffff', '#ff0000', '#00ff00'] } });
+    eq(co.palette.length, 3, 'palette');
+    assert(!MF.logic.sanitize({ ...co, rows: ['0130', '1221', '0120'] }), 'couleur inconnue refusée');
+    const po = await logicPage('points', { level: 'easy' }, { picture: { rows: ['0000000', '0111110', '0111110', '0011100', '0001000', '0000000'] } });
+    assert(po.pts.length >= 4 && po.pts.length <= 20, `${po.pts.length} points`);
+    for (const level of ['easy', 'expert']) {
+      const di = await logicPage('differences', { level, size: 8 });
+      eq(di.a.filter((v, i) => v !== di.b[i]).length, level === 'easy' ? 5 : 12, `différences ${level}`);
+    }
+    assert(!MF.logic.sanitize({ kind: 'differences', n: 5, floors: ['#fff'], icons: ['<b>'], people: ['#000000'] }), 'emoji trafiqué refusé');
+  });
   test('logique : pages trafiquées refusées', async () => {
     const sudoku = await logicPage('sudoku', { size: 4 });
     assert(!MF.logic.sanitize({ ...sudoku, rows: sudoku.rows.slice(1) }), 'lignes manquantes');

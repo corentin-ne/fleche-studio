@@ -23,9 +23,12 @@ MF.welcome = (() => {
         <button class="btn btn-ghost btn-sm" data-w="open">${ic('upload')}${t('Ouvrir une sauvegarde')}</button>
         ${legacy ? `<button class="btn btn-ghost btn-sm legacy" data-w="legacy">${ic('archive')}${t('Récupérer mes {n} anciennes grilles enregistrées dans ce navigateur', { n: legacy })}</button>` : ''}
       </div>
-      ${MF.games.FAMILIES.map(([f, label]) => `<section class="quick-family"><h2>${esc(label)}</h2><div class="quick-grid">
-        ${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `<button class="quick-card glass" data-quick="${id}">${ic(g.icon, 'ic-lg')}<b>${esc(g.label)}</b><span>${esc(g.desc)}</span><em>${t('Créer')} ${ic('chevronRight', 'ic-sm')}</em></button>`).join('')}
+      <div class="quick-games">
+      ${MF.ui.gameFilter()}
+      ${MF.games.FAMILIES.map(([f, label]) => `<section class="quick-family" data-gf-group><h2>${esc(label)}</h2><div class="quick-grid">
+        ${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `<button class="quick-card glass" data-quick="${id}" ${MF.ui.gameAttrs(id)}>${MF.ui.newBadge(id)}${ic(g.icon, 'ic-lg')}<b>${esc(g.label)}</b><span>${esc(g.desc)}</span><em>${t('Créer')} ${ic('chevronRight', 'ic-sm')}</em></button>`).join('')}
       </div></section>`).join('')}
+      </div>
       <div class="welcome-foot">
         <span>${ic('lock')}${t('Rien n\'est envoyé sur un serveur : tout reste dans ton navigateur.')}</span>
         <span>${ic('book')}${t('{n} mots définis + Wiktionnaire', { n: MF.i18n.num(MF.dictionary.size()) })}</span>
@@ -37,6 +40,7 @@ MF.welcome = (() => {
     root.querySelector('[data-w="play"]').onclick = onPlay;
     root.querySelector('[data-w="legacy"]')?.addEventListener('click', onLegacy);
     root.querySelectorAll('[data-quick]').forEach(b => (b.onclick = () => onQuick(b.dataset.quick)));
+    MF.ui.bindGameFilter(root.querySelector('.quick-games'));
     seen = true;
   }
 
@@ -73,7 +77,8 @@ MF.welcome = (() => {
 
         <section class="wz-step" data-step="0">
           <h4 class="wz-title">${t('Que veux-tu créer ?')}</h4>
-          ${MF.games.FAMILIES.map(([f, label]) => `<h5 class="wz-family">${esc(label)}</h5><div class="wz-games">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `<button type="button" class="wz-game ${id === st.game ? 'active' : ''}" data-wz="game" data-v="${id}">${ic(g.icon, 'ic-lg')}<span><b>${esc(g.label)}</b><small>${esc(g.desc)}</small></span>${ic('chevronRight', 'ic-sm')}</button>`).join('')}</div>`).join('')}
+          ${MF.ui.gameFilter()}
+          ${MF.games.FAMILIES.map(([f, label]) => `<div data-gf-group><h5 class="wz-family">${esc(label)}</h5><div class="wz-games">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `<button type="button" class="wz-game ${id === st.game ? 'active' : ''}" data-wz="game" data-v="${id}" ${MF.ui.gameAttrs(id)}>${ic(g.icon, 'ic-lg')}<span><b>${esc(g.label)}${MF.ui.newBadge(id)}</b><small>${esc(g.desc)}</small></span>${ic('chevronRight', 'ic-sm')}</button>`).join('')}</div></div>`).join('')}
         </section>
 
         <section class="wz-step" data-step="1" hidden>
@@ -124,6 +129,7 @@ MF.welcome = (() => {
       </div>`,
       onOpen: root => {
         MF.shapePicker.bind(root);
+        MF.ui.bindGameFilter(/** @type {HTMLElement} */ (root.querySelector('.wz-step[data-step="0"]')));
         const foot = i => /** @type {HTMLElement} */ (root.querySelector(`.modal-foot [data-i="${i}"]`));
         const sync = () => {
           const mdk = st.game === 'murdoku', logic = isLogic();

@@ -23,6 +23,12 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    '18 nouveaux jeux, chacun à solution unique : gratte-ciel, binairo, suguru, numbrix / hidato, étoiles, lumières, tentes et arbres, bataille navale, hitori, boucle, labyrinthe, mosaïque, coloriage magique, points à relier, 7 différences, mots en escalier, acrostiche et anagrammes',
+    'Les 7 différences : deux plans d\'un univers du Murdoku (sols, meubles et personnages de l\'univers), à comparer case par case',
+    'Dessins à découvrir : picross, mosaïque, coloriage magique (couleurs tirées de l\'emoji, du texte ou de ta photo) et points à relier (le contour du dessin)',
+    'Choix des jeux plus simple : recherche, filtres par famille, pastille « Nouveau » ; dans Jouer, « Surprends-moi » lance un jeu au hasard',
+    'En partie : le geste de jeu est expliqué pour chaque jeu, et « Règles » rappelle le but et la façon de jouer',
+    'Labyrinthe dans une forme au choix (cœur, étoile, lettre…), boucle dont le contour se trace pendant qu\'on colorie l\'intérieur, palette de couleurs du coloriage au doigt',
     'Jouer sur téléphone : quand le clavier s\'ouvre, la grille remonte dans la partie visible de l\'écran au lieu d\'être cachée, et la case active reste toujours en vue',
     'Créer une grille montre aussitôt la construction (plus d\'écran « Prêt à construire » entre-temps) ; sur téléphone, si la grille se construit pendant qu\'un panneau est ouvert, « Voir » y mène',
     'Cartes des grilles (Jouer et Mes créations) : nom en entier sur trois lignes au plus, état de la partie en pastille sur la vignette, infos qui ne se découpent plus sur les écrans étroits',

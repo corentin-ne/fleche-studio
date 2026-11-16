@@ -88,7 +88,7 @@ MF.logicInput = (() => {
 
   /** Dessin d'un picross : { rows: ['0110…', …] } ou null (le moteur prend alors un cœur). */
   async function picture(o) {
-    const n = clamp(o.size || 15, 5, 30);
+    const n = clamp(o.size || 15, 5, 48);
     try {
       if (o.source === 'shape') {
         const m = MF.shapes.mask(o.shape || 'heart', n, n, 0);
@@ -112,6 +112,86 @@ MF.logicInput = (() => {
       }
       const canvas = drawText(o.emoji || EMOJIS[0], EMOJI_FONT);
       return canvas ? fit(canvas, n, o.detail) : null;
+    } catch { return null; }
+  }
+
+  /* ---------------- Coloriage magique ---------------- */
+  /** Dessin en couleurs d'un emoji, d'un texte, d'une forme ou d'une photo (canvas), ou null. */
+  async function source(o) {
+    if (o.source === 'shape') {
+      const n = 200, m = MF.shapes.mask(o.shape || 'heart', 50, 50, 0);
+      const c = document.createElement('canvas');
+      c.width = c.height = n;
+      const g = c.getContext('2d');
+      const grad = g.createLinearGradient(0, 0, n, n);
+      grad.addColorStop(0, '#ff7a59'); grad.addColorStop(0.5, '#e4405f'); grad.addColorStop(1, '#7b3fe4');
+      g.fillStyle = grad;
+      for (let i = 0; i < m.length; i++) if (m[i]) g.fillRect((i % 50) * 4, Math.floor(i / 50) * 4, 4, 4);
+      return { canvas: cropped(c), opaque: false };
+    }
+    if (o.source === 'text') return { canvas: drawText((o.text || 'A').slice(0, 12), '800 "Inter", "Arial Black", sans-serif', '#e4405f'), opaque: false };
+    if (o.source === 'image' && o.imageId) {
+      await MF.assets.ensure([o.imageId]);
+      const src = MF.assets.url(o.imageId);
+      if (!src) return null;
+      const img = await loadImage(src);
+      const c = document.createElement('canvas');
+      const k = Math.min(1, 600 / Math.max(img.width, img.height));
+      c.width = Math.max(1, Math.round(img.width * k)); c.height = Math.max(1, Math.round(img.height * k));
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      return { canvas: c, opaque: true };
+    }
+    return { canvas: drawText(o.emoji || EMOJIS[0], EMOJI_FONT), opaque: false };
+  }
+  /** @type {(c: number[]) => string} */
+  const hex = ([r, g, b]) => `#${[r, g, b].map(v => Math.round(MF.util.clamp(v, 0, 255)).toString(16).padStart(2, '0')).join('')}`;
+  /**
+   * Coloriage : chaque case prend la couleur moyenne de son morceau de dessin, puis les couleurs sont
+   * regroupées en k teintes (k-moyennes). Case vide (fond transparent) : '0', blanche.
+   * @returns {Promise<{ rows: string[], palette: string[] } | null>}
+   */
+  async function colors(o) {
+    try {
+      const src = await source(o);
+      if (!src?.canvas) return null;
+      const { canvas, opaque } = src;
+      const n = clamp(o.size || 20, 8, 40);
+      const ratio = canvas.width / canvas.height;
+      const w = ratio >= 1 ? n : clamp(Math.round(n * ratio), 6, n), h = ratio >= 1 ? clamp(Math.round(n / ratio), 6, n) : n;
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const px = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+      const cells = [];
+      for (let r = 0; r < h; r++) {
+        for (let c = 0; c < w; c++) {
+          const x0 = Math.floor((c * canvas.width) / w), x1 = Math.max(x0 + 1, Math.floor(((c + 1) * canvas.width) / w));
+          const y0 = Math.floor((r * canvas.height) / h), y1 = Math.max(y0 + 1, Math.floor(((r + 1) * canvas.height) / h));
+          let a = 0, R = 0, G = 0, B = 0, k = 0;
+          for (let y = y0; y < y1; y++) for (let x = x0; x < x1; x++) { const i = (y * canvas.width + x) * 4, al = px[i + 3] / 255; a += al; R += px[i] * al; G += px[i + 1] * al; B += px[i + 2] * al; k++; }
+          cells.push(opaque || a / k > 0.5 ? [R / a, G / a, B / a] : null);
+        }
+      }
+      const K = { easy: 4, medium: 6, hard: 8, expert: 10 }[o.level] || 6;
+      const pts = cells.filter(Boolean);
+      if (pts.length < 4) return null;
+      // k-moyennes (départ : couleurs éloignées les unes des autres)
+      const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2;
+      const centers = [pts[Math.floor(pts.length / 2)]];
+      while (centers.length < Math.min(K, pts.length)) centers.push(pts.reduce((best, p) => (Math.min(...centers.map(c => d2(c, p))) > Math.min(...centers.map(c => d2(c, best))) ? p : best), pts[0]));
+      const label = new Array(pts.length).fill(0);
+      for (let it = 0; it < 12; it++) {
+        pts.forEach((p, i) => { let b = 0; centers.forEach((c, j) => { if (d2(c, p) < d2(centers[b], p)) b = j; }); label[i] = b; });
+        centers.forEach((c, j) => { const mine = pts.filter((_, i) => label[i] === j); if (mine.length) centers[j] = [0, 1, 2].map(k => mine.reduce((s, p) => s + p[k], 0) / mine.length); });
+      }
+      // Couleurs utilisées seulement, de la plus claire à la plus foncée
+      const lum = c => 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+      const used = [...new Set(label)].sort((a, b) => lum(centers[b]) - lum(centers[a]));
+      const index = new Map(used.map((j, k) => [j, k + 1]));
+      let q = 0;
+      const codes = cells.map(c => (c ? index.get(label[q++]).toString(36).toUpperCase() : '0'));
+      return {
+        rows: Array.from({ length: h }, (_, r) => codes.slice(r * w, r * w + w).join('')),
+        palette: ['#ffffff', ...used.map(j => hex(centers[j]))],
+      };
     } catch { return null; }
   }
 
@@ -143,10 +223,24 @@ MF.logicInput = (() => {
     return cats.slice(0, K);
   }
 
+  /* ---------------- 7 différences ---------------- */
+  /** Décor d'un univers du Murdoku : couleurs des sols, meubles (emoji), couleurs des personnages, murs. */
+  function scene(o) {
+    const th = MF.murdokuThemes.resolve(o.universe || 'manor', 'fr');
+    const rooms = th.roomTypes.map(type => th.rooms[type]).filter(Boolean);
+    const floors = [...new Set(rooms.flatMap(r => [r.floor?.[1], r.floor?.[2]]).filter(c => /^#[0-9a-f]{6}$/i.test(c || '')))].slice(0, 12);
+    const icons = [...new Set(Object.values({ ...MF.murdokuView.ICONS, ...th.icons }).filter(x => typeof x === 'string' && x.length <= 12))].slice(0, 40);
+    return { floors, icons, people: MF.murdoku.COLORS.slice(), wall: rooms.find(r => /^#[0-9a-f]{6}$/i.test(r.wall || ''))?.wall || '#5a4636' };
+  }
+
   /** Options supplémentaires du calcul d'un jeu (à ajouter à MF.paper.gridOptions). */
   async function prepare(pz) {
     const o = MF.logic.settings(pz.game, pz.options.logic);
-    if (pz.game === 'picross') return { picture: await picture(o) };
+    if (pz.game === 'picross' || pz.game === 'mosaique') return { picture: await picture(o) };
+    // Points à relier : dessin fin (48 cases), seul son contour compte
+    if (pz.game === 'points') return { picture: await picture({ ...o, size: 48, detail: 'silhouette' }) };
+    if (pz.game === 'coloriage') return { colors: await colors(o) };
+    if (pz.game === 'differences') return { scene: scene(o) };
     if (pz.game === 'logigramme') return { cats: categories(o, pz.options.lang) };
     return {};
   }

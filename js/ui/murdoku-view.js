@@ -605,5 +605,5 @@ MF.murdokuView = (() => {
   /** Vignette du tableau de bord (plan 2D, solution cachée). */
   const thumb = pz => (pz.layout?.engine === 'murdoku' ? planSvg(pz.layout.pages[0], { labels: false, cls: 'dash-svg' }) : '');
 
-  return { LOOKS, MOODS, LEVELS, levelName, themeOf, options, hashOf, engine, release, generate, planSvg, load3d, renderStudio, renderPlay, openExport, composePage, thumb, clueList };
+  return { ICONS, LOOKS, MOODS, LEVELS, levelName, themeOf, options, hashOf, engine, release, generate, planSvg, load3d, renderStudio, renderPlay, openExport, composePage, thumb, clueList };
 })();

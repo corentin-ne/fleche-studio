@@ -439,11 +439,18 @@ MF.liveBuild = (() => {
       const wave = (r + c) / Math.max(1, w + h - 2);
       let a = 'O|', b = a;
       if (cell?.type === 'letter') {
-        if (cell.mark === 'fill') b = cell.ch === '1' ? 'L| |f' : 'L||';
+        // Nombre de la case (hitori, mosaïque, coloriage…) : visible dès le départ
+        const lab = cell.label ? `L|${cell.label}|gv` : cell.item ? `L|${cell.item.emoji || '●'}|gv` : 'L||';
+        if (cell.icon) b = `L|${cell.icon === 'start' ? '▶' : '★'}|gv`;
         else if (cell.mark === 'dot') b = cell.ch === 'O' ? 'L|●|' : 'L|×|x';
+        else if (cell.mark === 'binary') b = `L|${cell.ch}|${cell.given ? 'gv' : ''}`;
+        else if (cell.mark === 'paint' || cell.mark === 'diff') b = lab;
+        else if (cell.mark) b = cell.ch === '1' ? 'L| |f' : lab;
         else b = `L|${cell.ch}|${cell.given ? 'gv' : ''}`;
-        a = cell.given ? b : 'L||';
-      } else if (cell?.type === 'sym') a = b = `L|${cell.ch}|gv`;
+        a = cell.given || cell.icon ? b : lab;
+      } else if (cell?.type === 'icon') a = b = 'L|🌳|gv';
+      else if (cell?.type === 'scene') a = b = cell.item ? `L|${cell.item.emoji || '●'}|gv` : 'L||';
+      else if (cell?.type === 'sym') a = b = `L|${cell.ch}|gv`;
       else if (cell?.type === 'block' || cell?.type === 'clue') a = b = 'K|';
       else if (cell?.type === 'hint') a = b = `H|${cell.text}`;
       else if (cell?.type === 'void') a = b = '';

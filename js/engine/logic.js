@@ -15,14 +15,17 @@
 window.MF = window.MF || {};
 
 MF.logic = (() => {
-  const KINDS = ['sudoku', 'wordoku', 'calcudoku', 'futoshiki', 'kakuro', 'nombres', 'picross', 'logigramme', 'echelle', 'citation'];
+  // Jeux du registre (MF.logicGames : gratte-ciel, binairo, étoiles…) à la suite des premiers
+  const EXTRA = MF.logicGames || {};
+  const KINDS = ['sudoku', 'wordoku', 'calcudoku', 'futoshiki', 'kakuro', 'nombres', 'picross', 'logigramme', 'echelle', 'citation', ...Object.keys(EXTRA)];
   /** Jeux dont la grille prend les proportions de la page. */
-  const USES_PAGE = new Set(['kakuro', 'nombres', 'citation']);
+  const USES_PAGE = new Set(['kakuro', 'nombres', 'citation', ...Object.keys(EXTRA).filter(k => EXTRA[k].usesPage)]);
   /** Réglages par défaut de chaque jeu (MF.schema.logicOptions). */
   const DEFAULTS = {
     sudoku: { size: 9, variant: 'classic' }, wordoku: { size: 9 }, calcudoku: { size: 5, variant: 'all' }, futoshiki: { size: 5 },
     kakuro: { size: 8 }, nombres: { size: 9, variant: 'croises' }, picross: { size: 15, source: 'emoji' }, logigramme: { size: 4 },
     echelle: { size: 4, count: 2 }, citation: {}, mystere: {}, cases: {},
+    ...Object.fromEntries(Object.entries(EXTRA).map(([k, g]) => [k, g.defaults || {}])),
   };
 
   /** Réglages complets d'un jeu (valeurs enregistrées, sinon celles par défaut). */
@@ -54,7 +57,7 @@ MF.logic = (() => {
     const game = opts.game;
     if (!KINDS.includes(game)) throw new Error(`jeu inconnu : ${game}`);
     const rnd = MF.util.rng(seed);
-    const o = { ...settings(game, opts.logic), game, lang: opts.lang, aspect: opts.aspect, picture: opts.picture, cats: opts.cats };
+    const o = { ...settings(game, opts.logic), game, lang: opts.lang, aspect: opts.aspect, picture: opts.picture, cats: opts.cats, colors: opts.colors, scene: opts.scene };
     onProgress?.(0.15);
     await MF.util.nextFrame();
     if (signal?.cancelled) return null;
@@ -66,7 +69,7 @@ MF.logic = (() => {
       futoshiki: () => N.futoshiki(o, rnd), kakuro: () => N.kakuro(o, rnd), nombres: () => N.nombres(o, rnd),
       picross: () => P.picross(o, rnd), logigramme: () => P.logigramme(o, rnd),
       echelle: () => Wd.echelle(o, rnd, W), citation: () => Wd.citation(o, rnd),
-    }[game];
+    }[game] || (() => EXTRA[game].generate(o, rnd, W));
     const page = make();
     onProgress?.(1);
     if (signal?.cancelled) return null;
@@ -143,6 +146,7 @@ MF.logic = (() => {
     if (!isObj(p) || !KINDS.includes(p.kind)) return null;
     const out = { engine: 'logic', kind: p.kind, words: [], level: LEVELS.includes(p.level) ? p.level : 'medium' };
     const k = p.kind;
+    if (EXTRA[k]) { try { return EXTRA[k].sanitize(p, out); } catch { return null; } }
     if (k === 'sudoku' || k === 'wordoku') {
       const n = [4, 6, 8, 9].includes(p.n) ? p.n : 0;
       if (!n) return null;

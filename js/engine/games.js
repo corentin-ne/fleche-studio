@@ -8,7 +8,8 @@
    Chaque jeu décrit ses particularités ici (plutôt que des tests sur son
    identifiant dispersés dans l'interface) :
      engine     module de calcul ('builder' | 'meles' | 'logic' | 'murdoku')
-     family     rayon du choix des jeux ('words' | 'numbers' | 'logic')
+     family     rayon du choix des jeux ('words' | 'numbers' | 'logic' | 'art')
+     isNew      jeu ajouté récemment (badge « Nouveau » dans le choix des jeux)
      words      la grille se construit à partir de la liste de mots (false : le jeu se règle
                 dans son propre panneau, à la place des mots)
      clues      le jeu a des définitions (à écrire, ou calculées)
@@ -56,6 +57,18 @@ MF.games = (() => {
       label: t('Wordoku'), short: t('Wordoku'), icon: 'wordoku', engine: 'logic', family: 'words', words: false, clues: false, wordSearch: false, theme: 'lavender',
       desc: t('Un sudoku avec des lettres : un mot se cache dans la première ligne.'),
     },
+    escalier: {
+      label: t('Mots en escalier'), short: t('Escalier'), icon: 'stairs', engine: 'logic', family: 'words', words: false, clues: true, wordSearch: false, theme: 'forest', isNew: true,
+      desc: t('Chaque marche reprend les lettres du mot du dessus, plus une : trouve les mots grâce aux définitions.'),
+    },
+    acrostiche: {
+      label: t('Acrostiche'), short: t('Acrostiche'), icon: 'acrostic', engine: 'logic', family: 'words', words: false, clues: true, wordSearch: false, theme: 'coral', isNew: true,
+      desc: t('Trouve les mots définis : une de leurs lettres, lue de haut en bas, forme un mot caché.'),
+    },
+    anagrammes: {
+      label: t('Anagrammes'), short: t('Anagrammes'), icon: 'shuffle', engine: 'logic', family: 'words', words: false, clues: true, wordSearch: false, theme: 'candy', isNew: true,
+      desc: t('Les lettres sont mélangées : remets-les dans l\'ordre pour retrouver chaque mot.'),
+    },
     sudoku: {
       label: t('Sudoku'), short: t('Sudoku'), icon: 'sudoku', engine: 'logic', family: 'numbers', words: false, clues: false, wordSearch: false, theme: 'minimal',
       desc: t('Chaque chiffre une seule fois par ligne, par colonne et par région. Classique, irrégulier ou X.'),
@@ -76,21 +89,81 @@ MF.games = (() => {
       label: t('Futoshiki'), short: t('Futoshiki'), icon: 'futoshiki', engine: 'logic', family: 'numbers', words: false, clues: false, wordSearch: false, theme: 'japan',
       desc: t('Chaque chiffre une fois par ligne et par colonne, en respectant les signes < et >.'),
     },
+    gratte: {
+      label: t('Gratte-ciel'), short: t('Gratte-ciel'), icon: 'city', engine: 'logic', family: 'numbers', words: false, clues: false, wordSearch: false, theme: 'night', isNew: true,
+      desc: t('Des immeubles de 1 à N étages, un de chaque par ligne et par colonne ; les nombres au bord disent combien on en voit.'),
+    },
+    binairo: {
+      label: t('Binairo'), short: t('Binairo'), icon: 'binary', engine: 'logic', family: 'numbers', words: false, clues: false, wordSearch: false, theme: 'minimal', isNew: true,
+      desc: t('Des 0 et des 1 : autant de chaque par ligne et par colonne, jamais trois pareils à la suite.'),
+    },
+    suguru: {
+      label: t('Suguru'), short: t('Suguru'), icon: 'suguru', engine: 'logic', family: 'numbers', words: false, clues: false, wordSearch: false, theme: 'mint', isNew: true,
+      desc: t('Chaque zone de N cases contient 1 à N ; deux cases qui se touchent, même par un coin, sont toujours différentes.'),
+    },
+    numbrix: {
+      label: t('Numbrix'), short: t('Numbrix'), icon: 'path', engine: 'logic', family: 'numbers', words: false, clues: false, wordSearch: false, theme: 'ocean', isNew: true,
+      desc: t('Remplis la grille pour relier 1, 2, 3… jusqu\'au dernier nombre, chaque nombre touchant le suivant.'),
+    },
     picross: {
-      label: t('Picross'), short: t('Picross'), icon: 'picross', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'crayons',
+      label: t('Picross'), short: t('Picross'), icon: 'picross', engine: 'logic', family: 'art', words: false, clues: false, wordSearch: false, theme: 'crayons',
       desc: t('Noircis les cases d\'après les nombres des lignes et des colonnes : un dessin apparaît.'),
     },
     logigramme: {
       label: t('Logigramme'), short: t('Logigramme'), icon: 'logic', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'kraft',
       desc: t('Qui était où, avec quoi ? Coche la grille d\'après les indices jusqu\'à la seule solution.'),
     },
+    etoiles: {
+      label: t('Étoiles'), short: t('Étoiles'), icon: 'star', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'space', isNew: true,
+      desc: t('Place les étoiles : une par ligne, par colonne et par zone, sans que deux étoiles se touchent.'),
+    },
+    lumieres: {
+      label: t('Lumières'), short: t('Lumières'), icon: 'bulb', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'haunted', isNew: true,
+      desc: t('Allume des lampes pour éclairer chaque case ; deux lampes ne se voient jamais, les murs disent combien de lampes les touchent.'),
+    },
+    tentes: {
+      label: t('Tentes et arbres'), short: t('Tentes'), icon: 'tent', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'forest', isNew: true,
+      desc: t('Plante une tente à côté de chaque arbre ; les tentes ne se touchent jamais, les nombres disent combien par ligne et par colonne.'),
+    },
+    bataille: {
+      label: t('Bataille navale'), short: t('Bataille'), icon: 'ship', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'pirates', isNew: true,
+      desc: t('Retrouve la flotte cachée grâce au nombre de cases de bateau par ligne et par colonne.'),
+    },
+    hitori: {
+      label: t('Hitori'), short: t('Hitori'), icon: 'hitori', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'japan', isNew: true,
+      desc: t('Noircis des cases pour qu\'aucun chiffre ne se répète ; les cases noires ne se touchent pas, les blanches restent reliées.'),
+    },
+    boucle: {
+      label: t('Boucle'), short: t('Boucle'), icon: 'loop', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'chalk', isNew: true,
+      desc: t('Trace une seule boucle fermée : chaque nombre dit combien de ses côtés elle longe.'),
+    },
+    labyrinthe: {
+      label: t('Labyrinthe'), short: t('Labyrinthe'), icon: 'maze', engine: 'logic', family: 'logic', words: false, clues: false, wordSearch: false, theme: 'medieval', isNew: true,
+      desc: t('Trouve le seul chemin du départ à l\'arrivée, dans un carré ou dans une forme au choix.'),
+    },
     murdoku: {
       label: 'Murdoku', short: 'Murdoku', icon: 'magnifier', engine: 'murdoku', family: 'logic', clues: false, words: false, wordSearch: false, theme: 'kraft',
       desc: t('Une enquête en plan : place chaque suspect grâce aux indices, puis démasque le coupable.'),
     },
+    mosaique: {
+      label: t('Mosaïque'), short: t('Mosaïque'), icon: 'mosaic', engine: 'logic', family: 'art', words: false, clues: false, wordSearch: false, theme: 'crayons', isNew: true,
+      desc: t('Chaque nombre dit combien de cases noircir autour de lui (sa case comprise) : un dessin apparaît.'),
+    },
+    coloriage: {
+      label: t('Coloriage magique'), short: t('Coloriage'), icon: 'palette', engine: 'logic', family: 'art', words: false, clues: false, wordSearch: false, theme: 'rainbow', isNew: true,
+      desc: t('Colorie chaque case avec la couleur de son numéro pour révéler le dessin.'),
+    },
+    differences: {
+      label: t('7 différences'), short: t('Différences'), icon: 'compare', engine: 'logic', family: 'art', words: false, clues: false, wordSearch: false, theme: 'manor', isNew: true,
+      desc: t('Deux plans d\'un univers du Murdoku, presque pareils : trouve les cases qui ont changé.'),
+    },
+    points: {
+      label: t('Points à relier'), short: t('Points'), icon: 'dots', engine: 'logic', family: 'art', words: false, clues: false, wordSearch: false, theme: 'pastel', isNew: true,
+      desc: t('Relie les points dans l\'ordre des nombres : le dessin se révèle.'),
+    },
   };
   /** Rayons du choix des jeux, dans l'ordre. */
-  const FAMILIES = [['words', t('Jeux de lettres')], ['numbers', t('Jeux de chiffres')], ['logic', t('Logique & dessin')]];
+  const FAMILIES = [['words', t('Jeux de lettres')], ['numbers', t('Jeux de chiffres')], ['logic', t('Logique & enquêtes')], ['art', t('Dessins à découvrir')]];
   const get = id => GAMES[id] || GAMES.fleches;
   // Modules de calcul (chargés après ce fichier, d'où la résolution à l'appel)
   // Murdoku : pas de mots ; l'adaptateur (empreinte des réglages) vit avec son interface

@@ -37,7 +37,8 @@
     services: ['js/services/dictionary.js', 'js/services/wiki.js', 'js/services/importer.js'],
     engine: [
       'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js', 'js/engine/logic-solver.js', 'js/engine/logic-numbers.js',
-      'js/engine/logic-words.js', 'js/engine/logic-pictures.js', 'js/engine/logic.js', 'js/engine/generator.js',
+      'js/engine/logic-words.js', 'js/engine/logic-pictures.js', 'js/engine/logic-grids.js', 'js/engine/logic-shade.js', 'js/engine/logic-lettres.js', 'js/engine/logic-art.js',
+      'js/engine/logic.js', 'js/engine/generator.js',
       'js/engine/grid-model.js', 'js/engine/logic-model.js', 'js/engine/murdoku.js', 'js/engine/diagnostics.js', 'js/engine/print-effect.js', 'js/engine/renderers.js', 'js/engine/scene.js',
     ],
     ui: [
@@ -58,7 +59,8 @@
   /** Moteur seul, pour le worker de calcul (aucun accès au DOM ni au stockage). */
   const WORKER = [
     'js/core/i18n.js', 'js/core/utils.js', 'js/core/lexicon.js', 'js/engine/shapes.js', 'js/engine/games.js', 'js/engine/paper.js', 'js/engine/builder.js', 'js/engine/wordsearch.js',
-    'js/engine/logic-solver.js', 'js/engine/logic-numbers.js', 'js/engine/logic-words.js', 'js/engine/logic-pictures.js', 'js/engine/logic.js', 'js/engine/grid-model.js', 'js/engine/logic-model.js', 'js/engine/murdoku.js',
+    'js/engine/logic-solver.js', 'js/engine/logic-numbers.js', 'js/engine/logic-words.js', 'js/engine/logic-pictures.js',
+    'js/engine/logic-grids.js', 'js/engine/logic-shade.js', 'js/engine/logic-lettres.js', 'js/engine/logic-art.js', 'js/engine/logic.js', 'js/engine/grid-model.js', 'js/engine/logic-model.js', 'js/engine/murdoku.js',
   ];
 
   /** Ce que chaque point d'entrée charge. */

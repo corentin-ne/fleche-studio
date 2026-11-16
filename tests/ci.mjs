@@ -41,9 +41,10 @@ const fail = msg => { failed++; console.error(`✘ ${msg}`); };
 /**
  * Budget de poids (Ko, non compressé) : une hausse involontaire (fichier dupliqué, données
  * collées par erreur) fait échouer la vérification. À relever consciemment si nécessaire
- * (1200 Ko pour l'application depuis les 12 jeux de chiffres et de logique de la version 5).
+ * (1200 Ko pour l'application depuis les 12 jeux de chiffres et de logique de la version 5, 1360 Ko
+ * depuis les 17 jeux de la version 6).
  */
-const BUDGET = { app: 1200, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 900 };
+const BUDGET = { app: 1360, 'dictionnaire fr': 220, 'dictionnaire en': 220, styles: 160, polices: 800, images: 700, 'murdoku 3D': 900 };
 
 /** Fichiers listés par js/loader.js (même liste que la page et le service worker). */
 async function loaderLists() {
@@ -284,7 +285,8 @@ try {
     page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     await page.goto(`${base}/index.html`);
     await page.waitForSelector('[data-quick="sudoku"]', { timeout: 30000 });
-    const games = ['cases', 'mystere', 'citation', 'echelle', 'wordoku', 'sudoku', 'kakuro', 'nombres', 'calcudoku', 'futoshiki', 'picross', 'logigramme'];
+    // Tous les jeux qui ne partent pas d'une liste de mots (plus les mots casés et le mot mystère)
+    const games = await page.evaluate(() => ['cases', 'mystere', ...MF.logic.KINDS]);
     const ok = [];
     for (const game of games) {
       try {

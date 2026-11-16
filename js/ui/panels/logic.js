@@ -44,11 +44,39 @@ MF.panels.logic = (() => {
       case 'logigramme': return field(t('Univers'), MF.panels.murdoku.themeCards(o.universe, lang, 'data-lg-universe'))
         + field(t('Éléments par catégorie'), seg('size', [[3, '3'], [4, '4'], [5, '5']], o.size))
         + field(t('Catégories'), seg('count', [[3, t('3 : qui, où, quoi')], [4, t('4 : + à quelle heure')]], o.count));
+      case 'gratte': return field(t('Taille'), seg('size', nums([4, 5, 6, 7]), o.size));
+      case 'binairo': return field(t('Taille'), seg('size', nums([6, 8, 10, 12]), o.size));
+      case 'suguru': return ui.slider('size', t('Taille'), o.size, 5, 10, 1);
+      case 'numbrix': return field(t('Variante'), seg('variant', [['numbrix', t('Numbrix')], ['hidato', t('Hidato')]], o.variant || 'numbrix'),
+        (o.variant || 'numbrix') === 'hidato' ? t('Hidato : chaque nombre touche le suivant par un côté ou par un coin.') : t('Numbrix : chaque nombre touche le suivant par un côté.'))
+        + ui.slider('size', t('Taille'), o.size, 5, 9, 1);
+      case 'etoiles': return ui.slider('size', t('Taille'), o.size, 5, 12, 1) + `<p class="field-hint">${t('À partir de 10 × 10 : deux étoiles par ligne, par colonne et par zone.')}</p>`;
+      case 'lumieres': case 'tentes': case 'boucle': return ui.slider('size', t('Taille'), o.size, game === 'boucle' ? 5 : 6, game === 'boucle' ? 10 : 14, 1);
+      case 'bataille': return field(t('Taille'), seg('size', nums([6, 7, 8, 9, 10]), o.size), t('La flotte grandit avec la grille.'));
+      case 'hitori': return field(t('Taille'), seg('size', nums([5, 6, 7, 8, 9]), o.size));
+      case 'labyrinthe': {
+        const shaped = o.source === 'shape';
+        return field(t('Forme'), seg('source', [['emoji', t('Carré')], ['shape', t('Forme au choix')]], shaped ? 'shape' : 'emoji'))
+          + (shaped ? MF.shapePicker.html(o.shape, { compact: true, attrs: id => `data-lshape="${id}"` }) : '')
+          + ui.slider('size', t('Taille'), o.size, 8, 40, 1);
+      }
+      case 'differences': return field(t('Univers'), MF.panels.murdoku.themeCards(o.universe, lang, 'data-lg-universe'))
+        + ui.slider('size', t('Taille'), o.size, 5, 10, 1) + `<p class="field-hint">${t('Le niveau donne le nombre de différences : 5 en facile, 12 en expert, plus discrètes en difficile.')}</p>`;
+      case 'mosaique': return picrossFields(o);
+      case 'coloriage': return picrossFields(o, { min: 10, max: 40, hint: t('Plus le niveau monte, plus il y a de couleurs (4 en facile, 10 en expert).') });
+      case 'points': return picrossFields(o, { noSize: true, hint: t('Le niveau donne le nombre de points : environ 18 en facile, 75 en expert.') });
+      case 'escalier': return field(t('Mot le plus long'), seg('size', [[5, '5'], [6, '6'], [7, '7'], [8, '8'], [9, '9']], o.size));
+      case 'acrostiche': return field(t('Mot caché'), seg('variant', [['first', t('Première lettre')], ['any', t('N\'importe où')]], o.variant === 'any' ? 'any' : 'first'),
+        o.variant === 'any' ? t('La lettre du mot caché peut être n\'importe où dans chaque mot.') : t('Le mot caché se lit avec la première lettre de chaque mot.'))
+        + `<label class="field"><span>${t('Ton mot caché')} <span class="field-hint">${t('facultatif')}</span></span><input class="input" data-ltext="text" maxlength="14" value="${esc(o.text || '')}" placeholder="${esc(lang === 'en' ? 'HAPPY' : 'BRAVO')}" autocapitalize="characters"></label>`;
+      case 'anagrammes': return field(t('Nombre de mots'), seg('size', [[6, '6'], [8, '8'], [10, '10'], [12, '12']], o.size))
+        + `<label class="field"><span>${t('Tes mots')} <span class="field-hint">${t('facultatif')}</span></span><input class="input" data-ltext="text" maxlength="200" value="${esc(o.text || '')}" placeholder="${esc(lang === 'en' ? 'GARDEN, PLANET' : 'JARDIN, PLANÈTE')}" autocapitalize="characters">
+          <span class="field-hint">${t('Séparés par des virgules. Le dictionnaire complète la liste.')}</span></label>`;
       default: return '';
     }
   }
 
-  function picrossFields(o) {
+  function picrossFields(o, { min = 5, max = 30, noSize = false, hint = '' } = {}) {
     const src = o.source || 'emoji';
     let body;
     if (src === 'emoji') {
@@ -66,13 +94,13 @@ MF.panels.logic = (() => {
         <p class="field-hint">${t('Les zones sombres deviennent les cases pleines. Une photo contrastée, un visage de face ou un objet sur fond clair donnent les plus beaux dessins.')}</p>`;
     }
     return field(t('Dessin à découvrir'), seg('source', [['emoji', t('Emoji')], ['shape', t('Forme')], ['text', t('Texte')], ['image', t('Photo')]], src))
-      + body + ui.slider('size', t('Taille'), o.size, 5, 30, 1);
+      + body + (noSize ? '' : ui.slider('size', t('Taille'), o.size, min, max, 1)) + (hint ? `<p class="field-hint">${esc(hint)}</p>` : '');
   }
 
   function render(root, { puzzle, actions }) {
     const game = MF.games.get(puzzle.game);
     const o = MF.logic.settings(puzzle.game, puzzle.options.logic);
-    const usesLang = ['echelle', 'wordoku', 'citation', 'logigramme', 'nombres'].includes(puzzle.game);
+    const usesLang = ['echelle', 'wordoku', 'citation', 'logigramme', 'nombres', 'escalier', 'acrostiche', 'anagrammes'].includes(puzzle.game);
     root.innerHTML = `<div class="logic-panel">
       <div class="logic-head">${ic(game.icon, 'ic-lg')}<div><b>${esc(game.label)}</b><small class="muted">${esc(game.desc)}</small></div></div>
       ${field(t('Difficulté'), seg('level', LEVELS(), o.level))}

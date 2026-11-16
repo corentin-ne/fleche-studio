@@ -349,6 +349,12 @@
     const hintLabel = t(game.wordSearch || isMurdoku(pz) || isLogic(pz) ? 'Indice' : 'Lettre');
     $('#btn-hint').innerHTML = `${ic('bulb')}<span class="lbl lbl-hint">${hintLabel}</span>`;
     $('#btn-hint').setAttribute('aria-label', hintLabel);
+    // Geste de jeu propre au jeu (barre de jeu) ; « Règles » clignote la première fois qu'on joue à ce jeu
+    $('.play-tip').textContent = view.play ? MF.play.tip(d.model, game) : '';
+    if (view.play) {
+      const seen = MF.storage.getJSON(MF.storage.KEYS.rulesSeen, {});
+      $('#btn-rules').classList.toggle('pulse', !(MF.schema.isObj(seen) && seen[pz.game]));
+    }
 
     const entriesFor = MF.play.keyOf(pz, d.page);
     if (view.entriesFor !== entriesFor) {
@@ -698,6 +704,14 @@
       else MF.ui.toast(MF.games.get(store.active().game).wordSearch ? t('{filled} / {total} mots trouvés', r) : `${t('{filled}/{total} cases remplies', r)} · ${plural(r.wrong, 'erreur')}`, r.wrong ? 'warn' : 'info');
     };
     $('#btn-hint').onclick = () => { if (murdokuPlay) { if (!murdokuPlay.reveal()) MF.ui.toast(t('Tout le monde est déjà à sa place.'), 'info'); return; } if (!MF.gridView.reveal('letter')) MF.ui.toast(t('Clique d\'abord une case.'), 'info'); };
+    $('#btn-rules').onclick = () => {
+      const pz = store.active();
+      if (!pz) return;
+      const seen = MF.storage.getJSON(MF.storage.KEYS.rulesSeen, {});
+      MF.storage.set(MF.storage.KEYS.rulesSeen, { ...(MF.schema.isObj(seen) ? seen : {}), [pz.game]: 1 });
+      $('#btn-rules').classList.remove('pulse');
+      MF.play.rules(pz.game, MF.gridView.current()?.model);
+    };
     $('#btn-hint-word').onclick = () => { if (!MF.gridView.reveal('word')) MF.ui.toast(t('Clique d\'abord une case du mot.'), 'info'); };
     $('#btn-clear-play').onclick = () => { if (murdokuPlay) murdokuPlay.clear(); else MF.gridView.clearEntries(); view.playStart = Date.now(); };
 

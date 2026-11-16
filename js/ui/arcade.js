@@ -62,8 +62,11 @@ MF.arcade = (() => {
       ${going.length ? `<section class="arc-sec"><h2>${t('Reprendre')}</h2><div class="arc-row">${going.slice(0, 6).map(card).join('')}</div></section>` : ''}
 
       <section class="arc-sec">
-        <h2>${t('Nouvelle partie')}</h2>
-        ${MF.games.FAMILIES.map(([f, label]) => `<h3 class="arc-family">${esc(label)}</h3><div class="arc-games">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `<button type="button" class="arc-game" data-game="${id}">${ic(g.icon, 'ic-lg')}<b>${esc(g.short)}</b></button>`).join('')}</div>`).join('')}
+        <div class="arc-sec-head"><h2>${t('Nouvelle partie')}</h2><button type="button" class="btn btn-sm" data-arc="random">${ic('dice')}${t('Surprends-moi')}</button></div>
+        <div class="arc-pick">
+        ${MF.ui.gameFilter()}
+        ${MF.games.FAMILIES.map(([f, label]) => `<div data-gf-group><h3 class="arc-family">${esc(label)}</h3><div class="arc-games">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `<button type="button" class="arc-game" data-game="${id}" ${MF.ui.gameAttrs(id)} title="${esc(g.desc)}">${MF.ui.newBadge(id)}${ic(g.icon, 'ic-lg')}<b>${esc(g.short)}</b></button>`).join('')}</div></div>`).join('')}
+        </div>
       </section>
 
       <section class="arc-sec">
@@ -82,7 +85,10 @@ MF.arcade = (() => {
       const c = target.closest('[data-play]');
       if (c) { o.onPlay(c.dataset.play); return; }
       if (target.closest('[data-arc="create"]')) o.onCreate();
+      // Un jeu au hasard (parmi ceux qui ne demandent aucun réglage particulier)
+      if (target.closest('[data-arc="random"]')) { const ids = MF.games.ids; o.onGame(ids[Math.floor(Math.random() * ids.length)]); }
     });
+    MF.ui.bindGameFilter(root.querySelector('.arc-pick'));
   }
 
   /**
@@ -94,7 +100,13 @@ MF.arcade = (() => {
   function setup(game) {
     const g = MF.games.get(game);
     const mdk = game === 'murdoku', logic = g.engine === 'logic';
-    const st = { lang: MF.lexicon.preferred(), size: 'medium', level: 'medium', words: 'random', mdkTheme: 'manor' };
+    // Derniers réglages choisis (niveau, langue, taille, univers) : repris à la partie suivante
+    const prefs = MF.storage.getJSON(MF.storage.KEYS.quickPlay, {});
+    const keep = (v, ok, def) => (ok.includes(v) ? v : def);
+    const st = {
+      lang: keep(prefs?.lang, MF.lexicon.ids, MF.lexicon.preferred()), size: keep(prefs?.size, ['small', 'medium', 'large'], 'medium'),
+      level: keep(prefs?.level, ['easy', 'medium', 'hard', 'expert'], 'medium'), words: 'random', mdkTheme: keep(prefs?.mdkTheme, MF.murdokuThemes.ids, 'manor'),
+    };
     const langs = MF.lexicon.ids.map(l => [l, MF.lexicon.LANGS[l].label]);
     const packs = lang => Object.entries(MF.lexicon.packs(lang)).map(([id, p]) => `<button type="button" class="chip qp-pack" data-qp="words" data-v="pack:${id}" data-lang="${lang}" ${lang === st.lang ? '' : 'hidden'}>${p.emoji} ${esc(p.label)}</button>`).join('');
     const body = mdk
@@ -136,6 +148,7 @@ MF.arcade = (() => {
         label: t('Jouer'), kind: 'primary', icon: 'play',
         value: () => {
           const count = (SIZES().find(s => s[0] === st.size) || [])[2] || 20;
+          MF.storage.set(MF.storage.KEYS.quickPlay, { lang: st.lang, size: st.size, level: st.level, mdkTheme: st.mdkTheme });
           const card = mdk ? MF.murdokuThemes.card(st.mdkTheme, st.lang).label : '';
           return {
             game, lang: st.lang, level: st.level, start: st.words, count, min: 3, max: st.size === 'small' ? 7 : 9,

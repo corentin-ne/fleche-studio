@@ -45,7 +45,7 @@ MF.gridView = (() => {
     if (o.morph) morphFrom(sheet, o.morph, scene, model);
     ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: keep?.dir || 'H', o, cellPx: cell, markup, key: o.key };
     if (mode === 'play') {
-      (model.game === 'meles' ? mountWordSearch : model.toggle ? mountToggle : mountPlay)(sheet);
+      (model.game === 'meles' ? mountWordSearch : model.play === 'dots' ? mountDots : model.toggle ? mountToggle : mountPlay)(sheet);
       if (model.mystery) mountMystery(sheet);
     }
     if (keep) container.querySelector(`.play-cell[data-r="${keep.r}"][data-c="${keep.c}"]`)?.focus({ preventScroll: true });
@@ -116,13 +116,15 @@ MF.gridView = (() => {
     const MC = MF.design.multiColors(ctx.puzzle.design, C, ctx.model);
     const codes = ctx.model.game === 'codes';
     const digits = !!ctx.model.digits;
+    // Numbrix : nombres de plusieurs chiffres dans une case
+    const maxLen = ctx.model.maxLen || 1;
     // Chiffre ou lettre dans le coin de la case (numéros, codes, cages) : la saisie descend un peu
     const corner = codes || ctx.model.game === 'croises' || ctx.model.game === 'calcudoku';
     ctx.model.cells.forEach((row, r) => row.forEach((cell, c) => {
       if (cell.type !== 'letter') return;
       const inp = document.createElement('input');
       inp.className = 'play-cell';
-      inp.maxLength = 1;
+      inp.maxLength = maxLen;
       inp.autocomplete = 'off';
       inp.spellcheck = false;
       inp.setAttribute('autocapitalize', 'characters');
@@ -136,7 +138,7 @@ MF.gridView = (() => {
       const { x, y } = cellBox(r, c);
       Object.assign(inp.style, {
         left: pct(x, W), top: pct(y, H), width: pct(U, W), height: pct(U, H),
-        fontSize: `${ctx.cellPx * (corner ? 0.46 : 0.52)}px`,
+        fontSize: `${ctx.cellPx * (corner ? 0.46 : maxLen > 1 ? 0.4 : 0.52)}px`,
         paddingTop: corner ? `${ctx.cellPx * 0.16}px` : '0',
       });
       // Multicolore : chaque lettre saisie prend la couleur de sa case
@@ -154,7 +156,7 @@ MF.gridView = (() => {
     // Case déjà remplie : la lettre tapée remplace (même si le curseur est resté en place)
     layer.addEventListener('keydown', e => {
       const t = /** @type {HTMLInputElement} */ (e.target);
-      if (t.matches('.play-cell') && !t.readOnly && e.key.length === 1 && !e.ctrlKey && !e.metaKey && t.value) t.select();
+      if (t.matches('.play-cell') && !t.readOnly && e.key.length === 1 && !e.ctrlKey && !e.metaKey && t.value.length >= maxLen && t.selectionStart === t.selectionEnd) t.select();
     });
     layer.addEventListener('mousedown', e => {
       const t = /** @type {HTMLInputElement} */ (e.target);
@@ -166,7 +168,7 @@ MF.gridView = (() => {
     layer.addEventListener('input', e => {
       const t = /** @type {HTMLInputElement} */ (e.target);
       if (t.readOnly) return;
-      const ch = (digits ? t.value.replace(/[^0-9]/g, '') : MF.util.normalize(t.value)).slice(-1);
+      const ch = (digits ? t.value.replace(/[^0-9]/g, '') : MF.util.normalize(t.value)).slice(-maxLen);
       t.value = ch;
       const r = +t.dataset.r, c = +t.dataset.c;
       if (codes) {
@@ -182,7 +184,7 @@ MF.gridView = (() => {
         t.classList.remove('wrong', 'right');
         setEntry(r, c, ch);
       }
-      if (ch) move(r, c, 1, ctx.dir, true);
+      if (ch && ch.length >= maxLen) move(r, c, 1, ctx.dir, true);
       checkDone();
     });
   }
@@ -238,17 +240,31 @@ MF.gridView = (() => {
     ctx.o.onWord?.(wid);
   }
 
-  /* ---------- Picross et logigramme : cases à cocher ---------- */
-  // Picross : vide -> pleine -> croix ; logigramme : vide -> croix -> rond (oui)
-  const CYCLE = { picross: ['', '1', 'x'], logic: ['', 'x', 'O'] };
+  /* ---------- Cases à cocher (picross, logigramme, étoiles, binairo, coloriage…) ---------- */
+  // Picross et semblables : vide -> pleine -> croix ; logigramme : vide -> croix -> rond (oui) ;
+  // binairo : vide -> 0 -> 1 ; labyrinthe : vide -> chemin ; coloriage : la couleur choisie.
+  // exact : la case doit valoir exactement la solution (sinon : cochée ou non).
+  const TOGGLES = {
+    picross: { cycle: ['', '1', 'x'] }, logic: { cycle: ['', 'x', 'O'] }, binary: { cycle: ['', '0', '1'], exact: true },
+    path: { cycle: ['', '1'] }, paint: { cycle: [''], exact: true },
+  };
+  let lastPaint = '1';
+  const CYCLE = Object.fromEntries(Object.entries(TOGGLES).map(([k, v]) => [k, v.cycle]));
+  const toggleKind = () => TOGGLES[ctx.model.toggle] || TOGGLES.picross;
+  /** Valeur attendue d'une case à valeur exacte ('' : rien à faire, le fond d'un coloriage). */
+  const target = cell => (ctx.model.toggle === 'paint' && cell.ch === '0' ? '' : cell.ch);
   function mountToggle(sheet) {
     const { W, H } = ctx.scene;
     const layer = document.createElement('div');
     layer.className = 'play-layer toggle-layer';
+    layer.dataset.toggle = ctx.model.toggle;
+    if (ctx.model.outline) layer.dataset.outline = '1';
     const C = MF.design.resolve(ctx.puzzle.design);
     const MC = MF.design.multiColors(ctx.puzzle.design, C, ctx.model);
     layer.style.setProperty('--play-ink', C.ink);
-    const cycle = CYCLE[ctx.model.toggle];
+    layer.style.setProperty('--play-font', MF.design.font(ctx.puzzle.design.font.letter).css);
+    const cycle = CYCLE[ctx.model.toggle] || CYCLE.picross;
+    const palette = ctx.model.palette || null;
     ctx.marks = MF.schema.isObj(ctx.entries.marks) ? { ...ctx.entries.marks } : {};
     ctx.model.cells.forEach((row, r) => row.forEach((cell, c) => {
       if (cell.type !== 'letter') return;
@@ -256,18 +272,36 @@ MF.gridView = (() => {
       b.type = 'button';
       b.className = 'play-cell toggle-cell';
       b.dataset.r = r; b.dataset.c = c;
-      b.setAttribute('aria-label', MF.i18n.t('Case ligne {row}, colonne {col}', { row: r + 1, col: c + 1 }));
+      if (cell.mark) b.dataset.mark = cell.mark;
+      // Nombre de la case (hitori, mosaïque, boucle) : reste lisible sur une case noircie
+      if (cell.label && cell.mark === 'shade') { b.textContent = cell.label; b.classList.add('has-label'); }
+      b.setAttribute('aria-label', MF.i18n.t('Case ligne {row}, colonne {col}', { row: r + 1, col: c + 1 }) + (cell.label ? ` : ${cell.label}` : ''));
       const { x, y } = cellBox(r, c);
-      Object.assign(b.style, { left: pct(x, W), top: pct(y, H), width: pct(U, W), height: pct(U, H) });
+      Object.assign(b.style, { left: pct(x, W), top: pct(y, H), width: pct(U, W), height: pct(U, H), fontSize: `${ctx.cellPx * 0.5}px` });
       if (MC) b.style.setProperty('--play-ink', MC.letter(r, c, C.ink));
       if (cell.given) { b.disabled = true; b.classList.add('given'); }
       layer.appendChild(b);
     }));
     sheet.appendChild(layer);
+    // Coloriage : palette des couleurs (la couleur choisie se pose au doigt ou à la souris)
+    if (palette) {
+      ctx.paint = lastPaint && parseInt(lastPaint, 36) < palette.length ? lastPaint : '1';
+      const bar = document.createElement('div');
+      bar.className = 'paint-bar';
+      bar.setAttribute('role', 'radiogroup');
+      bar.setAttribute('aria-label', MF.i18n.t('Couleurs'));
+      bar.innerHTML = palette.map((col, i) => (i ? `<button type="button" role="radio" data-paint="${i.toString(36).toUpperCase()}" style="--sw:${col}" aria-label="${MF.i18n.t('Couleur {n}', { n: i })}"><span>${i}</span></button>` : '')).join('')
+        + `<button type="button" role="radio" data-paint="" class="eraser" aria-label="${MF.i18n.t('Gomme')}">${MF.icons.svg('eraser')}</button>`;
+      const pick = v => { ctx.paint = v; lastPaint = v; /** @type {NodeListOf<HTMLElement>} */ (bar.querySelectorAll('[data-paint]')).forEach(x => { const on = x.dataset.paint === v; x.classList.toggle('active', on); x.setAttribute('aria-checked', String(on)); }); };
+      bar.addEventListener('click', e => { const x = /** @type {HTMLElement} */ (e.target).closest('[data-paint]'); if (x) pick(/** @type {HTMLElement} */ (x).dataset.paint); });
+      ctx.container.insertBefore(bar, sheet);
+      pick(ctx.paint);
+    }
     const paint = (b, v) => {
       b.dataset.v = v;
       b.classList.remove('wrong', 'right');
-      b.setAttribute('aria-pressed', String(v === '1' || v === 'O'));
+      b.setAttribute('aria-pressed', String(!!v && v !== 'x'));
+      if (palette) b.style.background = v ? palette[parseInt(v, 36)] || '' : '';
     };
     /** @type {NodeListOf<HTMLButtonElement>} */ (layer.querySelectorAll('.toggle-cell')).forEach(b => paint(b, ctx.marks[key(b.dataset.r, b.dataset.c)] || ''));
     const set = (b, v) => {
@@ -276,15 +310,19 @@ MF.gridView = (() => {
       if (v) ctx.marks[k] = v; else delete ctx.marks[k];
       paint(b, v);
     };
-    const commit = () => { ctx.entries = { ...ctx.entries, marks: { ...ctx.marks } }; ctx.o.onEntries?.(ctx.entries); checkDone(); };
+    const commit = () => { ctx.entries = { ...ctx.entries, marks: { ...ctx.marks } }; ctx.o.onEntries?.(ctx.entries); drawOutline(); checkDone(); };
+    const nextOf = (b, right = false) => {
+      if (palette) return b.dataset.v === ctx.paint ? '' : ctx.paint;
+      if (right) return b.dataset.v === 'x' || !cycle.includes('x') ? '' : 'x';
+      return cycle[(cycle.indexOf(b.dataset.v || '') + 1) % cycle.length];
+    };
     // Glisser : toutes les cases survolées prennent l'état de la première
     let drag = null;
     layer.addEventListener('pointerdown', e => {
       const b = /** @type {HTMLButtonElement | null} */ (/** @type {HTMLElement} */ (e.target).closest('.toggle-cell'));
       if (!b || b.disabled) return;
       e.preventDefault();
-      const cur = cycle.indexOf(b.dataset.v || '');
-      const v = e.button === 2 ? (b.dataset.v === 'x' ? '' : 'x') : cycle[(cur + 1) % cycle.length];
+      const v = nextOf(b, e.button === 2);
       drag = v;
       set(b, v);
       layer.setPointerCapture(e.pointerId);
@@ -292,7 +330,7 @@ MF.gridView = (() => {
     layer.addEventListener('pointermove', e => {
       if (drag === null) return;
       const el = /** @type {HTMLButtonElement | null | undefined} */ (document.elementFromPoint(e.clientX, e.clientY)?.closest('.toggle-cell'));
-      if (el && layer.contains(el) && el.dataset.v !== drag) set(el, drag);
+      if (el && layer.contains(el) && el.dataset.v !== drag) { set(el, drag); drawOutline(); }
     });
     const end = () => { if (drag !== null) { drag = null; commit(); } };
     layer.addEventListener('pointerup', end);
@@ -312,17 +350,97 @@ MF.gridView = (() => {
         }
       } else if (e.key === ' ' || e.key === 'Enter') {
         e.preventDefault();
-        set(b, cycle[(cycle.indexOf(b.dataset.v || '') + 1) % cycle.length]);
+        set(b, nextOf(b));
         commit();
-      } else if (e.key.toLowerCase() === 'x') {
+      } else if (e.key.toLowerCase() === 'x' && cycle.includes('x')) {
         set(b, b.dataset.v === 'x' ? '' : 'x');
+        commit();
+      } else if (palette && /^[0-9a-j]$/i.test(e.key) && parseInt(e.key, 36) < palette.length) {
+        set(b, e.key === '0' ? '' : e.key.toUpperCase());
         commit();
       }
     });
+    drawOutline();
   }
+
   /** Bonne réponse d'une case à cocher : '1' (pleine) / 'O' (oui), sinon rien. */
   const markOn = cell => cell.ch === '1' || cell.ch === 'O';
   const isOn = v => v === '1' || v === 'O';
+
+  /** Boucle : le contour des cases coloriées se dessine au fil du jeu. */
+  function drawOutline() {
+    if (!ctx?.model.outline) return;
+    const layer = ctx.container.querySelector('.toggle-layer');
+    if (!layer) return;
+    const { W, H } = ctx.scene;
+    const on = (r, c) => ctx.marks?.[key(r, c)] === '1';
+    const ox = ctx.scene.grid.ox, oy = ctx.scene.grid.oy;
+    let d = '';
+    for (let r = 0; r <= ctx.model.rows; r++) for (let c = 0; c <= ctx.model.cols; c++) {
+      if (c < ctx.model.cols && on(r - 1, c) !== on(r, c)) d += `M${ox + c * U} ${oy + r * U}h${U}`;
+      if (r < ctx.model.rows && on(r, c - 1) !== on(r, c)) d += `M${ox + c * U} ${oy + r * U}v${U}`;
+    }
+    let svg = layer.querySelector('.outline-svg');
+    if (!svg) {
+      svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      svg.setAttribute('class', 'outline-svg');
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.setAttribute('aria-hidden', 'true');
+      svg.innerHTML = '<path fill="none" stroke-linecap="round" stroke-width="14"/>';
+      layer.appendChild(svg);
+    }
+    svg.firstElementChild.setAttribute('d', d);
+  }
+
+  /* ---------- Points à relier : toucher les points dans l'ordre ---------- */
+  function mountDots(sheet) {
+    const { W, H } = ctx.scene;
+    const dots = ctx.model.dots;
+    const ox = ctx.scene.grid.ox, oy = ctx.scene.grid.oy;
+    const P = dots.map(p => [ox + p.x * U, oy + p.y * U]);
+    const layer = document.createElement('div');
+    layer.className = 'play-layer dots-layer';
+    layer.innerHTML = `<svg class="dots-svg" viewBox="0 0 ${W} ${H}" aria-hidden="true"><polyline fill="none" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
+    const line = layer.querySelector('polyline');
+    ctx.dotsDone = MF.util.clamp(+ctx.entries.dots || 0, 0, dots.length);
+    const redraw = () => {
+      const n = ctx.dotsDone;
+      const pts = P.slice(0, n);
+      if (n === dots.length) pts.push(P[0]);
+      line.setAttribute('points', pts.map(p => p.join(',')).join(' '));
+      layer.querySelectorAll('.dot-btn').forEach((b, i) => { b.classList.toggle('done', i < n); b.classList.toggle('next', i === n); });
+    };
+    dots.forEach((p, i) => {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'play-cell dot-btn';
+      b.dataset.i = String(i);
+      b.setAttribute('aria-label', MF.i18n.t('Point {n}', { n: i + 1 }));
+      const size = `${Math.round(Math.max(26, Math.min(48, ctx.cellPx * 0.5)))}px`;
+      Object.assign(b.style, { left: pct(P[i][0], W), top: pct(P[i][1], H), width: size, height: size });
+      layer.appendChild(b);
+    });
+    layer.addEventListener('click', e => {
+      const b = /** @type {HTMLElement | null} */ (/** @type {HTMLElement} */ (e.target).closest('.dot-btn'));
+      if (!b) return;
+      const i = +b.dataset.i;
+      if (i === ctx.dotsDone) {
+        ctx.dotsDone++;
+        ctx.entries = { ...ctx.entries, dots: ctx.dotsDone };
+        ctx.o.onEntries?.(ctx.entries);
+        redraw();
+        checkDone();
+        /** @type {HTMLElement | null} */ (layer.querySelector(`.dot-btn[data-i="${ctx.dotsDone}"]`))?.focus({ preventScroll: true });
+      } else if (i >= ctx.dotsDone) {
+        b.classList.remove('nope');
+        void b.offsetWidth;
+        b.classList.add('nope');
+      }
+    });
+    sheet.appendChild(layer);
+    ctx.redrawDots = redraw;
+    redraw();
+  }
 
   /* ---------- Mot mystère : une case par lettre sous la liste ---------- */
   function mountMystery(sheet) {
@@ -527,6 +645,18 @@ MF.gridView = (() => {
       if (ctx.model.mystery) { const m = checkMystery(mark); res.total++; if (m.filled === m.total && !m.wrong) res.filled++; res.wrong = m.wrong; }
       return res;
     }
+    if (ctx.model.play === 'dots') return { filled: ctx.dotsDone, total: ctx.model.dots.length, wrong: 0 };
+    if (ctx.model.toggle && toggleKind().exact) {
+      let filled = 0, total = 0, wrong = 0;
+      /** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell')).forEach(b => {
+        const cell = ctx.model.cells[+b.dataset.r][+b.dataset.c];
+        const want = target(cell), v = cell.given ? want : b.dataset.v || '';
+        if (mark) b.classList.remove('wrong', 'right');
+        if (want) total++;
+        if (v && v !== want) { wrong++; if (mark) b.classList.add('wrong'); } else if (v && want) { filled++; if (mark && !cell.given) b.classList.add('right'); }
+      });
+      return { filled, total, wrong };
+    }
     if (ctx.model.toggle) {
       let filled = 0, total = 0, wrong = 0;
       /** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell')).forEach(b => {
@@ -535,7 +665,7 @@ MF.gridView = (() => {
         if (markOn(cell)) total++;
         if (mark) b.classList.remove('wrong', 'right');
         // Une case cochée à tort, ou (picross) une croix sur une case pleine
-        const bad = (isOn(v) && !markOn(cell)) || (v === 'x' && markOn(cell) && ctx.model.toggle === 'picross');
+        const bad = (isOn(v) && !markOn(cell)) || (v === 'x' && markOn(cell) && ctx.model.toggle !== 'logic');
         if (bad) { wrong++; if (mark) b.classList.add('wrong'); } else if (isOn(v)) { filled++; if (mark && !cell.given) b.classList.add('right'); }
       });
       return { filled, total, wrong };
@@ -560,6 +690,30 @@ MF.gridView = (() => {
   /** Révèle la lettre de la case active, ou tout le mot courant. */
   function reveal(what = 'letter') {
     if (!ctx || ctx.mode !== 'play') return false;
+    if (ctx.model.play === 'dots') {
+      if (ctx.dotsDone >= ctx.model.dots.length) return false;
+      ctx.dotsDone++;
+      ctx.entries = { ...ctx.entries, dots: ctx.dotsDone };
+      ctx.o.onEntries?.(ctx.entries);
+      ctx.redrawDots?.();
+      checkDone();
+      return true;
+    }
+    if (ctx.model.toggle && toggleKind().exact) {
+      const todo = [.../** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell:not(:disabled)'))].filter(b => (b.dataset.v || '') !== target(ctx.model.cells[+b.dataset.r][+b.dataset.c]));
+      if (!todo.length) return false;
+      const b = /** @type {HTMLElement} */ (todo[Math.floor(Math.random() * todo.length)]);
+      const v = target(ctx.model.cells[+b.dataset.r][+b.dataset.c]);
+      if (v) ctx.marks[key(b.dataset.r, b.dataset.c)] = v; else delete ctx.marks[key(b.dataset.r, b.dataset.c)];
+      b.dataset.v = v;
+      if (ctx.model.palette) b.style.background = v ? ctx.model.palette[parseInt(v, 36)] : '';
+      b.classList.remove('wrong');
+      b.classList.add('revealed');
+      ctx.entries = { ...ctx.entries, marks: { ...ctx.marks } };
+      ctx.o.onEntries?.(ctx.entries);
+      checkDone();
+      return true;
+    }
     if (ctx.model.toggle) {
       // Une case à cocher (ou à corriger) au hasard parmi les fausses ou manquantes
       const todo = [.../** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell:not(:disabled)'))].filter(b => {
@@ -574,6 +728,7 @@ MF.gridView = (() => {
       b.classList.add('revealed');
       ctx.entries = { ...ctx.entries, marks: { ...ctx.marks } };
       ctx.o.onEntries?.(ctx.entries);
+      drawOutline();
       checkDone();
       return true;
     }
@@ -612,7 +767,7 @@ MF.gridView = (() => {
 
   /** Passe au mot suivant / précédent et place le curseur sur sa première case vide. */
   function stepWord(delta) {
-    if (!ctx || ctx.mode !== 'play' || ctx.model.game === 'meles' || ctx.model.toggle) return false;
+    if (!ctx || ctx.mode !== 'play' || ctx.model.game === 'meles' || ctx.model.toggle || ctx.model.play) return false;
     const ids = [...ctx.model.slots.keys()];
     if (!ids.length) return false;
     const i = ids.indexOf(ctx.current);
@@ -640,11 +795,13 @@ MF.gridView = (() => {
   function clearEntries() {
     if (!ctx) return;
     ctx.container.querySelectorAll('input.play-cell').forEach(inp => { if (!inp.readOnly) { inp.value = ''; inp.classList.remove('wrong', 'right', 'revealed'); } });
-    /** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell:not(:disabled)')).forEach(b => { b.dataset.v = ''; b.classList.remove('wrong', 'right', 'revealed'); b.setAttribute('aria-pressed', 'false'); });
+    /** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell:not(:disabled)')).forEach(b => { b.dataset.v = ''; b.style.background = ''; b.classList.remove('wrong', 'right', 'revealed'); b.setAttribute('aria-pressed', 'false'); });
     if (ctx.marks) ctx.marks = {};
+    if (ctx.dotsDone) { ctx.dotsDone = 0; ctx.redrawDots?.(); }
     ctx.entries = {};
     if (ctx.found) { ctx.found.clear(); ctx.redrawFound?.(); }
     ctx.o.onEntries?.(ctx.entries);
+    drawOutline();
   }
 
   const current = () => ctx;

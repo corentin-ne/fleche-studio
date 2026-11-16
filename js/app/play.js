@@ -123,5 +123,46 @@ MF.play = (() => {
     setTimeout(() => layer.remove(), 4000);
   }
 
-  return { keyOf, load, save, prune, clock, elapsed, record, bestOf, keepAwake, confetti };
+  /* ---------------- Comment jouer ---------------- */
+  const { t } = MF.i18n;
+  // Ce que fait une case à cocher, selon le dessin du jeu
+  const THINGS = { star: 'une étoile', lamp: 'une lampe', tent: 'une tente', ship: 'un morceau de bateau', fill: 'une case pleine', shade: 'une case noircie' };
+  /** Geste de jeu, en une phrase (barre de jeu et règles). */
+  function tip(model, game) {
+    if (!model) return '';
+    if (game?.wordSearch) return t('Glisse le doigt ou la souris sur un mot pour l\'entourer.');
+    if (model.play === 'dots') return t('Touche les points dans l\'ordre : 1, 2, 3…');
+    if (model.outline) return t('Touche les cases de l\'intérieur de la boucle : son contour se trace tout seul.');
+    switch (model.toggle) {
+      case 'logic': return t('Touche une case : une croix (non), puis un rond (oui). Glisse pour en faire plusieurs.');
+      case 'binary': return t('Touche une case : 0, puis 1, puis vide.');
+      case 'path': return t('Touche les cases du chemin, ou glisse pour le tracer.');
+      case 'paint': return t('Choisis une couleur, puis touche ou glisse sur les cases de ce numéro.');
+      case 'picross': {
+        const mark = model.cells.flat().find(c => c?.mark)?.mark || 'fill';
+        return t('Touche une case : {what}, re-touche : une croix (vide). Glisse pour en faire plusieurs.', { what: t(THINGS[mark] || THINGS.fill) });
+      }
+      default: break;
+    }
+    if (model.maxLen > 1) return t('Touche une case et tape le nombre ; flèches pour te déplacer.');
+    if (model.digits) return t('Touche une case et tape un chiffre ; flèches pour te déplacer.');
+    return t('Touche une case et tape · re-touche ou Espace : change de sens.');
+  }
+  /** Fenêtre « Comment jouer » : la règle du jeu, le geste, la remarque de la grille. */
+  function rules(gameId, model) {
+    const g = MF.games.get(gameId);
+    const esc = MF.util.esc;
+    return MF.ui.modal({
+      title: g.label, icon: g.icon, className: 'rules-modal',
+      body: `<div class="stack rules-body">
+        <p class="rules-goal"><b>${t('But du jeu')}</b>${esc(g.desc)}</p>
+        <p class="rules-how"><b>${t('Comment jouer')}</b>${esc(tip(model, g))}</p>
+        ${model?.note ? `<p class="rules-note muted">${esc(model.note)}</p>` : ''}
+        <p class="field-hint">${t('Bloqué ? « Indice » donne une case juste ; « Vérifier » montre les erreurs. Une seule solution est possible.')}</p>
+      </div>`,
+      actions: [{ label: t('C\'est parti'), kind: 'primary', icon: 'play', value: true }],
+    });
+  }
+
+  return { keyOf, load, save, prune, clock, elapsed, record, bestOf, keepAwake, confetti, tip, rules };
 })();

@@ -94,6 +94,21 @@ MF.icons = (() => {
     recenter: '<circle cx="12" cy="12" r="3"/><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/>',
     database: '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
     flag: '<path d="M4 22V4M4 4h13l-2 4 2 4H4"/>',
+    eraser: '<path d="m7 21-4-4a2 2 0 0 1 0-2.8L13.2 4a2 2 0 0 1 2.8 0l5 5a2 2 0 0 1 0 2.8L12 21Z"/><path d="M7 21h14M9 10l6 6"/>',
+    compare: '<rect x="2" y="4" width="9" height="16" rx="2"/><rect x="13" y="4" width="9" height="16" rx="2"/><circle cx="17.5" cy="10" r="2.5"/><path d="M5 15h3M16 15h3"/>',
+    stairs: '<path d="M3 20h18M4 20v-4h5v-4h5V8h5V4"/><path d="M5 16h3M10 12h3M15 8h3" opacity=".5"/>',
+    acrostic: '<path d="M4 6h10M7 12h12M3 18h11"/><rect x="9" y="3" width="4" height="18" rx="1.5"/>',
+    city: '<path d="M3 21h18M5 21V10h4v11M10 21V4h5v17M16 21v-8h3v8"/><path d="M12 7h1M12 10h1M12 13h1M7 13h.01M7 16h.01"/>',
+    binary: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/><circle cx="6" cy="6" r="1.4"/><circle cx="12" cy="12" r="1.4" fill="currentColor"/><circle cx="18" cy="18" r="1.4"/>',
+    suguru: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 10h8v11M11 10V3M11 14h10" stroke-width="2.6"/><path d="M15.5 6.5l1-1v4"/>',
+    path: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M7 7h5v5H7v5h10V7"/><circle cx="7" cy="7" r="1.5" fill="currentColor"/>',
+    tent: '<path d="M2 20h20M12 4 3 20M12 4l9 16M12 4v16"/><path d="m9 20 3-6 3 6"/>',
+    ship: '<path d="M3 15h18l-3 5H6Z"/><path d="M12 3v12M12 4l6 8h-6M12 6l-4 6h4"/>',
+    hitori: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/><path d="M9 3h6v6H9zM3 9h6v6H3zM15 15h6v6h-6z" fill="currentColor"/>',
+    loop: '<path d="M6 5h8v5h4v9H8v-6H5Z"/><circle cx="12" cy="12" r=".6"/><circle cx="15" cy="15" r=".6"/>',
+    maze: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h6M15 3v6h-4M9 13v8M13 13h8M13 13v4h4"/>',
+    mosaic: '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18M15 3v18"/><path d="M9 9h6v6H9zM15 3h6v6h-6z" fill="currentColor" opacity=".55"/>',
+    dots: '<circle cx="5" cy="17" r="1.5"/><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="9" r="1.5"/><circle cx="19" cy="18" r="1.5"/><path d="M5 17 9 6l6 3" stroke-dasharray="2 2"/>',
   };
   const svg = (name, cls = '') => `<svg class="ic ${cls}" viewBox="0 0 24 24" aria-hidden="true">${P[name] || ''}</svg>`;
   /** Remplace les <span data-icon="nom"> par l'icône correspondante. */
@@ -351,5 +366,52 @@ MF.ui = (() => {
     return close;
   }
 
-  return { toast, modal, confirm, prompt, autocomplete, colorField, slider, bindFields, segmented, advanced, bindAdvanced, menu };
+  /* ---------------- Choix des jeux : recherche et filtres ---------------- */
+  // Chaque carte de jeu porte gameAttrs(id) ; chaque rayon (titre + cartes) porte data-gf-group.
+  const fold = x => MF.util.stripAccents(String(x)).toLowerCase();
+  /** Attributs d'une carte de jeu pour le filtre. */
+  const gameAttrs = id => { const g = MF.games.get(id); return `data-gf-family="${g.family}" data-gf-text="${esc(fold(`${id} ${g.label} ${g.short} ${g.desc}`))}"${g.isNew ? ' data-gf-new' : ''}`; };
+  /** Pastille « Nouveau » d'un jeu récent. */
+  const newBadge = id => (MF.games.get(id).isNew ? `<i class="new-badge">${t('Nouveau')}</i>` : '');
+  /** Barre de recherche et de filtres. */
+  function gameFilter() {
+    const fresh = Object.values(MF.games.GAMES).filter(g => g.isNew).length;
+    const chips = [['', t('Tous')], ...(fresh ? [['new', `${t('Nouveaux')} · ${fresh}`]] : []), ...MF.games.FAMILIES];
+    return `<div class="game-filter" role="search">
+      <label class="gf-search">${MF.icons.svg('search', 'ic-sm')}<input type="search" class="input" data-gf-q placeholder="${esc(t('Chercher un jeu…'))}" aria-label="${esc(t('Chercher un jeu'))}" autocomplete="off"></label>
+      <div class="gf-chips" role="group" aria-label="${esc(t('Familles de jeux'))}">${chips.map(([v, l], i) => `<button type="button" class="chip chip-btn${i ? '' : ' active'}" data-gf-chip="${v}" aria-pressed="${!i}">${esc(l)}</button>`).join('')}</div>
+      <p class="gf-empty muted small" hidden>${t('Aucun jeu ne correspond.')}</p>
+    </div>`;
+  }
+  /** Active la recherche et les filtres d'un choix des jeux. Entrée : ouvre le premier jeu affiché. */
+  function bindGameFilter(root) {
+    const q = /** @type {HTMLInputElement | null} */ (root.querySelector('[data-gf-q]'));
+    if (!q) return;
+    let chip = '';
+    const apply = () => {
+      const words = fold(q.value).split(/\s+/).filter(Boolean);
+      let shown = 0;
+      root.querySelectorAll('[data-gf-text]').forEach(el => {
+        const e = /** @type {HTMLElement} */ (el);
+        const ok = (!chip || (chip === 'new' ? e.hasAttribute('data-gf-new') : e.dataset.gfFamily === chip)) && words.every(w => e.dataset.gfText.includes(w));
+        e.hidden = !ok;
+        if (ok) shown++;
+      });
+      root.querySelectorAll('[data-gf-group]').forEach(gr => { /** @type {HTMLElement} */ (gr).hidden = !gr.querySelector('[data-gf-text]:not([hidden])'); });
+      /** @type {HTMLElement} */ (root.querySelector('.gf-empty')).hidden = shown > 0;
+    };
+    q.addEventListener('input', apply);
+    q.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      e.preventDefault();
+      /** @type {HTMLElement | null} */ (root.querySelector('[data-gf-text]:not([hidden])'))?.click();
+    });
+    root.querySelectorAll('[data-gf-chip]').forEach(b => b.addEventListener('click', () => {
+      chip = /** @type {HTMLElement} */ (b).dataset.gfChip;
+      root.querySelectorAll('[data-gf-chip]').forEach(x => { x.classList.toggle('active', x === b); x.setAttribute('aria-pressed', String(x === b)); });
+      apply();
+    }));
+  }
+
+  return { toast, modal, confirm, prompt, autocomplete, colorField, slider, bindFields, segmented, advanced, bindAdvanced, menu, gameFilter, bindGameFilter, gameAttrs, newBadge };
 })();

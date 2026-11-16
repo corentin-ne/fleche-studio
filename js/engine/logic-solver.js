@@ -20,8 +20,11 @@ MF.solver = (() => {
   /**
    * Prépare un problème :
    * @param {{ size: number, values: number, groups?: number[][], full?: number[][], sums?: { cells: number[], combos: number[] }[],
-   *   tuples?: { cells: number[], list: number[][] }[], less?: number[][], fixed?: Record<number, number> }} p
-   *   values : masque des valeurs possibles ; full : groupes qui contiennent chaque valeur exactement une fois
+   *   tuples?: { cells: number[], list: number[][] }[], less?: number[][], fixed?: Record<number, number>,
+   *   counts?: { cells: number[], min: number, max: number }[], domains?: Record<number, number>, accept?: (sol: number[]) => boolean }} p
+   *   values : masque des valeurs possibles ; full : groupes qui contiennent chaque valeur exactement une fois ;
+   *   counts : nombre de cases à 1 dans un ensemble (cases à valeurs 0 / 1) ; domains : masque propre à une case ;
+   *   accept : règle vérifiée sur une solution complète (une seule zone, un chemin…)
    */
   function compile(p) {
     const n = p.size;
@@ -36,6 +39,9 @@ MF.solver = (() => {
       tuples: p.tuples || [],
       less: p.less || [],
       fixed: p.fixed || {},
+      counts: p.counts || [],
+      domains: p.domains || {},
+      accept: p.accept || null,
     };
   }
 
@@ -89,6 +95,15 @@ MF.solver = (() => {
           if (m !== dom[c]) { dom[c] = m; if (!m) return false; changed = true; }
         }
       }
+      // Cases à 0 / 1 : entre min et max cases à 1 dans l'ensemble
+      for (const k of P.counts) {
+        let ones = 0, open = 0;
+        for (const c of k.cells) { const m = dom[c]; if (m === 2) ones++; else if (m === 3) open++; }
+        if (ones > k.max || ones + open < k.min) return false;
+        if (!open) continue;
+        const v = ones === k.max ? 1 : ones + open === k.min ? 2 : 0;
+        if (v) { for (const c of k.cells) if (dom[c] === 3) dom[c] = v; changed = true; }
+      }
       for (const t of P.tuples) {
         const keep = new Array(t.cells.length).fill(0);
         let any = false;
@@ -113,6 +128,7 @@ MF.solver = (() => {
   function solve(p, { limit = 2, rnd = null, maxNodes = 60000 } = {}) {
     const P = compile(p);
     const dom = new Int32Array(P.n).fill(P.values);
+    for (const [c, m] of Object.entries(P.domains)) dom[+c] &= m;
     for (const [c, v] of Object.entries(P.fixed)) dom[+c] = 1 << v;
     let found = 0, nodes = 0;
     /** @type {number[] | null} */ let first = null;
@@ -127,8 +143,9 @@ MF.solver = (() => {
         if (k > 1 && k < bs) { bs = k; best = c; if (k === 2) break; }
       }
       if (best < 0) {
-        found++;
         const sol = Array.from(d, low);
+        if (P.accept && !P.accept(sol)) return;
+        found++;
         if (!first) first = sol; else if (!second) second = sol;
         return;
       }

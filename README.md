@@ -2,8 +2,8 @@
 
 ![Flèche Studio](icons/social.png)
 
-Créateur de grilles de **mots fléchés, croisés, mêlés, codés, sudoku, picross, logigrammes**
-et bien d'autres (17 jeux), 100 % dans le navigateur :
+Créateur de grilles de **mots fléchés, croisés, mêlés, codés, sudoku, picross, logigrammes, gratte-ciel,
+binairo, coloriage magique, 7 différences** et bien d'autres (35 jeux), 100 % dans le navigateur :
 tes mots, tes définitions, ton style. Export PNG, JPEG, WebP, SVG, PDF ou ZIP, lien de partage
 pour jouer en ligne, application installable qui fonctionne hors connexion. Interface en
 français et en anglais.
@@ -14,16 +14,24 @@ listes de mots par thème), sans cookie ni référent.
 
 ## Fonctionnalités
 
-- **17 jeux**, en trois familles :
+- **35 jeux**, en quatre familles :
   - **lettres** : mots fléchés, mots croisés, mots casés, mots codés, mots mêlés, mot mystère (une ou deux
-    grilles par projet), citation codée, échelle de mots, wordoku ;
+    grilles par projet), citation codée, échelle de mots, wordoku, mots en escalier, acrostiche, anagrammes ;
   - **chiffres** : sudoku (classique, irrégulier, X ; 4×4 à 9×9), kakuro, nombres fléchés et croisés
-    (définitions calculées), calcudoku, futoshiki ;
-  - **logique & dessin** : picross (dessin tiré d'un emoji, d'une forme, d'un texte ou d'une photo, sans
-    service extérieur), logigramme (suspects, lieux, objets et heures des univers du Murdoku) et Murdoku.
+    (définitions calculées), calcudoku, futoshiki, gratte-ciel, binairo, suguru, numbrix / hidato ;
+  - **logique & enquêtes** : logigramme (suspects, lieux, objets et heures des univers du Murdoku), Murdoku,
+    étoiles, lumières (akari), tentes et arbres, bataille navale, hitori, boucle (slitherlink), labyrinthe
+    (carré ou dans une forme) ;
+  - **dessins à découvrir** : picross, mosaïque, coloriage magique et points à relier (dessin tiré d'un
+    emoji, d'une forme, d'un texte ou d'une photo, sans service extérieur), 7 différences (deux plans d'un
+    univers du Murdoku : sols, meubles et personnages).
   Les jeux de chiffres et de logique (`js/engine/logic*.js`) sont créés par un solveur de contraintes
   qui garantit **une seule solution** ; ils ont tout le reste en commun avec les grilles de mots
-  (thèmes, multicolore, décor, export, lien de partage, mode jeu chronométré).
+  (thèmes, multicolore, décor, export, lien de partage, mode jeu chronométré). Les jeux de la version 6
+  s'inscrivent dans un registre (`MF.logicGames`, `js/engine/logic-grids.js`) : chacun y décrit son
+  générateur, la vérification de ses pages et son dessin, sans test sur son identifiant ailleurs.
+- **Choix des jeux** : recherche, filtres par famille, pastille « Nouveau », « Surprends-moi » dans la
+  salle de jeu ; en partie, le geste de jeu propre à chaque jeu et un bouton « Règles ».
 - **Murdoku** : une enquête logique sur un plan en diorama 3D peint (rendu adapté de
   [building-builder](https://github.com/corentin-ne/building-builder), sources dans `src3d/`,
   `npm run build:3d` produit `js/vendor/murdoku3d.js`), avec un plan 2D de secours.

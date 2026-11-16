@@ -39,8 +39,9 @@ MF.panels.settings = (() => {
         ${MF.games.get(puzzle.game).wordSearch ? `<div class="field"><span>${t('Sens des mots cachés')}</span>${ui.segmented('directions', [['easy', t('Facile →↓')], ['normal', t('Normal + diagonales')], ['hard', t('Expert : tous sens')]], o.directions, 'data-opt')}</div>` : ''}
         <details class="wz-more game-switch"><summary>${ic(game.icon)}<span>${t('Changer de jeu')}</span><b>${esc(game.label)}</b>${ic('chevronDown', 'ic-sm')}</summary>
           <p class="field-hint">${t('Tes mots restent : seule la façon de les mettre en grille change.')}</p>
-          ${MF.games.FAMILIES.map(([f, label]) => `<div class="pgroup-title">${esc(label)}</div><div class="game-grid">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `
-          <button type="button" class="game-card ${puzzle.game === id ? 'active' : ''}" data-game="${id}">${ic(g.icon)}<b>${esc(g.label)}</b><small>${esc(g.desc)}</small></button>`).join('')}</div>`).join('')}
+          <div class="game-switch-list">${MF.ui.gameFilter()}
+          ${MF.games.FAMILIES.map(([f, label]) => `<div data-gf-group><div class="pgroup-title">${esc(label)}</div><div class="game-grid">${Object.entries(MF.games.GAMES).filter(([, g]) => g.family === f).map(([id, g]) => `
+          <button type="button" class="game-card ${puzzle.game === id ? 'active' : ''}" data-game="${id}" ${MF.ui.gameAttrs(id)}>${ic(g.icon)}<b>${esc(g.label)}${MF.ui.newBadge(id)}</b><small>${esc(g.desc)}</small></button>`).join('')}</div></div>`).join('')}</div>
         </details>`)}
 
       ${S('shape', t('Forme de la grille'), 'heart', `${MF.shapePicker.html(o.shape)}
@@ -134,11 +135,13 @@ MF.panels.settings = (() => {
 
   function bind(root, puzzle, actions, view) {
     const on = (sel, ev, fn) => root.querySelector(sel)?.addEventListener(ev, fn);
+    const list = root.querySelector('.game-switch-list');
+    if (list) MF.ui.bindGameFilter(list);
     on('#set-name', 'change', e => actions.setPuzzle({ name: e.target.value.trim() || puzzle.name }));
     on('#set-mystery', 'change', e => actions.setOptions({ logic: { ...puzzle.options.logic, text: e.target.value.trim() } }));
     root.addEventListener('click', e => {
       const btn = e.target.closest('button');
-      if (!btn) return;
+      if (!btn || btn.dataset.gfChip !== undefined) return;
       if (btn.dataset.stab) { view.settingsTab = btn.dataset.stab; actions.refreshSide(); }
       else if (btn.dataset.game) actions.setGame(btn.dataset.game);
       else if (btn.dataset.shapeId) actions.setOption('shape', btn.dataset.shapeId);
