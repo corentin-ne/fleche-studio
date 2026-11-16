@@ -188,3 +188,14 @@ Ils ne comptent jamais dans l'énigme : un petit tapis décoratif n'est pas l'ob
 `MF.murdoku.OBJECTS[type] = { occupiable, rooms, one?, wall? }` est la source de vérité
 (`rooms` est déduit de `ROOMS[type].objects` ; `one` : au plus un par pièce ; `wall` : posé
 contre un mur de préférence). Le jardin touche toujours le bord du plan.
+
+## Réglages utilisés par les 7 différences
+
+Le jeu des 7 différences (`MF.logicGames.differences`, `js/ui/diff3d.js`) rend deux plateaux presque pareils
+dans une même vue, puis compare les images. Pour qu'un changement reste local :
+
+- `objects[i].k` (facultatif) : variante du modèle (couleurs, forme), sinon tirée de l'ordre des objets ;
+- le petit décor (`src3d/clutter.js`) est tiré case par case ; `puzzle.clutterSalt["r,c"]` donne à une case
+  d'autres accessoires (une différence voulue) ;
+- option de vue `badges: false` : pas de pastille de couleur au-dessus des personnages ;
+- `clutter: 'full'` : tous les coins libres reçoivent des accessoires (niveaux moyen à expert).

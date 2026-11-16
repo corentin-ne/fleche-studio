@@ -155,7 +155,7 @@ MF.games = (() => {
     },
     differences: {
       label: t('7 différences'), short: t('Différences'), icon: 'compare', engine: 'logic', family: 'art', words: false, clues: false, wordSearch: false, theme: 'manor', isNew: true,
-      desc: t('Deux plans d\'un univers du Murdoku, presque pareils : trouve les cases qui ont changé.'),
+      desc: t('Deux plateaux 3D d\'un univers du Murdoku, presque pareils : trouve ce qui a changé.'),
     },
     points: {
       label: t('Points à relier'), short: t('Points'), icon: 'dots', engine: 'logic', family: 'art', words: false, clues: false, wordSearch: false, theme: 'pastel', isNew: true,

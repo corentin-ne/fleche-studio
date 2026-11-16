@@ -297,8 +297,8 @@ try {
         await page.click('.modal-foot .btn-primary');
         await page.waitForFunction(() => document.querySelector('#grid-scroll svg.mf-svg') && !document.querySelector('.live-build') && !document.querySelector('.modal'), null, { timeout: 60000 });
         await page.click('#btn-play');
-        await page.waitForSelector('.play-cell', { timeout: 10000 });
-        const cells = await page.locator('.play-cell').count();
+        await page.waitForSelector('.play-cell, .spot-layer', { timeout: 10000 });
+        const cells = await page.locator('.play-cell').count() || await page.locator('.spot-layer').count();
         // Une case cochée ou remplie, puis vérification
         if (await page.locator('.toggle-cell:not(:disabled)').count()) await page.locator('.toggle-cell:not(:disabled)').first().click();
         await page.click('#btn-check');

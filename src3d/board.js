@@ -296,7 +296,8 @@ export function buildBoard(puzzle, { clutter = 'some' } = {}) {
     if (!(o.r >= 0 && o.r < n && o.c >= 0 && o.c < n)) continue;
     const id = roomOf(o.r, o.c);
     const room = typeOf(id);
-    const k = (counts.get(o.type) ?? 0) + id;
+    // variant index: given by the puzzle (7 differences: stable when another object changes), or by order
+    const k = Number.isInteger(o.k) ? o.k : (counts.get(o.type) ?? 0) + id;
     counts.set(o.type, (counts.get(o.type) ?? 0) + 1);
     const obj = buildObject(o.type, { room, k, seed: seed + o.r * 17 + o.c * 131 + 1, fit: CELL * 0.82, theme: puzzle.theme });
     const p = cellCenter(n, o.r, o.c);

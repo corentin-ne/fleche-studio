@@ -250,6 +250,12 @@ MF.scene = (() => {
     // Traits épais (régions du sudoku, cages du calcudoku, blocs du logigramme, repères du picross)
     const wallW = Math.max(5, (m.line || 2.5) * 2.4);
     for (const w of model.walls || []) ops.push({ op: 'line', x1: ox + w.x1 * U, y1: oy + w.y1 * U, x2: ox + w.x2 * U, y2: oy + w.y2 * U, stroke: w.color || C.frame, sw: w.thin ? wallW * 0.45 : wallW, cap: 'round' });
+    // 7 différences en 3D : les deux images, puis les différences entourées (solution)
+    for (const ph of model.photos || []) {
+      ops.push({ op: 'image', src: ph.src, x: X(ph.x), y: Y(ph.y), w: ph.w * U, h: ph.h * U, fit: 'fill', r: 24 });
+      ops.push({ op: 'rect', x: X(ph.x), y: Y(ph.y), w: ph.w * U, h: ph.h * U, r: 24, fill: 'none', stroke: C.frame, sw: 6 });
+    }
+    if (opts.letters) for (const sp of model.spots || []) for (const dy of [0, -(model.offset3d || 0)]) ops.push({ op: 'circle', cx: X(sp.x), cy: Y(sp.y + dy), r: sp.r * U, fill: 'none', stroke: '#e4405f', sw: 9 });
     // Boucle : points aux coins des cases, et la boucle elle-même (solution)
     if (model.lattice) {
       for (let r = 0; r <= model.rows; r++) for (let c = 0; c <= model.cols; c++) ops.push({ op: 'circle', cx: X(c), cy: Y(r), r: 7, fill: C.ink });

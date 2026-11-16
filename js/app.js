@@ -143,8 +143,12 @@
     );
     const out = await job.run.promise;
     if (job.cancelled || out.cancelled) return;
+    // 7 différences : les deux plateaux 3D se préparent pendant l'animation
+    const pre = out.result && pz.game === 'differences' ? MF.diff3d.request(out.result) : null;
     // Remplissage animé : les cases données, puis la solution, avant le rendu final
     if (out.result && shown()) await MF.liveBuild.finish($('#grid-scroll'), out.result, 0, store.puzzle(pz.id) || pz, finalPlace(store.puzzle(pz.id) || pz, out.result));
+    // 3D lente (petit appareil) : pas plus de 8 s d'attente, la grille passera en 3D toute seule ensuite
+    if (pre) await Promise.race([pre, new Promise(r => setTimeout(r, 8000))]);
     if (job.cancelled) return;
     jobs.delete(pz.id);
     setBusy(false);
@@ -704,6 +708,8 @@
       else MF.ui.toast(MF.games.get(store.active().game).wordSearch ? t('{filled} / {total} mots trouvés', r) : `${t('{filled}/{total} cases remplies', r)} · ${plural(r.wrong, 'erreur')}`, r.wrong ? 'warn' : 'info');
     };
     $('#btn-hint').onclick = () => { if (murdokuPlay) { if (!murdokuPlay.reveal()) MF.ui.toast(t('Tout le monde est déjà à sa place.'), 'info'); return; } if (!MF.gridView.reveal('letter')) MF.ui.toast(t('Clique d\'abord une case.'), 'info'); };
+    // 7 différences : images 3D prêtes (après un rechargement de la page) -> la grille passe du plan à la 3D
+    MF.diff3d.onReady = () => { if (store.active()?.game === 'differences') renderGrid(); };
     $('#btn-rules').onclick = () => {
       const pz = store.active();
       if (!pz) return;

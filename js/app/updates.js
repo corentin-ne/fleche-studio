@@ -24,7 +24,7 @@ MF.updates = (() => {
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
     '18 nouveaux jeux, chacun à solution unique : gratte-ciel, binairo, suguru, numbrix / hidato, étoiles, lumières, tentes et arbres, bataille navale, hitori, boucle, labyrinthe, mosaïque, coloriage magique, points à relier, 7 différences, mots en escalier, acrostiche et anagrammes',
-    'Les 7 différences : deux plans d\'un univers du Murdoku (sols, meubles et personnages de l\'univers), à comparer case par case',
+    'Les 7 différences en 3D : deux plateaux d\'un univers du Murdoku (meubles, personnages, petit décor de plus en plus chargé selon le niveau), les différences repérées sur les images ; plan 2D si le navigateur n\'affiche pas la 3D',
     'Dessins à découvrir : picross, mosaïque, coloriage magique (couleurs tirées de l\'emoji, du texte ou de ta photo) et points à relier (le contour du dessin)',
     'Choix des jeux plus simple : recherche, filtres par famille, pastille « Nouveau » ; dans Jouer, « Surprends-moi » lance un jeu au hasard',
     'En partie : le geste de jeu est expliqué pour chaque jeu, et « Règles » rappelle le but et la façon de jouer',

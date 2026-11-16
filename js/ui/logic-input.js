@@ -224,13 +224,16 @@ MF.logicInput = (() => {
   }
 
   /* ---------------- 7 différences ---------------- */
-  /** Décor d'un univers du Murdoku : couleurs des sols, meubles (emoji), couleurs des personnages, murs. */
+  /** Décor d'un univers du Murdoku : pièces (type, sol, murs), meubles (type et emoji), couleurs des personnages. */
   function scene(o) {
     const th = MF.murdokuThemes.resolve(o.universe || 'manor', 'fr');
-    const rooms = th.roomTypes.map(type => th.rooms[type]).filter(Boolean);
-    const floors = [...new Set(rooms.flatMap(r => [r.floor?.[1], r.floor?.[2]]).filter(c => /^#[0-9a-f]{6}$/i.test(c || '')))].slice(0, 12);
-    const icons = [...new Set(Object.values({ ...MF.murdokuView.ICONS, ...th.icons }).filter(x => typeof x === 'string' && x.length <= 12))].slice(0, 40);
-    return { floors, icons, people: MF.murdoku.COLORS.slice(), wall: rooms.find(r => /^#[0-9a-f]{6}$/i.test(r.wall || ''))?.wall || '#5a4636' };
+    const hex = c => /^#[0-9a-f]{6}$/i.test(c || '');
+    const kinds = th.roomTypes.map(type => ({ type, ...th.rooms[type] }))
+      .filter(r => Array.isArray(r.floor) && hex(r.floor[1]) && hex(r.floor[2]) && hex(r.wall))
+      .map(r => ({ type: r.type, floor: [String(r.floor[0] || 'plain'), r.floor[1], r.floor[2]], wall: r.wall, open: !!r.open }));
+    const icons = { ...MF.murdokuView.ICONS, ...th.icons };
+    const objs = Object.keys(MF.murdoku.OBJECTS).filter(type => typeof icons[type] === 'string');
+    return { kinds, objs, icons: objs.map(type => icons[type]), people: MF.murdoku.COLORS.slice() };
   }
 
   /** Options supplémentaires du calcul d'un jeu (à ajouter à MF.paper.gridOptions). */

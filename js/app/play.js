@@ -132,6 +132,8 @@ MF.play = (() => {
     if (!model) return '';
     if (game?.wordSearch) return t('Glisse le doigt ou la souris sur un mot pour l\'entourer.');
     if (model.play === 'dots') return t('Touche les points dans l\'ordre : 1, 2, 3…');
+    if (model.play === 'spot') return t('Touche une différence sur l\'une ou l\'autre image : elle s\'entoure sur les deux.');
+    if (model.game === 'differences') return t('Touche les cases qui ont changé sur le plan de droite.');
     if (model.outline) return t('Touche les cases de l\'intérieur de la boucle : son contour se trace tout seul.');
     switch (model.toggle) {
       case 'logic': return t('Touche une case : une croix (non), puis un rond (oui). Glisse pour en faire plusieurs.');

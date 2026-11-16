@@ -390,7 +390,7 @@ export class BoardView {
   // ---------------------------------------------------------------- puzzle
   setPuzzle(puzzle, state = {}) {
     if (!puzzle || !puzzle.size || !puzzle.cells) throw new Error('murdoku3d: invalid puzzle');
-    const sig = JSON.stringify([puzzle.size, puzzle.seed, puzzle.rooms, puzzle.cells, puzzle.objects, puzzle.theme, puzzle.roomLabels, this.opts.clutter]);
+    const sig = JSON.stringify([puzzle.size, puzzle.seed, puzzle.rooms, puzzle.cells, puzzle.objects, puzzle.theme, puzzle.roomLabels, puzzle.clutterSalt, this.opts.clutter]);
     if (sig !== this.sig) {
       this.sig = sig;
       this.clearBoard();
@@ -449,6 +449,8 @@ export class BoardView {
         this.dyn.add(chalk);
         want.add(ck);
       }
+      // badges: off for the 7 differences (figures only, no colour disc above the head)
+      if (this.opts.badges === false) continue;
       const bk = `b|${p.id}|${p.name}|${p.color}|${victim}|${selected}|${!!this.opts.names}`;
       const badge = this.cached(bk, () => buildBadge(p, { victim, selected, name: !!this.opts.names }));
       badge.position.set(at.x, y + (victim ? 0.72 : FIGURE_H * 1.12 + 0.16), at.z);

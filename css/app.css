@@ -148,6 +148,10 @@
 .paint-bar button { width: 40px; height: 40px; flex: none; border-radius: 50%; border: 2px solid rgba(0, 0, 0, .15); background: var(--sw, #fff); display: grid; place-items: center; cursor: pointer; font: 800 15px/1 var(--font-sans); color: #fff; text-shadow: 0 0 3px rgba(0, 0, 0, .8); transition: transform .15s; }
 .paint-bar button.active { transform: scale(1.12); box-shadow: 0 0 0 3px var(--bg, #fff), 0 0 0 6px rgb(var(--accent-rgb)); }
 .paint-bar .eraser { background: #fff; color: #444; text-shadow: none; }
+.spot-layer { pointer-events: auto; cursor: crosshair; touch-action: manipulation; }
+.spot-svg .spot-found { fill: none; stroke: #e4405f; stroke-width: 9; animation: popIn .3s var(--ease-spring); }
+.spot-svg .spot-miss { fill: none; stroke: #d11a2a; stroke-width: 7; stroke-linecap: round; animation: spotMiss .7s forwards; }
+@keyframes spotMiss { to { opacity: 0; } }
 .dot-btn { transform: translate(-50%, -50%); border-radius: 50%; }
 .dot-btn:hover, .dot-btn.next { background: rgba(var(--accent-rgb), .18); }
 .dot-btn.next { box-shadow: 0 0 0 3px rgba(var(--accent-rgb), .7); animation: dotPulse 1.4s ease-in-out infinite; }

@@ -407,7 +407,8 @@ const THEME = {
 };
 // Props small enough for a table top
 const SMALL = new Set([...TOP, 'coins', 'pearls', 'shells', 'scroll', 'jar', 'lantern', 'popcorn', 'canisters', 'pumpkin', 'hat', 'grapes', 'letters', 'scarab', 'paperLantern', 'birdcage', 'eggs', 'firecrackers', 'presents']);
-const AMOUNT = { none: 0, some: 0.4, lots: 0.85 };
+// full: every free corner gets something (7 differences, hard levels)
+const AMOUNT = { none: 0, some: 0.4, lots: 0.85, full: 1 };
 const FLOOR_SCALE = 1.35;
 
 /**
@@ -418,8 +419,11 @@ const FLOOR_SCALE = 1.35;
 export function buildClutter(puzzle, o) {
   const amount = AMOUNT[o.clutter] ?? AMOUNT.some;
   if (!amount) return null;
-  const r = rng(((puzzle.seed ?? 1) >>> 0) * 977 + 13);
-  seedBuilders(((puzzle.seed ?? 1) >>> 0) + 4242);
+  const seed = (puzzle.seed ?? 1) >>> 0;
+  // One random stream per cell: changing one cell (7 differences) never reshuffles the others.
+  // clutterSalt["r,c"] gives a cell other props (a difference on purpose).
+  let r = rng(seed * 977 + 13);
+  seedBuilders(seed + 4242);
   const main = new Builder();
   const extra = THEME[puzzle.theme] ?? THEME.manor;
   const put = (name, x, y, z, ry, s = 1) => {
@@ -434,6 +438,7 @@ export function buildClutter(puzzle, o) {
   for (let rr = 0; rr < o.n; rr++)
     for (let cc = 0; cc < o.n; cc++) {
       const cell = o.cells[rr][cc];
+      r = rng((seed * 977 + 13 + (rr * 131 + cc) * 7919 + (Number(puzzle.clutterSalt?.[`${rr},${cc}`]) || 0) * 104729) >>> 0);
       const p = o.cellCenter(o.n, rr, cc);
       const type = o.roomType(rr, cc);
       // On top of a table, desk, counter or cabinet: food and things
@@ -444,7 +449,7 @@ export function buildClutter(puzzle, o) {
       }
       if (cell.object) continue; // beds, sofas, rugs, plants… fill the cell already
       // On the floor: one or two props in the corners (people stand in the middle)
-      const n = r() < amount ? (r() < amount * 0.55 ? (r() < amount * 0.3 ? 3 : 2) : 1) : 0;
+      const n = o.clutter === 'full' ? 2 + (r() < 0.7) + (r() < 0.45) : r() < amount ? (r() < amount * 0.55 ? (r() < amount * 0.3 ? 3 : 2) : 1) : 0;
       // keep the back corners clear under a room-name plate
       const plate = o.plates?.has(`${rr},${cc}`);
       const free = corners.filter(([, sz]) => !plate || sz > 0).sort(() => r() - 0.5);

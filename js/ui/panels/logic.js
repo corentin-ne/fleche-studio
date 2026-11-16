@@ -61,7 +61,7 @@ MF.panels.logic = (() => {
           + ui.slider('size', t('Taille'), o.size, 8, 40, 1);
       }
       case 'differences': return field(t('Univers'), MF.panels.murdoku.themeCards(o.universe, lang, 'data-lg-universe'))
-        + ui.slider('size', t('Taille'), o.size, 5, 10, 1) + `<p class="field-hint">${t('Le niveau donne le nombre de différences : 5 en facile, 12 en expert, plus discrètes en difficile.')}</p>`;
+        + ui.slider('size', t('Taille'), o.size, 5, 8, 1) + `<p class="field-hint">${t('Le niveau donne le nombre de différences : 5 en facile, 12 en expert, plus discrètes en difficile.')}</p>`;
       case 'mosaique': return picrossFields(o);
       case 'coloriage': return picrossFields(o, { min: 10, max: 40, hint: t('Plus le niveau monte, plus il y a de couleurs (4 en facile, 10 en expert).') });
       case 'points': return picrossFields(o, { noSize: true, hint: t('Le niveau donne le nombre de points : environ 18 en facile, 75 en expert.') });

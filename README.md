@@ -23,8 +23,9 @@ listes de mots par thème), sans cookie ni référent.
     étoiles, lumières (akari), tentes et arbres, bataille navale, hitori, boucle (slitherlink), labyrinthe
     (carré ou dans une forme) ;
   - **dessins à découvrir** : picross, mosaïque, coloriage magique et points à relier (dessin tiré d'un
-    emoji, d'une forme, d'un texte ou d'une photo, sans service extérieur), 7 différences (deux plans d'un
-    univers du Murdoku : sols, meubles et personnages).
+    emoji, d'une forme, d'un texte ou d'une photo, sans service extérieur), 7 différences (deux plateaux 3D d'un
+    univers du Murdoku, décor de plus en plus chargé selon le niveau ; différences repérées en comparant les
+    deux images, `js/ui/diff3d.js` ; plan 2D sans WebGL).
   Les jeux de chiffres et de logique (`js/engine/logic*.js`) sont créés par un solveur de contraintes
   qui garantit **une seule solution** ; ils ont tout le reste en commun avec les grilles de mots
   (thèmes, multicolore, décor, export, lien de partage, mode jeu chronométré). Les jeux de la version 6

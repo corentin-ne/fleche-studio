@@ -45,7 +45,7 @@ MF.gridView = (() => {
     if (o.morph) morphFrom(sheet, o.morph, scene, model);
     ctx = { container, sheet, scene, model, puzzle, mode, entries: { ...entries }, dir: keep?.dir || 'H', o, cellPx: cell, markup, key: o.key };
     if (mode === 'play') {
-      (model.game === 'meles' ? mountWordSearch : model.play === 'dots' ? mountDots : model.toggle ? mountToggle : mountPlay)(sheet);
+      (model.game === 'meles' ? mountWordSearch : model.play === 'dots' ? mountDots : model.play === 'spot' ? mountSpot : model.toggle ? mountToggle : mountPlay)(sheet);
       if (model.mystery) mountMystery(sheet);
     }
     if (keep) container.querySelector(`.play-cell[data-r="${keep.r}"][data-c="${keep.c}"]`)?.focus({ preventScroll: true });
@@ -392,6 +392,48 @@ MF.gridView = (() => {
     svg.firstElementChild.setAttribute('d', d);
   }
 
+  /* ---------- 7 différences en 3D : toucher les différences sur l'une ou l'autre image ---------- */
+  function mountSpot(sheet) {
+    const { W, H } = ctx.scene;
+    const ox = ctx.scene.grid.ox, oy = ctx.scene.grid.oy;
+    const spots = ctx.model.spots, off = ctx.model.offset3d;
+    const layer = document.createElement('div');
+    layer.className = 'play-layer spot-layer';
+    layer.setAttribute('role', 'application');
+    layer.setAttribute('aria-label', MF.i18n.t('Touche les différences sur l\'une ou l\'autre image'));
+    layer.innerHTML = `<svg class="dots-svg spot-svg" viewBox="0 0 ${W} ${H}" aria-hidden="true"></svg>`;
+    const svg = layer.querySelector('svg');
+    const saved = Array.isArray(ctx.entries.spots) ? ctx.entries.spots.filter(i => Number.isInteger(i) && i >= 0 && i < spots.length) : [];
+    ctx.spotsFound = new Set(saved);
+    const ring = (sp, cls) => [0, -off].map(dy => `<circle class="${cls}" cx="${ox + sp.x * U}" cy="${oy + (sp.y + dy) * U}" r="${sp.r * U}"/>`).join('');
+    const redraw = () => { svg.innerHTML = [...ctx.spotsFound].map(i => ring(spots[i], 'spot-found')).join(''); };
+    layer.addEventListener('pointerdown', e => {
+      const rect = sheet.getBoundingClientRect();
+      const u = (((e.clientX - rect.left) / rect.width) * W - ox) / U;
+      let v = (((e.clientY - rect.top) / rect.height) * H - oy) / U;
+      if (v < off - 0.3) v += off; // image du haut : même endroit sur l'image du bas
+      const hit = spots.findIndex((sp, i) => !ctx.spotsFound.has(i) && Math.hypot(sp.x - u, sp.y - v) <= sp.r * 1.15);
+      if (hit >= 0) {
+        ctx.spotsFound.add(hit);
+        ctx.entries = { ...ctx.entries, spots: [...ctx.spotsFound] };
+        ctx.o.onEntries?.(ctx.entries);
+        redraw();
+        checkDone();
+        return;
+      }
+      // Raté : une petite croix qui s'efface
+      const x = ((e.clientX - rect.left) / rect.width) * W, y = ((e.clientY - rect.top) / rect.height) * H;
+      const miss = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      miss.setAttribute('d', `M${x - 22} ${y - 22}L${x + 22} ${y + 22}M${x + 22} ${y - 22}L${x - 22} ${y + 22}`);
+      miss.setAttribute('class', 'spot-miss');
+      svg.appendChild(miss);
+      setTimeout(() => miss.remove(), 700);
+    });
+    sheet.appendChild(layer);
+    ctx.redrawSpots = redraw;
+    redraw();
+  }
+
   /* ---------- Points à relier : toucher les points dans l'ordre ---------- */
   function mountDots(sheet) {
     const { W, H } = ctx.scene;
@@ -646,6 +688,7 @@ MF.gridView = (() => {
       return res;
     }
     if (ctx.model.play === 'dots') return { filled: ctx.dotsDone, total: ctx.model.dots.length, wrong: 0 };
+    if (ctx.model.play === 'spot') return { filled: ctx.spotsFound.size, total: ctx.model.spots.length, wrong: 0 };
     if (ctx.model.toggle && toggleKind().exact) {
       let filled = 0, total = 0, wrong = 0;
       /** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell')).forEach(b => {
@@ -690,6 +733,16 @@ MF.gridView = (() => {
   /** Révèle la lettre de la case active, ou tout le mot courant. */
   function reveal(what = 'letter') {
     if (!ctx || ctx.mode !== 'play') return false;
+    if (ctx.model.play === 'spot') {
+      const i = ctx.model.spots.findIndex((_, k) => !ctx.spotsFound.has(k));
+      if (i < 0) return false;
+      ctx.spotsFound.add(i);
+      ctx.entries = { ...ctx.entries, spots: [...ctx.spotsFound] };
+      ctx.o.onEntries?.(ctx.entries);
+      ctx.redrawSpots?.();
+      checkDone();
+      return true;
+    }
     if (ctx.model.play === 'dots') {
       if (ctx.dotsDone >= ctx.model.dots.length) return false;
       ctx.dotsDone++;
@@ -798,6 +851,7 @@ MF.gridView = (() => {
     /** @type {NodeListOf<HTMLElement>} */ (ctx.container.querySelectorAll('.toggle-cell:not(:disabled)')).forEach(b => { b.dataset.v = ''; b.style.background = ''; b.classList.remove('wrong', 'right', 'revealed'); b.setAttribute('aria-pressed', 'false'); });
     if (ctx.marks) ctx.marks = {};
     if (ctx.dotsDone) { ctx.dotsDone = 0; ctx.redrawDots?.(); }
+    if (ctx.spotsFound) { ctx.spotsFound.clear(); ctx.redrawSpots?.(); }
     ctx.entries = {};
     if (ctx.found) { ctx.found.clear(); ctx.redrawFound?.(); }
     ctx.o.onEntries?.(ctx.entries);

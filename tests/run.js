@@ -1003,7 +1003,11 @@
     assert(po.pts.length >= 4 && po.pts.length <= 20, `${po.pts.length} points`);
     for (const level of ['easy', 'expert']) {
       const di = await logicPage('differences', { level, size: 8 });
-      eq(di.a.filter((v, i) => v !== di.b[i]).length, level === 'easy' ? 5 : 12, `différences ${level}`);
+      eq(di.a.filter((v, i) => v !== di.b[i]).length + di.salt.length, level === 'easy' ? 5 : 12, `différences ${level}`);
+      // Jamais une lampe ou une cheminée (elles éclairent toute une zone en 3D)
+      assert(di.a.every((v, i) => v === di.b[i] || ![v, di.b[i]].some(x => x[0] === 'o' && ['lamp', 'fireplace'].includes(di.objs[+x.slice(1)]))), 'lumière changée');
+      const [A, B] = MF.logicGames.differences.boards(di);
+      assert(A.size === 8 && A.objects.every(o => Number.isInteger(o.k)) && Object.keys(B.clutterSalt).length === di.salt.length, 'plateaux 3D');
     }
     assert(!MF.logic.sanitize({ kind: 'differences', n: 5, floors: ['#fff'], icons: ['<b>'], people: ['#000000'] }), 'emoji trafiqué refusé');
   });
