@@ -15,6 +15,7 @@ MF.storage = (() => {
     best: 'mfm:best',             // meilleurs temps (MF.play)
     rulesSeen: 'mfm:rules',       // jeux dont on a déjà lu les règles (bouton « Règles »)
     quickPlay: 'mfm:quick',       // derniers réglages d'une nouvelle partie (salle de jeu)
+    screen: 'mfm:screen',         // écran ouvert (accueil, studio, partie), restauré au rechargement
     lang: 'fleche-studio-lang',   // langue de l'interface (MF.i18n)
     legacy: 'mots-fleches-maker:', // ancienne version de l'application (récupération)
   };

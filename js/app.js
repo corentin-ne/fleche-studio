@@ -512,6 +512,7 @@
     const playing = space() === 'play';
     if (playing && !pz) view.play = false;
     const home = playing ? !view.play : !pz || !!view.home;
+    saveScreen();
     document.body.classList.toggle('no-puzzle', !pz);
     document.body.classList.toggle('space-play', playing);
     document.body.classList.toggle('space-create', !playing);
@@ -530,6 +531,21 @@
     if (home) { renderDashboard(); return; }
     renderGrid();
     renderSide();
+  }
+
+  /** Écran ouvert (accueil, studio ou partie) : mémorisé pour le retrouver après un rechargement. */
+  let screenKey = '';
+  function saveScreen() {
+    const key = `${view.home ? 1 : 0}${view.play ? 1 : 0}`;
+    if (key === screenKey) return;
+    screenKey = key;
+    MF.storage.set(MF.storage.KEYS.screen, { home: !!view.home, play: !!view.play });
+  }
+  function restoreScreen() {
+    const saved = MF.storage.getJSON(MF.storage.KEYS.screen, null);
+    // Première visite : accueil de l'espace ouvert plutôt que directement dans une grille
+    view.home = MF.schema.isObj(saved) ? saved.home === true : true;
+    view.play = MF.schema.isObj(saved) && saved.play === true && !view.home;
   }
 
   /** Espace ouvert : 'create' (studio) ou 'play' (salle de jeu). */
@@ -824,6 +840,7 @@
   async function boot() {
     MF.guard.install(store);
     store.load();
+    restoreScreen();
     MF.i18n.apply();
     MF.icons.hydrate();
     applyTheme();
