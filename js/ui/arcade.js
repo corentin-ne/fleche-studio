@@ -47,8 +47,8 @@ MF.arcade = (() => {
       const g = MF.games.get(p.game), st = states.get(p.id);
       return `<article class="arc-card" style="--c:${esc(p.design.accent)}">
         <button type="button" class="arc-open" data-play="${p.id}" aria-label="${esc(t('Jouer à {name}', { name: p.name }))}">
-          <span class="arc-thumb">${MF.dashboard.thumb(p) || `<span class="dash-empty">${ic(g.icon, 'ic-lg')}</span>`}<span class="arc-go">${ic('play')}</span></span>
-          <span class="arc-info"><b>${esc(p.name)}</b><span>${ic(g.icon, 'ic-xs')}${esc(g.short)} · <em class="arc-st ${st.kind}">${esc(st.label)}</em></span></span>
+          <span class="arc-thumb">${MF.dashboard.thumb(p) || `<span class="dash-empty">${ic(g.icon, 'ic-lg')}</span>`}<em class="arc-st ${st.kind}">${st.kind === 'done' ? ic('star', 'ic-xs') : ''}${esc(st.label)}</em><span class="arc-go">${ic('play')}</span></span>
+          <span class="arc-info"><b title="${esc(p.name)}">${esc(p.name)}</b><span class="arc-meta">${ic(g.icon, 'ic-xs')}<span>${esc(g.short)}</span></span></span>
         </button>
         <button type="button" class="btn btn-sm btn-icon btn-ghost arc-edit" data-edit="${p.id}" title="${esc(t('Modifier dans le studio'))}" aria-label="${esc(t('Éditer {name}', { name: p.name }))}">${ic('edit')}</button>
       </article>`;

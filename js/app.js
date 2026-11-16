@@ -72,6 +72,7 @@
     jobs.set(pzId, job);
     setBusy(true, 0);
     renderGrid();
+    announceBuild();
 
     const engine = engineOf(pz);
     const hash = hashOf(pz);
@@ -120,7 +121,7 @@
     const total = prepared(pz).length;
     const placed = pages.reduce((n, pg) => n + MF.gridModel.placedIn(pg).length, 0);
     // En partie, la grille prête se suffit à elle-même (pas de bilan du studio)
-    if (!view.play) MF.ui.toast(t(pages.length > 1 ? '2 grilles prêtes : {placed} / {total} de tes mots placés' : 'Grille prête : {placed} / {total} de tes mots placés', { placed, total }), placed === total ? 'ok' : 'warn', 4000);
+    if (!view.play && store.get().activeId === pzId && !view.home) MF.ui.toast(t(pages.length > 1 ? '2 grilles prêtes : {placed} / {total} de tes mots placés' : 'Grille prête : {placed} / {total} de tes mots placés', { placed, total }), placed === total ? 'ok' : 'warn', 4000);
   }
 
   /** Jeu de chiffres ou de logique : une seule page, calculée dans le worker (solution unique vérifiée). */
@@ -130,6 +131,7 @@
     jobs.set(pz.id, job);
     setBusy(true, 0);
     renderGrid();
+    announceBuild();
     const shown = () => !job.cancelled && store.get().activeId === pz.id && !view.home;
     const hash = hashOf(pz);
     // Dessin du picross, catégories du logigramme : préparés dans la page
@@ -154,7 +156,7 @@
     }
     view.page = 0;
     store.update(s => { const p = s.puzzles.find(x => x.id === pz.id); if (p) p.layout = layout; }, 'layout');
-    if (!view.play) MF.ui.toast(t('{game} prêt : une seule solution possible.', { game: MF.games.get(pz.game).label }), 'ok', 3000);
+    if (!view.play && store.get().activeId === pz.id && !view.home) MF.ui.toast(t('{game} prêt : une seule solution possible.', { game: MF.games.get(pz.game).label }), 'ok', 3000);
   }
 
   /** Murdoku : nouvelle énigme (calcul rapide, sur place). */
@@ -210,6 +212,17 @@
     if (jobs.get(store.get().activeId) !== job || view.home) return;
     const pz = store.active();
     MF.liveBuild.update($('#grid-scroll'), job.live, { onCancel: cancelGeneration, design: pz?.design, secret: view.play, place: (f, snap) => predictPlace(pz, f, snap) });
+  }
+
+  /**
+   * Téléphone : la grille se construit alors qu'un panneau est affiché (mots ajoutés, réglage
+   * changé) : on le signale, avec un raccourci pour aller voir l'animation.
+   */
+  let announcedAt = 0;
+  function announceBuild() {
+    if (!MF.phoneNav.isPhone() || !view.phonePanel || view.home || view.play || Date.now() - announcedAt < 8000) return;
+    announcedAt = Date.now();
+    MF.ui.toast(t('La grille se construit…'), 'info', 5000, { label: t('Voir'), run: () => showPhone('grid') });
   }
 
   /** Calcul en cours : fine barre de progression (sans prendre de place) et « Mélanger » devient « Arrêter ». */

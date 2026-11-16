@@ -314,7 +314,8 @@ MF.createActions = app => {
       // Grille à remplir soi-même (téléphone) : on arrive directement sur la saisie des mots
       view.phonePanel = !res.play && !mdk && !isLogic && !words.length;
       store.update(s => { s.puzzles.push(pz); s.activeId = pz.id; s.ui.tab = 'words'; s.ui.mode = 'solution'; s.ui.space = res.play ? 'play' : 'create'; }, 'puzzles');
-      if (mdk || isLogic || (res.play && pz.words.length)) { app.regenerate(pz.id); return; }
+      // La grille se construit tout de suite, sous les yeux (pas d'écran « Prêt à construire » entre-temps)
+      if (mdk || isLogic || pz.words.length) { app.regenerate(pz.id); return; }
       if (!words.length) requestAnimationFrame(() => /** @type {HTMLInputElement | null} */ (document.querySelector('#add-form [name=text]'))?.focus());
     },
     quickStart(game, play = false) {

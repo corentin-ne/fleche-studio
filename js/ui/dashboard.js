@@ -80,7 +80,7 @@ MF.dashboard = (() => {
           return `<article class="dash-card ${p.id === o.activeId ? 'is-active' : ''}" data-id="${p.id}" style="--c:${p.design.accent}" tabindex="0" aria-label="${esc(t('Ouvrir {name}', { name: p.name }))}">
             <div class="dash-thumb">${svg || `<div class="dash-empty">${ic('grid', 'ic-lg')}<span>${p.words.length ? t('Pas encore calculée') : t('Aucun mot')}</span></div>`}</div>
             <div class="dash-info">
-              <div class="dash-name"><i class="dot"></i><b>${esc(p.name)}</b></div>
+              <div class="dash-name"><i class="dot"></i><b title="${esc(p.name)}">${esc(p.name)}</b></div>
               <div class="dash-meta">${ic(g.icon, 'ic-xs')}${esc(g.short)} · ${p.game === 'murdoku' ? plural(p.layout?.pages?.[0]?.clues?.length || 0, 'indice') : g.engine === 'logic' ? esc({ easy: t('Facile'), medium: t('Moyen'), hard: t('Difficile'), expert: t('Expert') }[p.layout?.pages?.[0]?.level] || '') : plural(p.words.length, 'mot')} · ${ago(p.updatedAt)}</div>
             </div>
             <div class="dash-tools">
