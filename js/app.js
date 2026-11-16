@@ -268,7 +268,7 @@
   }
 
   function applyAccent(pz) {
-    const accent = pz?.design.accent || '#7b3fe4';
+    const accent = MF.util.uiAccent(pz?.design.accent || '#7b3fe4', store.get().theme);
     const [r, g, b] = hexToRgb(accent);
     const root = document.documentElement.style;
     root.setProperty('--accent', accent);
@@ -281,7 +281,7 @@
   function renderTabs() {
     const s = store.get();
     $('#puzzle-tabs').innerHTML = s.puzzles.map(p => `
-      <button class="ptab ${p.id === s.activeId ? 'active' : ''}" data-id="${p.id}" style="--c:${p.design.accent}" title="${esc(MF.games.get(p.game).label)}">
+      <button class="ptab ${p.id === s.activeId ? 'active' : ''}" data-id="${p.id}" style="${MF.util.accentVars(p.design.accent, s.theme)}" title="${esc(MF.games.get(p.game).label)}">
         <i class="dot"></i>${esc(p.name)}<small>${p.words.length}</small>
       </button>`).join('') +
       `<button class="ptab add" id="btn-new-puzzle" title="${t('Nouvelle grille (N)')}" aria-label="${t('Nouvelle grille')}">${ic('plus')}<span>${t('Nouvelle')}</span></button>`;
@@ -792,7 +792,7 @@
 
   /* ---------------- Démarrage ---------------- */
   function onChange(reason) {
-    if (reason === 'theme') { applyTheme(); return; }
+    if (reason === 'theme') { applyTheme(); applyAccent(store.active()); return; }
     if (reason === 'quota') { MF.guard.recoverQuota(store, { keep: view.entriesFor, backup: () => actions.backup() }); return; }
     if (reason === 'zoom') { renderGrid(); return; }
     renderToolbar();

@@ -77,7 +77,7 @@ MF.dashboard = (() => {
         ${list.map(p => {
           const g = MF.games.get(p.game);
           const svg = thumb(p);
-          return `<article class="dash-card ${p.id === o.activeId ? 'is-active' : ''}" data-id="${p.id}" style="--c:${p.design.accent}" tabindex="0" aria-label="${esc(t('Ouvrir {name}', { name: p.name }))}">
+          return `<article class="dash-card ${p.id === o.activeId ? 'is-active' : ''}" data-id="${p.id}" style="${esc(MF.util.accentVars(p.design.accent, MF.store.get().theme))}" tabindex="0" aria-label="${esc(t('Ouvrir {name}', { name: p.name }))}">
             <div class="dash-thumb">${svg || `<div class="dash-empty">${ic('grid', 'ic-lg')}<span>${p.words.length ? t('Pas encore calculée') : t('Aucun mot')}</span></div>`}</div>
             <div class="dash-info">
               <div class="dash-name"><i class="dot"></i><b title="${esc(p.name)}">${esc(p.name)}</b></div>

@@ -99,6 +99,31 @@ MF.util = (() => {
   }
   /** Couleur de texte lisible sur un fond. */
   const onColor = (hex, dark = '#1d1b22', light = '#ffffff') => (luminance(hex) > 0.42 ? dark : light);
+  /** Rapport de contraste WCAG entre deux couleurs (1 … 21). */
+  function contrast(a, b) {
+    const [hi, lo] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (hi + 0.05) / (lo + 0.05);
+  }
+  /**
+   * Couleur d'accent utilisable dans l'interface : éclaircie sur thème sombre, assombrie sur
+   * thème clair, juste assez pour rester visible sur le fond (contraste ≥ 3, la couleur de la grille ne change pas).
+   * @param {string} hex
+   * @param {'light' | 'dark'} theme
+   */
+  function uiAccent(hex, theme) {
+    const bg = theme === 'light' ? '#eef1f6' : '#07090d';
+    const toward = theme === 'light' ? '#000000' : '#ffffff';
+    for (let t = 0; t <= 1; t += 0.05) {
+      const c = mix(hex, toward, t);
+      if (contrast(c, bg) >= 3) return c;
+    }
+    return toward;
+  }
+  /** Variables CSS d'une carte à la couleur d'une grille : --c (accent lisible) et --on-c (texte posé dessus). */
+  function accentVars(hex, theme) {
+    const c = uiAccent(hex, theme);
+    return `--c:${c};--on-c:${onColor(c)}`;
+  }
 
   /* ---------------- DOM ---------------- */
   /** Crée un élément depuis une chaîne HTML (premier nœud). */
@@ -234,7 +259,7 @@ MF.util = (() => {
 
   return {
     normalize, stripAccents, slug, esc, cleanText, uid, rng, randomSeed, shuffle, hash, clamp, levenshtein,
-    HEX, hexToRgb, rgbToHex, mix, tint, shade, luminance, onColor,
+    HEX, hexToRgb, rgbToHex, mix, tint, shade, luminance, onColor, contrast, uiAccent, accentVars,
     html, $, $$, debounce, throttleFrame, plural,
     download, downloadBlob, readFile, blobToDataUrl, dataUrlToBlob, bytesToB64url, b64urlToBytes,
     fetchJson, pool, nextFrame, sleep, deepClone, parseValue,
