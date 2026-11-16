@@ -1512,4 +1512,5 @@ MF.i18n.add('en', {
   "Voir": "See",
   "Créer une grille montre aussitôt la construction (plus d'écran « Prêt à construire » entre-temps) ; sur téléphone, si la grille se construit pendant qu'un panneau est ouvert, « Voir » y mène": "Creating a puzzle shows the building right away (no more “Ready to build” screen in between); on a phone, if the puzzle builds while a panel is open, “See” takes you there",
   "Cartes des grilles (Jouer et Mes créations) : nom en entier sur trois lignes au plus, état de la partie en pastille sur la vignette, infos qui ne se découpent plus sur les écrans étroits": "Puzzle cards (Play and My creations): full name on up to three lines, game state as a badge on the thumbnail, details no longer broken up on narrow screens",
+  "Jouer sur téléphone : quand le clavier s'ouvre, la grille remonte dans la partie visible de l'écran au lieu d'être cachée, et la case active reste toujours en vue": "Playing on a phone: when the keyboard opens, the puzzle moves up into the visible part of the screen instead of being hidden, and the active square always stays in view",
 });

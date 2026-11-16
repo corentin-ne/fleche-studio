@@ -55,7 +55,32 @@ MF.phoneNav = (() => {
       if (open && !now && shrunk === false && typing(document.activeElement)) /** @type {HTMLElement} */ (document.activeElement).blur();
       open = now;
       document.body.classList.toggle('kb-open', now);
+      fitVisible();
     };
+    /**
+     * Clavier ouvert : l'application tient dans la partie visible de l'écran, au-dessus du
+     * clavier (certains navigateurs le posent par-dessus la page sans la réduire). La grille
+     * remonte au lieu d'être cachée, et la case active reste en vue.
+     */
+    const fitVisible = () => {
+      const st = document.documentElement.style;
+      if (open && vv) {
+        st.setProperty('--vvh', `${Math.round(vv.height)}px`);
+        st.setProperty('--vvt', `${Math.round(vv.offsetTop)}px`);
+        requestAnimationFrame(() => reveal(document.activeElement));
+      } else { st.removeProperty('--vvh'); st.removeProperty('--vvt'); }
+    };
+    /** Case du jeu active : ramenée dans la zone visible de la grille. */
+    const reveal = el => {
+      if (!open || !el?.matches?.('.play-cell')) return;
+      const box = el.closest('.grid-scroll');
+      if (!box) return;
+      const b = box.getBoundingClientRect(), r = el.getBoundingClientRect();
+      if (r.top < b.top + 8 || r.bottom > b.bottom - 8) box.scrollTop += r.top - b.top - (b.height - r.height) / 2;
+      if (r.left < b.left + 8 || r.right > b.right - 8) box.scrollLeft += r.left - b.left - (b.width - r.width) / 2;
+    };
+    addEventListener('focusin', e => { if (open) requestAnimationFrame(() => reveal(e.target)); });
+    vv?.addEventListener('scroll', () => { if (open) document.documentElement.style.setProperty('--vvt', `${Math.round(vv.offsetTop)}px`); });
     addEventListener('focusin', () => setTimeout(update, 300)); // le clavier met un instant à s'ouvrir
     // focusout précède le focusin suivant : on attend la fin du changement de champ
     addEventListener('focusout', () => setTimeout(update, 60));

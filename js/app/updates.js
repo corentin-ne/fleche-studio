@@ -23,6 +23,7 @@ MF.updates = (() => {
 
   /** Nouveautés de la version en cours (affichées dans « À propos »). */
   const NOTES = [
+    'Jouer sur téléphone : quand le clavier s\'ouvre, la grille remonte dans la partie visible de l\'écran au lieu d\'être cachée, et la case active reste toujours en vue',
     'Créer une grille montre aussitôt la construction (plus d\'écran « Prêt à construire » entre-temps) ; sur téléphone, si la grille se construit pendant qu\'un panneau est ouvert, « Voir » y mène',
     'Cartes des grilles (Jouer et Mes créations) : nom en entier sur trois lignes au plus, état de la partie en pastille sur la vignette, infos qui ne se découpent plus sur les écrans étroits',
     'Construction en direct : la grille garde sa taille et sa place du début à la fin (place finale prévue dès le premier essai) ; le panneau de chargement ne prend plus de place : sur téléphone, une fine barre de progression et « Mélanger » devient « Arrêter »',

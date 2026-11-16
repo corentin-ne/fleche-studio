@@ -43,6 +43,8 @@
   /* Clavier ouvert : la barre du bas s'efface, la grille garde toute la hauteur */
   body.kb-open .phone-nav { display: none; }
   body.kb-open .app { padding-bottom: 6px; }
+  /* Clavier posé par-dessus la page : l'application se loge dans la partie visible */
+  body.kb-open .app { position: fixed; left: 0; right: 0; top: var(--vvt, 0px); height: var(--vvh, 100dvh); }
 
   /* ---------- Carte de la grille ---------- */
   .grid-head { padding: 8px 8px 6px 12px; gap: 6px; }
