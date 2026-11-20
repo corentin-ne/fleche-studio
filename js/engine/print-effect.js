@@ -139,7 +139,7 @@ MF.printEffect = (() => {
   const loadSvg = markup => new Promise(resolve => {
     const url = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml' }));
     const im = new Image();
-    im.onload = () => { URL.revokeObjectURL(url); resolve(im); };
+    im.onload = () => { URL.revokeObjectURL(url); resolve(MF.util.canvasSafe(im) ? im : null); };
     im.onerror = () => { URL.revokeObjectURL(url); resolve(null); };
     im.src = url;
   });
@@ -173,7 +173,7 @@ MF.printEffect = (() => {
         + `<defs>${filter(id, W, H, k, { y: uy - margin, h: uh + margin * 2 })}</defs>`
         + `<image href="${src}" x="0" y="0" width="${f(W)}" height="${f(H)}" preserveAspectRatio="none" filter="url(#${id})"/></svg>`;
       const img = await loadSvg(markup);
-      if (!img) return cv; // navigateur sans filtres SVG en image : export sans l'effet
+      if (!img) return cv; // navigateur sans filtres SVG en image (ou canvas jugé non sûr) : export sans l'effet
       g.drawImage(img, 0, y0, cv.width, y1 - y0);
     }
     return out;

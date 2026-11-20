@@ -52,9 +52,17 @@ MF.exporter = (() => {
     await document.fonts?.ready;
     const ty = TYPES[o.type] || TYPES.png;
     const scene = sceneOf(page, o, MF.assets.url);
+    if (o.noPrint) scene.print = 0;
     // JPEG n'a pas de transparence : fond blanc dessous
     const cv = await MF.renderers.canvas(scene, { scale: o.width / scene.W, matte: ty.alpha ? null : '#ffffff' });
-    const blob = await new Promise(r => cv.toBlob(r, ty.mime, o.quality));
+    let blob;
+    try { blob = await new Promise(r => cv.toBlob(r, ty.mime, o.quality)); } catch (e) {
+      cv.width = cv.height = 0;
+      if (e?.name !== 'SecurityError') throw e;
+      // Canvas jugé non sûr par le navigateur : nouvel essai sans l'effet impression
+      if (!o.noPrint && scene.print) return render(page, { ...o, noPrint: true });
+      throw new Error(t('Export bloqué par le navigateur : essayez le format SVG ou PDF'), { cause: e });
+    }
     cv.width = cv.height = 0; // libère la mémoire tout de suite
     // Navigateur sans encodeur WebP : il renvoie du PNG, on garde la bonne extension
     const ext = blob?.type === 'image/png' ? 'png' : o.type === 'jpeg' ? 'jpg' : o.type;

@@ -255,10 +255,27 @@ MF.util = (() => {
   /** Valeur d'un attribut data-v : booléen, nombre ou texte. */
   const parseValue = v => (v === 'true' ? true : v === 'false' ? false : /^-?\d+(\.\d+)?$/.test(v) ? +v : v);
 
+  /**
+   * L'image peut-elle être dessinée sans « salir » le canvas ? Certains navigateurs
+   * (Safari surtout) marquent comme non sûr un SVG chargé en image qui contient
+   * lui-même une image : le canvas devient alors inexportable (SecurityError).
+   */
+  function canvasSafe(img) {
+    if (!img) return false;
+    try {
+      const c = document.createElement('canvas');
+      c.width = c.height = 1;
+      const g = c.getContext('2d');
+      g.drawImage(img, 0, 0, 1, 1);
+      g.getImageData(0, 0, 1, 1);
+      return true;
+    } catch { return false; }
+  }
+
   const deepClone = o => (typeof structuredClone === 'function' ? structuredClone(o) : JSON.parse(JSON.stringify(o)));
 
   return {
-    normalize, stripAccents, slug, esc, cleanText, uid, rng, randomSeed, shuffle, hash, clamp, levenshtein,
+    canvasSafe, normalize, stripAccents, slug, esc, cleanText, uid, rng, randomSeed, shuffle, hash, clamp, levenshtein,
     HEX, hexToRgb, rgbToHex, mix, tint, shade, luminance, onColor, contrast, uiAccent, accentVars,
     html, $, $$, debounce, throttleFrame, plural,
     download, downloadBlob, readFile, blobToDataUrl, dataUrlToBlob, bytesToB64url, b64urlToBytes,

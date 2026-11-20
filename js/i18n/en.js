@@ -819,6 +819,7 @@ MF.i18n.add('en', {
   "Léger et net, pour le web": "Light and sharp, for the web",
   "Vectoriel : Canva, Illustrator, impression géante": "Vector: Canva, Illustrator, giant prints",
   "Format non pris en charge par ce navigateur": "Format not supported by this browser",
+  "Export bloqué par le navigateur : essayez le format SVG ou PDF": "Export blocked by the browser: try SVG or PDF",
   "Préparation de {files}…": "Preparing {files}…",
   "Solutions": "Solutions",
   "Grilles": "Puzzles",

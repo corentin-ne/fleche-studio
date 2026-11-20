@@ -146,7 +146,7 @@ MF.renderers = (() => {
   const loadImage = src => new Promise(resolve => {
     const img = new Image();
     img.decoding = 'async';
-    img.onload = () => resolve(img);
+    img.onload = () => resolve(MF.util.canvasSafe(img) ? img : null); // image qui rendrait l'export impossible : ignorée
     img.onerror = () => resolve(null);
     img.src = src;
   });
